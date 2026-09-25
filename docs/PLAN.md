@@ -249,3 +249,41 @@ text AI, and BlockML's data-science ML as blocks.
 3. Lesson cards: English only.
 4. S0 benchmark: a CODE AI laptop opens the benchmark link and sends back
    the results file.
+
+## 8. S0 results — first laptop run (2026-09-25)
+
+**Laptop:** CODE AI laptop, Chrome 153, 8 CPU threads, Intel Iris Xe
+graphics; WebGL, WASM and **WebGPU** all available. Full test (30 runs per
+model), results file received 2026-09-25.
+
+| Model | Best engine | Speed | Download |
+|---|---|---|---|
+| MobileNet v2 1.0 (Image Model features) | WebGPU | 60/s | 13 MB |
+| MobileNet v2 0.5 | WebGPU | 64/s | 8 MB |
+| COCO-SSD lite (Object Detection) | WebGL | 27/s (WebGPU 16/s) | 18 MB |
+| COCO-SSD full | WebGL | 17/s | 65 MB |
+| Hands lite | WebGPU | 30/s (WebGL only 9/s) | 2 MB |
+| Hands full | WebGPU | 20/s | 3.5 MB |
+| MoveNet Lightning (pose) | WebGL / WebGPU | 58–60/s | 0.6 MB |
+| Face mesh | — | **invalid, see below** | 1.6 MB |
+
+- Face + Hand together next to a simulated 30 fps project: 10.5 AI frames/s
+  on WebGPU with the project steady at 30 ticks/s (worst pause 44 ms); WASM
+  starves the project (9 ticks/s), so WASM is fallback only.
+- Image Model: 90 webcam photos → features in 3.0 s; 50 epochs of the
+  softmax head in **0.21 s**.
+- Memory: under 300 MB in every test.
+- **Network:** only the benchmark's own site and `storage.googleapis.com`
+  (model file downloads) — no telemetry. From S1 the models are self-hosted,
+  so the studio will contact only its own site.
+- **Bug found:** the face model found no face in any run. Cause: the face
+  and hand models read the input size from the `<video>` element's
+  `width`/`height` attributes, which are 0 unless set. Reproduced with a
+  photo fed as the camera and fixed (the benchmark now sets them). **The
+  studio must set them too** on the camera video it passes to models. Face
+  timings (and possibly hand timings on WASM/WebGPU) must be re-measured.
+
+**Provisional choices** (confirmed after the re-run): WebGPU as the default
+engine with WebGL fallback; MobileNet v2 1.0; COCO-SSD lite; Hands lite;
+MoveNet Lightning. When two vision extensions run at once, each gets about
+10 updates/second (acceptable for games); a single extension runs at 20–60/s.
