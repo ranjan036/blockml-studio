@@ -5,8 +5,10 @@ train yourself, object detection, face, hand and pose), built for CODE AI
 students. All AI runs on the student's own laptop: no accounts, no per-use
 costs, and camera images never leave the device.
 
-**Status:** planning / S0. The full plan is in the BlockML repo:
-[`docs/07_BLOCKML_STUDIO_PLAN.md`](https://github.com/ranjan036/blockml/blob/master/docs/07_BLOCKML_STUDIO_PLAN.md).
+**Status:** S0 (benchmarking the AI models on CODE AI laptops). Milestones:
+S0 benchmark → S1 editor live at studio.blockml.codeai.ltd → S2 Face + Hand &
+Pose blocks → S3 Image Model trainer → S4 Object Detection → S5 starter
+projects and lesson cards → S6 export AI projects as Android apps.
 
 ## What's here now
 
