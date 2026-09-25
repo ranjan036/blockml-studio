@@ -246,7 +246,8 @@ async function run() {
   $('start-error').textContent = '';
   let stream;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+    stream = new URLSearchParams(location.search).has('testvideo') ? await testStream()
+      : await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
   } catch (err) {
     $('start').disabled = false;
     $('start-error').textContent = 'The camera could not be opened: ' + err.message + '. Allow camera access and try again.';
@@ -254,6 +255,11 @@ async function run() {
   }
   video.srcObject = stream;
   await video.play();
+  // The face and hand models size their input from the element's width/height
+  // attributes, which are 0 on a <video> unless set; the face model then finds
+  // nothing. (CSS still controls how big the preview looks.)
+  video.width = video.videoWidth;
+  video.height = video.videoHeight;
   $('start-card').classList.add('hidden');
   $('run-card').classList.remove('hidden');
 
@@ -349,6 +355,19 @@ function showResults(results) {
       : `${results.training.photos} photos captured in ${(results.training.captureMs / 1000).toFixed(1)} s; 50 epochs trained in ${results.training.trainMs} ms (${results.training.backend}).`}</p>
     <h3>Network requests made by this page</h3>
     <table><tr><th>Server</th><th>Requests</th><th>Downloaded</th><th>Methods</th></tr>${net}</table>`;
+}
+
+// Local debugging only: ?testvideo feeds debug/face.jpg (not in the repo) as the camera.
+async function testStream() {
+  const img = new Image();
+  img.src = 'debug/face.jpg';
+  await img.decode();
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 480;
+  const ctx = c.getContext('2d');
+  const draw = () => { ctx.fillStyle = '#888'; ctx.fillRect(0, 0, 640, 480); ctx.drawImage(img, 200, 0, 384, 480); requestAnimationFrame(draw); };
+  draw();
+  return c.captureStream(30);
 }
 
 $('start').onclick = run;
