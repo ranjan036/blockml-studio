@@ -19,7 +19,7 @@ with a `blockml:` comment so it's easy to find when merging TurboWarp updates.
 | `src/containers/extension-library.jsx`, `src/lib/libraries/extensions/index.jsx` | No online extension gallery; Face Sensing and Custom Extension removed (all standard Scratch extensions stay) | Privacy and safety for students; our own AI extensions come in S2+ |
 | `src/playground/credits/credits.jsx` | Adds who makes BlockML Studio and the source link; keeps all TurboWarp and Scratch credits | Credit and GPL source offer |
 | `static/privacy.html` | Our privacy page | Accurate for this site |
-| `vercel.json` | Build and hosting settings for studio.blockml.codeai.ltd | Deployment |
+| `vercel.json` (here and at the repo root) | Build and hosting settings for studio.blockml.codeai.ltd. The root copy builds `gui/` when the Vercel project's Root Directory is the repo root; this copy is used when it is `gui`. Keep them in sync. | Deployment |
 
 Still contacted by the editor: Scratch's asset server (`cdn.assets.scratch.mit.edu`)
 for the sprite/costume/backdrop/sound libraries, and TurboWarp's server for
