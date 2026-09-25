@@ -1,6 +1,6 @@
 # BlockML Studio — Scratch editor with AI blocks (Vision first) — Plan
 
-*Status: approved 2026-09-25. S0 complete (§9). S1: editor built and tested locally (§10); waiting for Vercel import + DNS to go live.*
+*Status: approved 2026-09-25. S0 complete (§9). S1: editor live at https://blockml-studio.vercel.app (§10); custom domain pending.*
 
 ## 1. Goal
 
@@ -352,3 +352,21 @@ Checked in headless Chrome against the production build:
 **To go live:** import the repo into Vercel with Root Directory `gui`
 (`gui/vercel.json` has the build settings), add the domain
 `studio.blockml.codeai.ltd`, and add the DNS record Vercel shows.
+
+**Deployed (2026-09-25):** Vercel project `blockml-studio` (team
+`ranjan036s-projects`), auto-deploys `main`. Live at
+https://blockml-studio.vercel.app — `/` redirects to `/editor.html`.
+Checked live: default project loads, all block categories, service worker
+registers, and the editor contacts only its own site.
+
+Deployment notes:
+- The project was imported with the repo root as Root Directory, so a root
+  `vercel.json` builds `gui/` (`gui/vercel.json` is the same config for a
+  project whose Root Directory is `gui`).
+- `/` must be a **redirect**, not a rewrite: Vercel serves existing files
+  before rewrites, and `build/index.html` (TurboWarp's player homepage) exists.
+- A second, duplicate Vercel project (`blockml-studio-q46o`) was also created
+  on import; its builds fail. To be deleted in the Vercel dashboard.
+
+Remaining for S1: add `studio.blockml.codeai.ltd` to the Vercel project and
+the DNS record Vercel shows.

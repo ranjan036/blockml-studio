@@ -5,7 +5,7 @@ train yourself, object detection, face, hand and pose), built for CODE AI
 students. All AI runs on the student's own laptop: no accounts, no per-use
 costs, and camera images never leave the device.
 
-**Status:** S1 (editor ready; going live at studio.blockml.codeai.ltd). The full
+**Status:** S1 — the editor is live at https://blockml-studio.vercel.app (moving to studio.blockml.codeai.ltd). The full
 plan, including every AI block and what it teaches, is in
 [`docs/PLAN.md`](docs/PLAN.md). Milestones:
 S0 benchmark → S1 editor live at studio.blockml.codeai.ltd → S2 Face + Hand &
