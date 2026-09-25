@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlockML Studio – laptop AI benchmark</title>
+<script>
+  // Runs before anything else: records every network request the page makes,
+  // so the results show exactly what (if anything) leaves the laptop.
+  window.__net = [];
+  (function () {
+    const log = (entry) => window.__net.push(Object.assign({ t: Math.round(performance.now()) }, entry));
+    const origFetch = window.fetch;
+    window.fetch = async function (input, init) {
+      const url = typeof input === 'string' ? input : input.url;
+      const method = (init && init.method) || (input && input.method) || 'GET';
+      const res = await origFetch.apply(this, arguments);
+      res.clone().arrayBuffer().then((b) => log({ via: 'fetch', method, url: res.url || url, status: res.status, bytes: b.byteLength }), () => {});
+      return res;
+    };
+    const origOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function (method, url) {
+      this.addEventListener('loadend', () => log({ via: 'xhr', method, url: String(url), status: this.status,
+        bytes: this.response && this.response.byteLength !== undefined ? this.response.byteLength : (this.responseText || '').length }));
+      return origOpen.apply(this, arguments);
+    };
+    if (navigator.sendBeacon) {
+      const origBeacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = (url, data) => { log({ via: 'beacon', method: 'POST', url: String(url) }); return origBeacon(url, data); };
+    }
+    const origWS = window.WebSocket;
+    window.WebSocket = function (url, p) { log({ via: 'websocket', url: String(url) }); return new origWS(url, p); };
+  })();
+</script>
+<style>
+  :root { --fg: #1a1a1a; --muted: #64748b; --line: #e2e8f0; --blue: #2563eb; --ok: #15803d; --warn: #b45309; --bad: #b91c1c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; color: var(--fg); background: #f5f6f8; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-top: 16px; }
+  p { line-height: 1.5; }
+  button { padding: 10px 20px; border-radius: 6px; border: 1px solid var(--blue); background: var(--blue); color: #fff; font-size: 15px; cursor: pointer; }
+  button.secondary { background: #fff; color: var(--blue); }
+  button:disabled { opacity: .5; cursor: default; }
+  #stage { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  video { width: 320px; height: 240px; background: #000; border-radius: 8px; transform: scaleX(-1); }
+  #prompt { font-size: 20px; font-weight: 700; min-height: 1.4em; }
+  #step { color: var(--muted); }
+  progress { width: 100%; height: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  .hidden { display: none; }
+  code { background: #f1f5f9; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>BlockML Studio – laptop AI benchmark</h1>
+  <p id="intro">This test measures how fast the planned AI models run on this laptop. It takes about <b>5 minutes</b>.
+    Please use <b>Google Chrome</b>, plug in the charger, and close other programs.
+    The camera is used during the test, but <b>no pictures are saved or sent anywhere</b>. The results contain only numbers.</p>
+
+  <div class="card" id="start-card">
+    <p><b>Before you start:</b> sit in front of the laptop, facing the camera, in a normally lit room.
+       When the page asks, hold up <b>one hand</b> in front of the camera.</p>
+    <button id="start">Start the test</button>
+    <p id="start-error" class="bad"></p>
+  </div>
+
+  <div class="card hidden" id="run-card">
+    <div id="stage">
+      <video id="video" playsinline muted></video>
+      <div style="flex:1; min-width: 260px">
+        <div id="prompt"></div>
+        <p id="step"></p>
+        <progress id="progress" max="1" value="0"></progress>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="result-card">
+    <h2 style="margin-top:0">Done – thank you!</h2>
+    <p><b>Please send the results file to the BlockML team:</b></p>
+    <p><button id="download">Download results file</button> <button id="copy" class="secondary">Copy results</button> <span id="copied" class="ok"></span></p>
+    <div id="summary"></div>
+  </div>
+</main>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
