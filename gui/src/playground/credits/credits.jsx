@@ -59,9 +59,13 @@ const Credits = () => (
                 {APP_NAME} Credits
             </h1>
         </header>
+        {/* blockml: who makes BlockML Studio, and where its source is */}
         <section>
             <p>
-                The {APP_NAME} project is made possible by the work of many volunteers.
+                {APP_NAME} is made by <a href="https://blockml.codeai.ltd/">CODE AI</a> for its students.
+                It is free and open source (GPL-3.0):{' '}
+                <a href="https://github.com/ranjan036/blockml-studio">source code on GitHub</a>.
+                It is built on the work of the TurboWarp and Scratch volunteers credited below.
             </p>
         </section>
         {APP_NAME !== 'TurboWarp' && (
@@ -85,11 +89,11 @@ const Credits = () => (
             </p>
         </section>
         <section>
-            <h2>Contributors</h2>
+            <h2>TurboWarp contributors</h2>
             <UserList users={UserData.contributors} />
         </section>
         <section>
-            <h2>Addons</h2>
+            <h2>TurboWarp addons</h2>
             <UserList users={UserData.addonDevelopers} />
         </section>
         <section>
@@ -97,13 +101,13 @@ const Credits = () => (
             <UserList users={UserData.extensionDevelopers} />
         </section>
         <section>
-            <h2>Documentation</h2>
+            <h2>TurboWarp documentation</h2>
             <UserList users={UserData.docs} />
         </section>
         <section>
             <h2>Translators</h2>
             <p>
-                More than 100 people have helped translate {APP_NAME} and its addons into many languages
+                More than 100 people have helped translate TurboWarp and its addons into many languages
                 &mdash; far more than we could hope to list here.
             </p>
         </section>

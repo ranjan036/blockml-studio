@@ -1,18 +1,16 @@
 import React from 'react';
 import GUI from '../containers/gui.jsx';
 
-const searchParams = new URLSearchParams(location.search);
-const cloudHost = searchParams.get('cloud_host') || 'wss://clouddata.turbowarp.org';
-
+// blockml: no cloud variable server (TurboWarp's is clouddata.turbowarp.org), so cloud
+// variables behave like normal variables. Nothing about a project leaves the laptop.
 const RenderGUI = props => (
     <GUI
-        cloudHost={cloudHost}
-        canUseCloud
-        hasCloudPermission
+        cloudHost={null}
+        canUseCloud={false}
+        hasCloudPermission={false}
         canSave={false}
         basePath={process.env.ROOT}
         canEditTitle
-        enableCommunity
         {...props}
     />
 );

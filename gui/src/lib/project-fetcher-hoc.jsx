@@ -22,37 +22,10 @@ import {
 
 import log from './log';
 import storage from './storage';
-import {ProjectUnsharedError, ProjectFetchError, ProjectUnavailableLegalReasons} from './tw-load-project-error';
+import {ProjectFetchError} from './tw-load-project-error';
 
 import VM from 'scratch-vm';
-import {fetchProjectMeta} from './tw-project-meta-fetcher-hoc.jsx';
 
-// TW: Temporary hack for project tokens
-const fetchProjectToken = async projectId => {
-    if (projectId === '0') {
-        return null;
-    }
-    // Parse ?token=abcdef
-    const searchParams = new URLSearchParams(location.search);
-    if (searchParams.has('token')) {
-        return searchParams.get('token');
-    }
-    // Parse #1?token=abcdef
-    const hashParams = new URLSearchParams(location.hash.split('?')[1]);
-    if (hashParams.has('token')) {
-        return hashParams.get('token');
-    }
-    try {
-        const metadata = await fetchProjectMeta(projectId);
-        return metadata.project_token;
-    } catch (e) {
-        log.error(e);
-        if (e instanceof ProjectUnavailableLegalReasons) {
-            throw e;
-        }
-        throw new ProjectUnsharedError('Cannot access project token. Project is probably unshared. See https://docs.turbowarp.org/unshared-projects');
-    }
-};
 
 /* Higher Order Component to provide behavior for loading projects by id. If
  * there's no id, the default project is loaded.
@@ -130,16 +103,17 @@ const ProjectFetcherHOC = function (WrappedComponent) {
                         return r.arrayBuffer();
                     })
                     .then(buffer => ({data: buffer}));
+            } else if (projectId === '0') {
+                // The built-in default project (served from memory by our storage helper)
+                assetPromise = storage.load(storage.AssetType.Project, projectId, storage.DataFormat.JSON);
             } else {
-                // TW: Temporary hack for project tokens
-                assetPromise = fetchProjectToken(projectId)
-                    .then(token => {
-                        storage.setProjectToken(token);
-                        return storage.load(storage.AssetType.Project, projectId, storage.DataFormat.JSON)
-                            .catch(err => {
-                                throw new ProjectFetchError(`Could not load project: ${err}`);
-                            });
-                    });
+                // blockml: loading scratch.mit.edu projects by ID goes through TurboWarp's
+                // servers (trampoline.turbowarp.org), which BlockML Studio doesn't use.
+                // Students download the project from Scratch and use File > Load instead.
+                assetPromise = Promise.reject(new ProjectFetchError(
+                    'Opening Scratch projects by ID is not available in BlockML Studio. ' +
+                    'Download the project from Scratch (File > Save to your computer) and open it with File > Load.'
+                ));
             }
 
             return assetPromise

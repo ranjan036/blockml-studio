@@ -233,3 +233,12 @@
     color: inherit;
     text-decoration: none;
 }
+
+/* blockml: product name at the left of the menu bar */
+.blockml-brand {
+    font-weight: bold;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    padding: 0 0.75rem 0 0.5rem;
+    cursor: default;
+}

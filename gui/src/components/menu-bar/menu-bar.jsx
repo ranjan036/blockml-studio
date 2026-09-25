@@ -32,7 +32,6 @@ import FramerateChanger from '../../containers/tw-framerate-changer.jsx';
 import ChangeUsername from '../../containers/tw-change-username.jsx';
 import CloudVariablesToggler from '../../containers/tw-cloud-toggler.jsx';
 import TWSaveStatus from './tw-save-status.jsx';
-import TWNews from './tw-news.jsx';
 
 import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
@@ -492,6 +491,10 @@ class MenuBar extends React.Component {
             >
                 <div className={styles.mainMenu}>
                     <div className={styles.fileGroup}>
+                        {/* blockml: product name at the left of the menu bar */}
+                        <div className={classNames(styles.menuBarItem, styles.blockmlBrand)}>
+                            {APP_NAME}
+                        </div>
                         {this.props.errors.length > 0 && <div>
                             <MenuLabel
                                 open={this.props.errorsMenuOpen}
@@ -516,14 +519,16 @@ class MenuBar extends React.Component {
                                     place={this.props.isRtl ? 'left' : 'right'}
                                 >
                                     <MenuSection>
-                                        <MenuItemLink href="https://scratch.mit.edu/users/GarboMuffin/#comments">
+                                        {/* blockml: bug reports come to us */}
+                                        <MenuItemLink href="https://github.com/ranjan036/blockml-studio/issues">
                                             <FormattedMessage
                                                 defaultMessage="Some scripts encountered errors."
                                                 description="Link in error menu"
                                                 id="tw.menuBar.reportError1"
                                             />
                                         </MenuItemLink>
-                                        <MenuItemLink href="https://scratch.mit.edu/users/GarboMuffin/#comments">
+                                        {/* blockml: bug reports come to us */}
+                                        <MenuItemLink href="https://github.com/ranjan036/blockml-studio/issues">
                                             <FormattedMessage
                                                 defaultMessage="This is a bug. Please report it."
                                                 description="Link in error menu"
@@ -1011,23 +1016,19 @@ class MenuBar extends React.Component {
                             />
                         ) : []))}
                     </div>
-                    {/* tw: add a feedback button */}
+                    {/* blockml: link back to BlockML (was TurboWarp's feedback button) */}
                     <div className={styles.menuBarItem}>
                         <a
                             className={styles.feedbackLink}
-                            href="https://scratch.mit.edu/users/GarboMuffin/#comments"
+                            href="https://blockml.codeai.ltd/"
                             rel="noopener noreferrer"
                             target="_blank"
                         >
-                            {/* todo: icon */}
                             <Button className={styles.feedbackButton}>
                                 <FormattedMessage
-                                    defaultMessage="{APP_NAME} Feedback"
-                                    description="Button to give feedback in the menu bar"
-                                    id="tw.feedbackButton"
-                                    values={{
-                                        APP_NAME
-                                    }}
+                                    defaultMessage="BlockML (data science)"
+                                    description="Button in the menu bar that opens the BlockML machine learning site"
+                                    id="blockml.openBlockML"
                                 />
                             </Button>
                         </a>
@@ -1044,12 +1045,8 @@ class MenuBar extends React.Component {
             </Box>
         );
 
-        return (
-            <React.Fragment>
-                {menuBar}
-                <TWNews />
-            </React.Fragment>
-        );
+        // blockml: no TurboWarp news banner
+        return menuBar;
     }
 }
 

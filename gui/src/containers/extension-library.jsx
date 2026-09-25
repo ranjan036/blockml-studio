@@ -84,6 +84,9 @@ const fetchLibrary = async () => {
     }));
 };
 
+// blockml: see componentDidMount
+const BLOCKML_NO_GALLERY = true;
+
 class ExtensionLibrary extends React.PureComponent {
     constructor (props) {
         super(props);
@@ -97,6 +100,8 @@ class ExtensionLibrary extends React.PureComponent {
         };
     }
     componentDidMount () {
+        // blockml: no online gallery (extensions.turbowarp.org) — only built-in extensions
+        if (BLOCKML_NO_GALLERY) return;
         if (!this.state.gallery) {
             const timeout = setTimeout(() => {
                 this.setState({
@@ -158,7 +163,9 @@ class ExtensionLibrary extends React.PureComponent {
     }
     render () {
         let library = null;
-        if (this.state.gallery || this.state.galleryError || this.state.galleryTimedOut) {
+        if (BLOCKML_NO_GALLERY) {
+            library = extensionLibraryContent.map(toLibraryItem);
+        } else if (this.state.gallery || this.state.galleryError || this.state.galleryTimedOut) {
             library = extensionLibraryContent.map(toLibraryItem);
             library.push('---');
             if (this.state.gallery) {

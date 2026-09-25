@@ -1,6 +1,6 @@
 # BlockML Studio — Scratch editor with AI blocks (Vision first) — Plan
 
-*Status: approved 2026-09-25. S0 complete (§9); S1 next.*
+*Status: approved 2026-09-25. S0 complete (§9). S1: editor built and tested locally (§10); waiting for Vercel import + DNS to go live.*
 
 ## 1. Goal
 
@@ -331,3 +331,24 @@ in every run (face 30/30, hands 30/30 on all engines).
 
 **S0 status:** complete, except DNS for `studio.blockml.codeai.ltd`, which is
 needed only when S1 goes live.
+
+## 10. S1 progress (2026-09-25)
+
+TurboWarp `scratch-gui` imported into `gui/` with `git subtree` (TurboWarp
+commit `25c11c6`), rebranded, and stripped of TurboWarp's online services.
+Every change is listed in `gui/BLOCKML.md` and marked `blockml:` in the code.
+
+Checked in headless Chrome against the production build:
+- Loads the default project; opens a real `.sb3` via `?project_url=`; runs it.
+- Extension library: all standard Scratch extensions + TurboWarp's Custom
+  Reporters and its own blocks; no gallery, no Face Sensing, no Custom Extension.
+- Network: loading the editor contacts only our own site; the sprite library
+  loads pictures from `cdn.assets.scratch.mit.edu` (as every Scratch-based
+  editor does). Privacy page updated to say exactly this.
+- Bug found and fixed while testing: disabling project-by-ID loading also
+  blocked the built-in default project (ID `0`); ID `0` is now loaded
+  directly from memory.
+
+**To go live:** import the repo into Vercel with Root Directory `gui`
+(`gui/vercel.json` has the build settings), add the domain
+`studio.blockml.codeai.ltd`, and add the DNS record Vercel shows.

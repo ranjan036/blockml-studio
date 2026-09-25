@@ -22,7 +22,8 @@ const ACCENT_MAP = {
     [ACCENT_RED]: accentRed,
     [ACCENT_RAINBOW]: accentRainbow
 };
-const ACCENT_DEFAULT = ACCENT_RED;
+// blockml: BlockML's blue by default (students can still pick another in Settings)
+const ACCENT_DEFAULT = ACCENT_BLUE;
 
 const GUI_LIGHT = 'light';
 const GUI_DARK = 'dark';

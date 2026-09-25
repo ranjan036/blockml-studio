@@ -55,6 +55,10 @@ import returnIcon from './custom/return.svg';
 import galleryIcon from './gallery/gallery.svg';
 import {APP_NAME} from '../../brand';
 
+// blockml: without Face Sensing (loaded from extensions.turbowarp.org; BlockML Studio
+// has its own Face extension) and Custom Extension (runs code from anywhere).
+const BLOCKML_REMOVED_EXTENSIONS = new Set(['faceSensing', 'custom_extension']);
+
 export default [
     {
         name: (
@@ -427,7 +431,7 @@ export default [
         featured: true
         // Not marked as incompatible with Scratch so that clicking on it doesn't show a prompt
     }
-];
+].filter(extension => !BLOCKML_REMOVED_EXTENSIONS.has(extension.extensionId));
 
 export const galleryLoading = {
     name: (
