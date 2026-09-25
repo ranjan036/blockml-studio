@@ -1,6 +1,6 @@
 # BlockML Studio — Scratch editor with AI blocks (Vision first) — Plan
 
-*Status: approved 2026-09-25; S0 (benchmark) in progress.*
+*Status: approved 2026-09-25. S0 complete (§9); S1 next.*
 
 ## 1. Goal
 
@@ -287,3 +287,47 @@ model), results file received 2026-09-25.
 engine with WebGL fallback; MobileNet v2 1.0; COCO-SSD lite; Hands lite;
 MoveNet Lightning. When two vision extensions run at once, each gets about
 10 updates/second (acceptable for games); a single extension runs at 20–60/s.
+
+## 9. S0 results — re-run with the fix, and decisions (2026-09-25)
+
+Same CODE AI laptop (Iris Xe), full test, every model now finds its target
+in every run (face 30/30, hands 30/30 on all engines).
+
+| Model | WebGL | WASM | **WebGPU** | Choice |
+|---|---|---|---|---|
+| MobileNet v2 1.0 (Image Model) | 47/s | 18/s | **57/s** | ✅ |
+| MobileNet v2 0.5 | 40/s | 36/s | 63/s | — (1.0 is fast enough and more accurate) |
+| COCO-SSD lite (Object Detection) | 28/s | 7/s | **17/s** | ✅ |
+| COCO-SSD full | 18/s | 3/s | 12/s | — (too slow, 65 MB) |
+| Face mesh | 25/s | 25/s | **22/s** | ✅ |
+| Hands lite | 12/s | 12/s | **31/s** | ✅ |
+| Hands full | 9/s | 6/s | 14/s | — |
+| MoveNet Lightning (pose) | 42/s | 15/s | **44/s** | ✅ |
+
+- Face + Hand together, both finding their target, next to a 30 fps project:
+  **8.6 AI frames/s on WebGPU**, project steady (30.3 ticks/s, worst pause
+  56 ms). WebGL 6.4/s. WASM starves the project (4 ticks/s, 0.9 s pauses).
+- Image Model training: 90 photos → features in 3.0 s, 50 epochs in 0.38 s.
+- Network: unchanged — only the page's own site and model downloads.
+- Run-to-run variation is noticeable (WASM was ~2× slower than in the first
+  run; WebGPU stayed consistent), another reason to prefer WebGPU.
+
+**Decisions**
+
+1. **Engine: WebGPU**, falling back to WebGL, then WASM (with an on-screen
+   "this computer is slow for AI" note). One engine for all models: WebGPU
+   wins decisively for Hands (31/s vs 12/s) and Image Model, and is
+   acceptable for Object Detection (17/s).
+2. **Models:** MobileNet v2 1.0, COCO-SSD lite, Face mesh (no iris
+   refinement), Hands lite, MoveNet SinglePose Lightning. Total download if a
+   student uses all of them: about 36 MB, cached after the first time.
+3. **Speed targets revised:** one vision extension ≥ 15 updates/s (met by all
+   five on WebGPU); **two at once ≈ 8–9 updates/s each** today. In S2 we try
+   running the two models concurrently instead of one after the other, and a
+   smaller camera input, to raise that; lesson projects use one vision
+   extension at a time.
+4. **Camera video:** set the `<video>` element's `width`/`height` attributes
+   to the stream's size before passing it to any model (§8 bug).
+
+**S0 status:** complete, except DNS for `studio.blockml.codeai.ltd`, which is
+needed only when S1 goes live.
