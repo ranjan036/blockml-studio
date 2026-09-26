@@ -1,6 +1,12 @@
 import React from 'react';
 import {FormattedMessage} from 'react-intl';
 
+// blockml: our AI extensions (served from /extensions/ on this site; see ../../../../extensions)
+import blockmlFaceIconURL from './blockml/face.svg';
+import blockmlFaceInsetIconURL from './blockml/face-small.svg';
+import blockmlHandsIconURL from './blockml/hands.svg';
+import blockmlHandsInsetIconURL from './blockml/hands-small.svg';
+
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
 
@@ -59,7 +65,30 @@ import {APP_NAME} from '../../brand';
 // has its own Face extension) and Custom Extension (runs code from anywhere).
 const BLOCKML_REMOVED_EXTENSIONS = new Set(['faceSensing', 'custom_extension']);
 
+// blockml: absolute URL on this site; saved projects keep it and load it again from here.
+const blockmlExtensionURL = file => new URL(`extensions/${file}`, location.href).href;
+
 export default [
+    {
+        name: 'Face',
+        extensionId: 'blockmlFace',
+        extensionURL: blockmlExtensionURL('face.js'),
+        iconURL: blockmlFaceIconURL,
+        insetIconURL: blockmlFaceInsetIconURL,
+        description: 'Find faces with the camera: smiles, eyes, head tilt, and where each face is. The AI runs on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Hand & Pose',
+        extensionId: 'blockmlHands',
+        extensionURL: blockmlExtensionURL('hands.js'),
+        iconURL: blockmlHandsIconURL,
+        insetIconURL: blockmlHandsInsetIconURL,
+        description: 'Track hands, fingers and gestures, and your body, with the camera. The AI runs on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
     {
         name: (
             <FormattedMessage

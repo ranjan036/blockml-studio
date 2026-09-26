@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "CHROMEDRIVER_SKIP_DOWNLOAD=true npm ci",
-  "buildCommand": "NODE_ENV=production ENABLE_SERVICE_WORKER=1 npm run build",
+  "installCommand": "cd ../extensions && npm ci && cd ../gui && CHROMEDRIVER_SKIP_DOWNLOAD=true npm ci",
+  "buildCommand": "cd ../extensions && npm run build && cd ../gui && NODE_ENV=production ENABLE_SERVICE_WORKER=1 npm run build",
   "outputDirectory": "build",
   "redirects": [
     {

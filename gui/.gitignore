@@ -26,3 +26,7 @@ npm-*
 
 # for act
 .secrets
+
+# blockml: built from ../extensions (npm run build there)
+/static/extensions/
+/static/starters/

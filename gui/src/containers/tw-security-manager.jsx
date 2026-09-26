@@ -24,8 +24,11 @@ const manuallyTrustExtension = url => {
  * @returns {boolean} True if the extension can is trusted
  */
 const isTrustedExtension = url => (
-    // Always trust our official extension repostiory.
-    url.startsWith('https://extensions.turbowarp.org/') ||
+    // blockml: trust BlockML Studio's own AI extensions (this site's /extensions/ and the
+    // production site, so projects saved there load anywhere). TurboWarp's extension
+    // site is no longer trusted automatically: projects using it ask first.
+    url.startsWith(`${location.origin}/extensions/`) ||
+    url.startsWith('https://studio.blockml.codeai.ltd/extensions/') ||
 
     // For development.
     url.startsWith('http://localhost:8000/') ||

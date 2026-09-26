@@ -1,0 +1,10 @@
+AI models used by BlockML Studio (served from this folder):
+
+- face-detector, face-mesh: MediaPipe face_detection (short) and
+  face_landmarks_detection (face_mesh), TF.js versions — Apache License 2.0
+- hand-detector-lite, hand-landmarks-lite: MediaPipe handpose_3d (lite),
+  TF.js versions — Apache License 2.0
+- movenet-lightning: Google MoveNet SinglePose Lightning v4, TF.js version —
+  Apache License 2.0
+
+Source: TensorFlow Hub / Kaggle Models. https://www.apache.org/licenses/LICENSE-2.0

@@ -5,7 +5,7 @@ train yourself, object detection, face, hand and pose), built for CODE AI
 students. All AI runs on the student's own laptop: no accounts, no per-use
 costs, and camera images never leave the device.
 
-**Status:** the editor is live at **https://studio.blockml.codeai.ltd**. Next: S2 (Face and Hand & Pose blocks). The full
+**Status:** live at **https://studio.blockml.codeai.ltd** with the **Face** and **Hand & Pose** AI extensions (S2). The full
 plan, including every AI block and what it teaches, is in
 [`docs/PLAN.md`](docs/PLAN.md). Milestones:
 S0 benchmark → S1 editor live at studio.blockml.codeai.ltd → S2 Face + Hand &
@@ -14,6 +14,7 @@ projects and lesson cards → S6 export AI projects as Android apps.
 
 ## What's here now
 
+- [`extensions/`](extensions/) — **the AI extensions** (Face, Hand & Pose), their shared vision runtime, models and starter projects. See [`extensions/README.md`](extensions/README.md).
 - [`gui/`](gui/) — **the BlockML Studio editor**: TurboWarp's editor with our
   branding and without TurboWarp's online services (all standard Scratch blocks
   and extensions included). What we changed, and how to build it:
