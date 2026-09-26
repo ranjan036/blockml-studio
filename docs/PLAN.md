@@ -1,6 +1,6 @@
 # BlockML Studio — Scratch editor with AI blocks (Vision first) — Plan
 
-*Status: approved 2026-09-25. S0 complete (§9). S1: editor live at https://blockml-studio.vercel.app (§10); custom domain pending.*
+*Status: S0 and S1 complete. The editor is live at https://studio.blockml.codeai.ltd (§10). Next: S2.*
 
 ## 1. Goal
 
@@ -368,5 +368,10 @@ Deployment notes:
 - A second, duplicate Vercel project (`blockml-studio-q46o`) was also created
   on import; its builds fail. To be deleted in the Vercel dashboard.
 
-Remaining for S1: add `studio.blockml.codeai.ltd` to the Vercel project and
-the DNS record Vercel shows.
+**Live on the real domain (2026-09-26):** `studio.blockml.codeai.ltd` added
+to the Vercel project; GoDaddy CNAME `studio.blockml` →
+`4bac9b909927b934.vercel-dns-017.com`; certificate issued by Vercel within
+minutes. The duplicate project `blockml-studio-q46o` was deleted.
+
+Still open from the S1 exit criterion: a link to the studio from BlockML
+(blockml.codeai.ltd) — a small change in the BlockML repo.
