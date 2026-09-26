@@ -15,10 +15,14 @@ import '@tensorflow/tfjs-backend-webgpu';
 import * as faceLandmarks from '@tensorflow-models/face-landmarks-detection';
 import * as handPose from '@tensorflow-models/hand-pose-detection';
 import * as poseDetection from '@tensorflow-models/pose-detection';
+import * as mobilenet from '@tensorflow-models/mobilenet';
 import { faceFeatures, facePoints } from '../features/face.js';
 
-// Re-exported so the extension scripts use the same (tested) thresholds.
+import { normalize } from '../features/classifier.js';
+
+// Re-exported so the extension scripts use the same (tested) code.
 export { faceIs } from '../features/face.js';
+export { createTrainer, predict, encodeSample, decodeSample } from '../features/classifier.js';
 import { handFeatures, HAND_POINT_NAMES } from '../features/hand.js';
 
 // Models are served next to this file (see scripts/fetch-models.mjs), never from Google.
@@ -46,6 +50,8 @@ const LOADERS = {
     modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
     modelUrl: model('movenet-lightning'),
   }),
+  // Image Model: MobileNet's 1280 image features, which our classifier learns from.
+  image: () => mobilenet.load({ version: 2, alpha: 1.0, modelUrl: model('mobilenet-v2') }),
 };
 
 // The camera frame is 480x360 like the stage; convert to stage coordinates (y up).
@@ -149,6 +155,50 @@ class Vision {
     }
   }
 
+  /** Loads a model (if needed) and resolves when it is ready. */
+  async ready(kind) {
+    const e = this.entry(kind);
+    if (e.status === 'off' || e.status === 'error') await this.load(kind);
+    else while (e.status === 'loading') await new Promise((r) => setTimeout(r, 50));
+    if (e.status !== 'ready') throw new Error(`The ${kind} model could not be loaded`);
+    return e.detector;
+  }
+
+  /** The current camera frame as a 480x360 canvas (as shown on the stage), or null. */
+  frameCanvas() {
+    return this.video.videoReady ? this.video.getFrame({ format: 'canvas', dimensions: [STAGE_W, STAGE_H] }) : null;
+  }
+
+  /** MobileNet features of the camera image right now (normalized), or null if the camera is off. */
+  async embedNow() {
+    if (this.cameraState === 'auto') this.setCamera('on');
+    const detector = await this.ready('image');
+    let canvas = this.frameCanvas();
+    for (let i = 0; !canvas && i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 50)); // camera still starting
+      canvas = this.frameCanvas();
+    }
+    if (!canvas) return null;
+    return this.embed(detector, canvas);
+  }
+
+  /** MobileNet features of a given image (e.g. a snapshot the trainer also shows as a thumbnail). */
+  async embedCanvas(canvas) {
+    return this.embed(await this.ready('image'), canvas);
+  }
+
+  async embed(detector, canvas) {
+    const t = detector.infer(canvas, true);
+    const data = await t.data();
+    t.dispose();
+    return normalize(data);
+  }
+
+  /** Latest features from the background loop (used by the "when camera sees" hat). */
+  latestImage() {
+    return this.entry('image').results[0] || null;
+  }
+
   faces() { return this.entry('face').results; }
   hands() { return this.entry('hands').results; }
   pose() { return this.entry('pose').results[0] || null; }
@@ -199,6 +249,9 @@ class Vision {
           return { keypoints: kp, points, side, ...handFeatures(kp) };
         })
         .sort((a, b) => a.points.wrist.x - b.points.wrist.x); // hand 1 is the leftmost
+    }
+    if (kind === 'image') {
+      return [await this.embed(detector, canvas)];
     }
     if (kind === 'pose') {
       const poses = await detector.estimatePoses(canvas);

@@ -8,12 +8,24 @@ models are served by the studio site itself.
 |---|---|
 | **Face** (`src/face.js`, id `blockmlFace`) | when a face appears · number of faces · [x/y/size/smile/mouth open/head tilt/left eye open/right eye open] of face (n) · face (n) is [smiling/mouth open/eyes closed/tilted left/tilted right]? · [x/y] of [nose tip/eyes/mouth/ears/forehead/chin] of face (n) · face AI is ready? |
 | **Hand & Pose** (`src/hands.js`, id `blockmlHands`) | when a hand shows [gesture] · number of hands · [x/y] of [wrist/fingertips] of hand (n) · fingers up on hand (n) · hand (n) shows [open/fist/thumbs up/thumbs down/pointing/victory]? · gesture of hand (n) · which hand is hand (n) · [x/y] of [17 body points] of body · body is visible? · hand AI is ready? |
-| Both | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
+| **Image Model** (`src/image.js`, id `blockmlImage`) | open the trainer · when camera sees [class] with confidence > (80) · classify camera image · image label · confidence of [class] · label is [class]? · number of photos of [class] · image model is trained? |
+| All | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
 
 Design rule: the AI blocks are the **senses** (numbers, names, yes/no); the
 **decisions** are Scratch's own if/else, comparisons, loops and variables.
 Faces and hands are numbered from the left of the stage. Left/right always
 mean the person's own left/right (the camera is mirrored by default).
+
+### Image Model
+
+**open the trainer** opens a window where students name classes, hold a record
+button to take webcam photos, press **Train model** (40 epochs, drawn live as
+loss and accuracy), and test the model live. The block waits until the window
+is closed. MobileNet v2 turns each photo into 1,280 numbers; a softmax
+classifier (`src/features/classifier.js`) learns from them in well under a
+second. Only those numbers are saved in the project (TurboWarp's
+`extensionStorage`, 1 byte per number), never the photos; opening a project
+retrains the model from them. Thumbnails exist only while the window is open.
 
 ## How it works
 

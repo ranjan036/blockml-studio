@@ -207,3 +207,58 @@ const smiley = (mouth, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" w
   ]]);
   write('air-drawing.sb3', p);
 }
+
+// ---- 5. Fruit sorter (Image Model): training data, if/else-if chains, thresholds ----
+
+{
+  const p = new Project();
+  p.useExtension('blockmlImage', BASE + 'image.js');
+  // Empty classes, ready to fill in the trainer (a starter can't ship photos of your fruit).
+  p.extensionStorage.blockmlImage = {
+    version: 1,
+    features: 'mobilenet_v2_100_224',
+    classes: ['Apple', 'Banana', 'Nothing'].map((name) => ({ name, samples: [] })),
+  };
+  const baskets = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#f8fafc"/>
+<g font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle">
+<path d="M20 250 H140 L125 330 H35 Z" fill="#fecaca" stroke="#b91c1c" stroke-width="4"/><text x="80" y="300" fill="#991b1b">Apples</text>
+<path d="M340 250 H460 L445 330 H355 Z" fill="#fef08a" stroke="#a16207" stroke-width="4"/><text x="400" y="300" fill="#854d0e">Bananas</text>
+</g></svg>`;
+  p.addStage([p.costume('baskets', baskets, [240, 180])]);
+  const fruitCard = `<svg xmlns="http://www.w3.org/2000/svg" width="90" height="90" viewBox="0 0 90 90">
+<rect x="3" y="3" width="84" height="84" rx="16" fill="#ffffff" stroke="#2563eb" stroke-width="4"/>
+<text x="45" y="60" font-family="Arial" font-size="44" font-weight="bold" text-anchor="middle" fill="#2563eb">?</text></svg>`;
+  const img = {
+    camera: (state = 'on') => ({ op: 'blockmlImage_setCamera', fields: { STATE: state } }),
+    transparency: (n) => ({ op: 'blockmlImage_setTransparency', inputs: { VALUE: n } }),
+    trained: () => bool('blockmlImage_isTrained'),
+    openTrainer: () => ({ op: 'blockmlImage_openTrainer' }),
+    classify: () => ({ op: 'blockmlImage_classify' }),
+    label: () => op('blockmlImage_imageLabel'),
+    confidence: (name) => op('blockmlImage_confidenceOf', { CLASS: { menu: 'blockmlImage_menu_classes', field: 'classes', value: name } }),
+  };
+  const glide = (x, y) => ({ op: 'motion_glidesecstoxy', inputs: { SECS: 1, X: x, Y: y } });
+  p.addSprite('Sorter', [p.costume('card', fruitCard, [45, 45])], [[
+    flag,
+    img.camera('on'),
+    img.transparency(30),
+    ifThen(bool('operator_not', { OPERAND: img.trained() }),
+      { op: 'looks_sayforsecs', inputs: { MESSAGE: 'First, teach me! Take photos of an apple, a banana, and nothing.', SECS: 3 } },
+      img.openTrainer()),
+    forever(
+      { op: 'motion_gotoxy', inputs: { X: 0, Y: 40 } },
+      say('Show me a fruit…'),
+      wait(1),
+      img.classify(),
+      // Only trust the model when it is sure: that's what the 80 is for.
+      ifElse(gt(img.confidence('Apple'), 80),
+        [say('An apple! Into the apple basket.'), glide(-160, -110)],
+        [ifElse(gt(img.confidence('Banana'), 80),
+          [say('A banana! Into the banana basket.'), glide(160, -110)],
+          [say(join("I'm not sure… it looks like ", img.label()))])]),
+      wait(1.5),
+    ),
+  ]], { x: 0, y: 40 });
+  write('fruit-sorter.sb3', p);
+}

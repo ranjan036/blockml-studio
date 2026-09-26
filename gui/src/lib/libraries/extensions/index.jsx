@@ -6,6 +6,8 @@ import blockmlFaceIconURL from './blockml/face.svg';
 import blockmlFaceInsetIconURL from './blockml/face-small.svg';
 import blockmlHandsIconURL from './blockml/hands.svg';
 import blockmlHandsInsetIconURL from './blockml/hands-small.svg';
+import blockmlImageIconURL from './blockml/image.svg';
+import blockmlImageInsetIconURL from './blockml/image-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -69,6 +71,16 @@ const BLOCKML_REMOVED_EXTENSIONS = new Set(['faceSensing', 'custom_extension']);
 const blockmlExtensionURL = file => new URL(`extensions/${file}`, location.href).href;
 
 export default [
+    {
+        name: 'Image Model',
+        extensionId: 'blockmlImage',
+        extensionURL: blockmlExtensionURL('image.js'),
+        iconURL: blockmlImageIconURL,
+        insetIconURL: blockmlImageInsetIconURL,
+        description: 'Train your own AI: teach it things from camera photos, then use it in your project. It trains on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
     {
         name: 'Face',
         extensionId: 'blockmlFace',

@@ -19,6 +19,7 @@ export class Project {
     this.variables = {}; // name -> id (all on the stage, i.e. global)
     this.extensions = new Set();
     this.extensionURLs = {};
+    this.extensionStorage = {};
   }
 
   useExtension(id, url) {
@@ -129,6 +130,7 @@ export class Project {
       monitors: [],
       extensions: [...this.extensions],
       extensionURLs: this.extensionURLs,
+      ...(Object.keys(this.extensionStorage).length ? { extensionStorage: this.extensionStorage } : {}),
       meta: { semver: '3.0.0', vm: '0.2.0', agent },
     };
     return zipSync({ 'project.json': strToU8(JSON.stringify(project)), ...this.assets });

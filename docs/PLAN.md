@@ -1,6 +1,6 @@
 # BlockML Studio — Scratch editor with AI blocks (Vision first) — Plan
 
-*Status: S0, S1 complete; S2 (Face, Hand & Pose) built and tested with a test camera (§11), awaiting a real-camera classroom check. Live at https://studio.blockml.codeai.ltd.*
+*Status: S0, S1 complete; S2 (Face, Hand & Pose, §11) and S3 (Image Model, §12) built and tested with test cameras, awaiting a real-camera classroom check. Live at https://studio.blockml.codeai.ltd.*
 
 ## 1. Goal
 
@@ -417,3 +417,40 @@ first (a useful lesson in itself). 9 geometry unit tests.
 model loads and runs), speed on the CODE AI laptop with a real webcam, and the
 smile/eye/gesture thresholds with real students — the constants are at the top
 of `extensions/src/features/face.js` and `hand.js`.
+
+## 12. S3 — Image Model (2026-09-26)
+
+**Built** (`extensions/src/image.js`, `src/features/classifier.js`):
+- Blocks as planned in §3.1, plus `image model is trained?` and the camera
+  blocks. The class menu lists the student's own class names (and accepts
+  variables).
+- **Trainer window**: live camera; one row per class (name, photo count, last
+  8 thumbnails, *Hold to record* — about 8 photos/second — or Enter/Space for
+  one photo, Clear, Delete); *+ Add a class*; *Train model* runs 40 epochs, one
+  per frame, with a live loss/accuracy chart; then live confidence bars.
+  `open the trainer` waits until the window is closed.
+- **Model**: MobileNet v2 (1.0, 224; self-hosted, Apache-2.0, 13.3 MB, loaded
+  only when the Image Model is used) → 1,280 features → softmax classifier in
+  plain JS. Saved in the project via TurboWarp's `extensionStorage`: class
+  names + features at 1 byte each (~1.7 KB of text per photo), **never
+  photos**. Opening a project retrains from the saved features.
+- Starter **fruit-sorter.sb3**: comes with empty Apple/Banana/Nothing classes;
+  if untrained it asks for photos and opens the trainer, then sorts with an
+  if/else-if chain on `confidence of … > 80`.
+
+**Tested** in headless Chrome with a fake camera alternating a portrait and a
+blue/yellow scene every 1.5 s: the starter's classes appear in the trainer;
+70 photos recorded (36/34); trained to 100% on them; live test bars match the
+camera 12/12; classify matches the camera 29/29 at 100% confidence; after
+save + reopen the model comes back and classifies again; only our own site is
+contacted. 12 unit tests (classifier learns, loss falls, saved features still
+train a working model).
+
+**Bugs found and fixed:** the trainer's text boxes inherited the editor's dark
+theme (now always light); the thumbnail was captured a moment after the photo
+the model learned from, so it could show the wrong scene — one snapshot is now
+both learned and shown.
+
+**Not yet verified:** real objects on a real webcam (how many photos students
+need, lighting), and *Hold to record* with a real mouse (the keyboard path was
+tested).

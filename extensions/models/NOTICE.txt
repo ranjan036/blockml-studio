@@ -6,5 +6,7 @@ AI models used by BlockML Studio (served from this folder):
   TF.js versions — Apache License 2.0
 - movenet-lightning: Google MoveNet SinglePose Lightning v4, TF.js version —
   Apache License 2.0
+- mobilenet-v2: Google MobileNet V2 (1.0, 224) ImageNet classification, TF.js
+  version — Apache License 2.0 (used for its image features)
 
 Source: TensorFlow Hub / Kaggle Models. https://www.apache.org/licenses/LICENSE-2.0

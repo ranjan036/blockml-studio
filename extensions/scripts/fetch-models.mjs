@@ -11,9 +11,13 @@ const MODELS = {
   'hand-detector-lite': 'https://tfhub.dev/mediapipe/tfjs-model/handpose_3d/detector/lite/1',
   'hand-landmarks-lite': 'https://tfhub.dev/mediapipe/tfjs-model/handpose_3d/landmark/lite/1',
   'movenet-lightning': 'https://tfhub.dev/google/tfjs-model/movenet/singlepose/lightning/4',
+  // Image Model features (MobileNet v2, width 1.0, 224x224) — Apache-2.0
+  'mobilenet-v2': 'https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2',
 };
 
+const only = process.argv.slice(2);
 for (const [name, base] of Object.entries(MODELS)) {
+  if (only.length && !only.includes(name)) continue;
   const dir = path.join('models', name);
   fs.mkdirSync(dir, { recursive: true });
   // TF Hub serves TF.js models as model.json + weight shards next to it.
