@@ -16,6 +16,7 @@ import * as faceLandmarks from '@tensorflow-models/face-landmarks-detection';
 import * as handPose from '@tensorflow-models/hand-pose-detection';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import * as mobilenet from '@tensorflow-models/mobilenet';
+import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import { faceFeatures, facePoints } from '../features/face.js';
 
 import { normalize } from '../features/classifier.js';
@@ -52,7 +53,12 @@ const LOADERS = {
   }),
   // Image Model: MobileNet's 1280 image features, which our classifier learns from.
   image: () => mobilenet.load({ version: 2, alpha: 1.0, modelUrl: model('mobilenet-v2') }),
+  // Object Detection: COCO-SSD lite, 80 everyday objects.
+  objects: () => cocoSsd.load({ base: 'lite_mobilenet_v2', modelUrl: model('coco-ssd-lite') }),
 };
+const MAX_OBJECTS = 20;
+// Keep weak guesses too: the extension filters by the student's minimum confidence.
+const MIN_OBJECT_SCORE = 0.2;
 
 // The camera frame is 480x360 like the stage; convert to stage coordinates (y up).
 const toStage = (p) => ({ x: p.x - STAGE_W / 2, y: STAGE_H / 2 - p.y });
@@ -87,6 +93,8 @@ class Vision {
     this.ghost = 50;
     this.speed = 'normal';
     this.overlay = 'nothing';
+    // Objects count (and are drawn) only at or above this confidence, set by a block.
+    this.objectThreshold = 50;
     this.models = {};
     this.overlayCanvas = null;
     this.frame = this.frame.bind(this);
@@ -194,6 +202,25 @@ class Vision {
     return normalize(data);
   }
 
+  /**
+   * Runs a model once on the camera image right now and stores the results (the
+   * explicit "detect objects" block). Resolves with the results.
+   */
+  async runNow(kind) {
+    if (this.cameraState === 'auto') this.setCamera('on');
+    const detector = await this.ready(kind);
+    let canvas = this.frameCanvas();
+    for (let i = 0; !canvas && i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 50)); // camera still starting
+      canvas = this.frameCanvas();
+    }
+    const e = this.entry(kind);
+    e.results = canvas ? await this.detect(kind, detector, canvas) : [];
+    return e.results;
+  }
+
+  objects() { return this.entry('objects').results.filter((o) => o.confidence >= this.objectThreshold); }
+
   /** Latest features from the background loop (used by the "when camera sees" hat). */
   latestImage() {
     return this.entry('image').results[0] || null;
@@ -252,6 +279,19 @@ class Vision {
     }
     if (kind === 'image') {
       return [await this.embed(detector, canvas)];
+    }
+    if (kind === 'objects') {
+      const found = await detector.detect(canvas, MAX_OBJECTS, MIN_OBJECT_SCORE);
+      return found
+        .map(({ bbox: [x, y, w, h], class: name, score }) => ({
+          name,
+          confidence: Math.round(score * 100),
+          x: Math.round(x + w / 2 - STAGE_W / 2),
+          y: Math.round(STAGE_H / 2 - (y + h / 2)),
+          width: Math.round(w),
+          height: Math.round(h),
+        }))
+        .sort((a, b) => a.x - b.x); // object 1 is the leftmost
     }
     if (kind === 'pose') {
       const poses = await detector.estimatePoses(canvas);
@@ -321,6 +361,18 @@ class Vision {
       } else {
         for (const p of h.keypoints) dot(p, '#14b8a6', 3);
       }
+    }
+    ctx.font = `${Math.round(13 * dpr)}px system-ui, sans-serif`;
+    for (const o of this.objects()) {
+      const [x1, y1] = px({ x: o.x - o.width / 2, y: o.y + o.height / 2 });
+      ctx.strokeStyle = '#f97316';
+      ctx.strokeRect(x1, y1, o.width * sx, o.height * sx);
+      const label = `${o.name} ${o.confidence}%`;
+      const w = ctx.measureText(label).width + 8 * dpr;
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(x1, y1 - 18 * dpr, w, 18 * dpr);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, x1 + 4 * dpr, y1 - 5 * dpr);
     }
     const body = this.entry('pose').results[0];
     if (body && body.visible) {

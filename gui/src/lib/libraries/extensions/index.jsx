@@ -8,6 +8,8 @@ import blockmlHandsIconURL from './blockml/hands.svg';
 import blockmlHandsInsetIconURL from './blockml/hands-small.svg';
 import blockmlImageIconURL from './blockml/image.svg';
 import blockmlImageInsetIconURL from './blockml/image-small.svg';
+import blockmlObjectsIconURL from './blockml/objects.svg';
+import blockmlObjectsInsetIconURL from './blockml/objects-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -78,6 +80,16 @@ export default [
         iconURL: blockmlImageIconURL,
         insetIconURL: blockmlImageInsetIconURL,
         description: 'Train your own AI: teach it things from camera photos, then use it in your project. It trains on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Object Detection',
+        extensionId: 'blockmlObjects',
+        extensionURL: blockmlExtensionURL('objects.js'),
+        iconURL: blockmlObjectsIconURL,
+        insetIconURL: blockmlObjectsInsetIconURL,
+        description: 'Find everyday things with the camera: people, cups, books, phones and 76 more. The AI runs on this computer.',
         tags: ['ai'],
         featured: true
     },

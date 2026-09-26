@@ -20,7 +20,7 @@ with a `blockml:` comment so it's easy to find when merging TurboWarp updates.
 | `src/playground/credits/credits.jsx` | Adds who makes BlockML Studio and the source link; keeps all TurboWarp and Scratch credits | Credit and GPL source offer |
 | `static/privacy.html` | Our privacy page | Accurate for this site |
 | `src/containers/tw-security-manager.jsx` (S2) | Trust this site's `/extensions/` (and the production site's) instead of extensions.turbowarp.org | Our AI extensions run unsandboxed; outside extensions ask first |
-| `src/lib/libraries/extensions/index.jsx`, `blockml/*.svg`, `src/lib/libraries/tw-extension-tags.js` (S2) | Image Model, Face and Hand & Pose at the top of the extension library, with an "AI" filter | Our AI extensions |
+| `src/lib/libraries/extensions/index.jsx`, `blockml/*.svg`, `src/lib/libraries/tw-extension-tags.js` (S2) | Image Model, Object Detection, Face and Hand & Pose at the top of the extension library, with an "AI" filter | Our AI extensions |
 | `.gitignore` (S2) | `static/extensions/`, `static/starters/` are build output from `../extensions` | Build |
 | `vercel.json` (here and at the repo root) | Build and hosting settings for studio.blockml.codeai.ltd. The root copy builds `gui/` when the Vercel project's Root Directory is the repo root; this copy is used when it is `gui`. Keep them in sync. | Deployment |
 

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DIST = 'dist';
-for (const f of ['face.js', 'hands.js', 'image.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
+for (const f of ['face.js', 'hands.js', 'image.js', 'objects.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
 fs.cpSync('models', path.join(DIST, 'models'), { recursive: true });
 
 const target = path.join('..', 'gui', 'static', 'extensions');

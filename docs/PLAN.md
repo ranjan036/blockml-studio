@@ -1,6 +1,6 @@
 # BlockML Studio — Scratch editor with AI blocks (Vision first) — Plan
 
-*Status: S0, S1 complete; S2 (Face, Hand & Pose, §11) and S3 (Image Model, §12) built and tested with test cameras, awaiting a real-camera classroom check. Live at https://studio.blockml.codeai.ltd.*
+*Status: S0, S1 complete; S2 (Face, Hand & Pose, §11), S3 (Image Model, §12) and S4 (Object Detection, §13) built and tested with test cameras, awaiting a real-camera classroom check. Live at https://studio.blockml.codeai.ltd.*
 
 ## 1. Goal
 
@@ -454,3 +454,31 @@ both learned and shown.
 **Not yet verified:** real objects on a real webcam (how many photos students
 need, lighting), and *Hold to record* with a real mouse (the keyboard path was
 tested).
+
+## 13. S4 — Object Detection (2026-09-26)
+
+**Built** (`extensions/src/objects.js`): COCO-SSD lite (self-hosted,
+Apache-2.0, 17.2 MB, loaded only when used), 80 object kinds ("person" first,
+the rest A–Z in menus; menus accept reporters). Blocks as in §3.2, with the
+object's properties as one dropdown reporter (`[name ▼] of object (1)`,
+including confidence), plus **`set minimum confidence to (50) %`** — objects
+count, and are drawn, only at or above it (the runtime keeps guesses down to
+20%), so students can see the threshold trade-off themselves. `detect objects`
+runs the model once; the `when camera sees a [object]` hat detects in the
+background. Overlay: labelled boxes.
+
+Starters: **object-counter.sb3** (a `repeat (number of objects)` loop with a
+counter fills a list shown on the stage) and **classroom-helper.sb3** (an
+event script — *when camera sees a person* → hello — next to a polling loop
+that uses the timer to count how long the desk has been empty).
+
+**Tested** with a NASA public-domain photo of an astronaut holding a laptop
+as the camera: person found at 77%; object-counter lists "person – 77%" and
+says "Objects I can see: 1. People: 1"; with the minimum lowered to 15% it
+also lists a (wrong) "cell phone – 20%" — a ready-made lesson on thresholds.
+The laptops were not recognised at any confidence (rugged laptops held like
+tablets are an unusual view for this small model); classroom desks with
+ordinary laptops, cups and books are what it was trained on.
+
+**Not yet verified:** real classroom objects on a real webcam; the
+classroom-helper's "desk empty" path (needs a camera where the person leaves).

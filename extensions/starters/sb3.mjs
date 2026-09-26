@@ -10,7 +10,7 @@ import { zipSync, strToU8 } from 'fflate';
 const md5 = (data) => createHash('md5').update(data).digest('hex');
 
 // Inputs whose empty placeholder should be a number slot (round) rather than text.
-const NUMERIC_INPUTS = new Set(['X', 'Y', 'NUM1', 'NUM2', 'SIZE', 'DURATION', 'SECS', 'DIRECTION', 'INDEX', 'FROM', 'TO', 'VALUE', 'STEPS']);
+const NUMERIC_INPUTS = new Set(['X', 'Y', 'NUM1', 'NUM2', 'NUM', 'SIZE', 'DURATION', 'SECS', 'DIRECTION', 'INDEX', 'FROM', 'TO', 'VALUE', 'STEPS', 'TIMES']);
 
 export class Project {
   constructor() {
@@ -20,6 +20,25 @@ export class Project {
     this.extensions = new Set();
     this.extensionURLs = {};
     this.extensionStorage = {};
+    this.lists = {}; // name -> id (all on the stage, i.e. global)
+    this.monitors = [];
+  }
+
+  list(name) {
+    this.lists[name] ||= { id: `list-${name.replace(/\W/g, '_')}` };
+    return this.lists[name].id;
+  }
+
+  /** Shows a list on the stage (like ticking its checkbox). */
+  showList(name, { x = 5, y = 5, width = 200, height = 250 } = {}) {
+    this.monitors.push({ id: this.list(name), mode: 'list', opcode: 'data_listcontents', params: { LIST: name },
+      spriteName: null, value: [], width, height, x, y, visible: true });
+  }
+
+  /** Shows a variable on the stage. */
+  showVariable(name, { x = 5, y = 5 } = {}) {
+    this.monitors.push({ id: this.variable(name), mode: 'default', opcode: 'data_variable', params: { VARIABLE: name },
+      spriteName: null, value: 0, width: 0, height: 0, x, y, visible: true, sliderMin: 0, sliderMax: 100, isDiscrete: true });
   }
 
   useExtension(id, url) {
@@ -86,6 +105,7 @@ export class Project {
         blocks[id] = b;
         for (const [name, value] of Object.entries(spec.fields || {})) {
           if (name === 'VARIABLE') b.fields.VARIABLE = [value, self.variable(value)];
+          else if (name === 'LIST') b.fields.LIST = [value, self.list(value)];
           else b.fields[name] = [value, null];
         }
         for (const [name, value] of Object.entries(spec.inputs || {})) b.inputs[name] = input(value, id, name);
@@ -124,10 +144,11 @@ export class Project {
 
     // Variables are found while writing every target's scripts; all are global (on the stage).
     for (const [name, v] of Object.entries(this.variables)) targets[0].variables[v.id] = [name, v.value];
+    for (const [name, l] of Object.entries(this.lists)) targets[0].lists[l.id] = [name, []];
 
     const project = {
       targets,
-      monitors: [],
+      monitors: this.monitors,
       extensions: [...this.extensions],
       extensionURLs: this.extensionURLs,
       ...(Object.keys(this.extensionStorage).length ? { extensionStorage: this.extensionStorage } : {}),

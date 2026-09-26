@@ -8,5 +8,7 @@ AI models used by BlockML Studio (served from this folder):
   Apache License 2.0
 - mobilenet-v2: Google MobileNet V2 (1.0, 224) ImageNet classification, TF.js
   version — Apache License 2.0 (used for its image features)
+- coco-ssd-lite: COCO-SSD (SSDLite MobileNet v2), TF.js version from
+  tfjs-models — Apache License 2.0
 
 Source: TensorFlow Hub / Kaggle Models. https://www.apache.org/licenses/LICENSE-2.0

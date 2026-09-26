@@ -262,3 +262,92 @@ const smiley = (mouth, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" w
   ]], { x: 0, y: 40 });
   write('fruit-sorter.sb3', p);
 }
+
+// ---- Object Detection helpers ------------------------------------------------------
+
+const objs = {
+  camera: (state = 'on') => ({ op: 'blockmlObjects_setCamera', fields: { STATE: state } }),
+  transparency: (n) => ({ op: 'blockmlObjects_setTransparency', inputs: { VALUE: n } }),
+  overlay: (mode) => ({ op: 'blockmlObjects_setOverlay', fields: { MODE: mode } }),
+  detect: () => ({ op: 'blockmlObjects_detect' }),
+  count: () => op('blockmlObjects_numberOfObjects'),
+  value: (property, index) => op('blockmlObjects_objectValue', { INDEX: index }, { PROPERTY: property }),
+  menu: (name) => ({ menu: 'blockmlObjects_menu_objects', field: 'objects', value: name }),
+};
+objs.seen = (name) => op('blockmlObjects_numberSeen', { OBJECT: objs.menu(name) });
+objs.detected = (name) => bool('blockmlObjects_isDetected', { OBJECT: objs.menu(name) });
+const robot = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="110" viewBox="0 0 100 110">
+<rect x="46" y="2" width="8" height="16" fill="#475569"/><circle cx="50" cy="6" r="6" fill="#f97316"/>
+<rect x="10" y="18" width="80" height="70" rx="16" fill="#e2e8f0" stroke="#475569" stroke-width="4"/>
+<rect x="22" y="34" width="56" height="30" rx="10" fill="#0f172a"/>${face}
+<rect x="30" y="92" width="40" height="14" rx="5" fill="#94a3b8"/></svg>`;
+
+// ---- 6. Object counter (Object Detection): repeat loop with a counter, lists ------------
+
+{
+  const p = new Project();
+  p.useExtension('blockmlObjects', BASE + 'objects.js');
+  p.list('things I see');
+  p.showList('things I see', { x: 5, y: 5, width: 190, height: 250 });
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const eyes = '<circle cx="38" cy="49" r="7" fill="#22d3ee"/><circle cx="62" cy="49" r="7" fill="#22d3ee"/>';
+  p.addSprite('Counter', [p.costume('robot', robot(eyes), [50, 55])], [[
+    flag,
+    objs.camera('on'),
+    objs.transparency(30),
+    objs.overlay('boxes'),
+    forever(
+      objs.detect(),
+      { op: 'data_deletealloflist', fields: { LIST: 'things I see' } },
+      set('i', 1),
+      // Go through every object the AI found, one at a time.
+      { op: 'control_repeat', inputs: { TIMES: objs.count() }, substack: [
+        { op: 'data_addtolist', fields: { LIST: 'things I see' }, inputs: {
+          ITEM: join(objs.value('name', v('i')), join(' – ', join(objs.value('confidence', v('i')), '%'))),
+        } },
+        change('i', 1),
+      ] },
+      ifElse(eq(objs.count(), 0),
+        [say("I don't see anything I know yet.")],
+        [say(join('Objects I can see: ', join(objs.count(), join('. People: ', objs.seen('person')))))]),
+      wait(1),
+    ),
+  ]], { x: 150, y: -100 });
+  write('object-counter.sb3', p);
+}
+
+// ---- 7. Classroom helper (Object Detection): events vs. checking in a loop, timer -------
+
+{
+  const p = new Project();
+  p.useExtension('blockmlObjects', BASE + 'objects.js');
+  p.variable('empty seconds', 0);
+  p.showVariable('empty seconds', { x: 5, y: 5 });
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const smile = '<path d="M36 52 Q50 64 64 52" fill="none" stroke="#22d3ee" stroke-width="5" stroke-linecap="round"/>';
+  p.addSprite('Helper', [p.costume('robot', robot(smile), [50, 55])], [
+    // 1) An EVENT: runs by itself whenever the AI starts seeing a person.
+    [
+      { op: 'blockmlObjects_whenSees', inputs: { OBJECT: objs.menu('person') } },
+      { op: 'looks_sayforsecs', inputs: { MESSAGE: 'Hello! Welcome back to your desk.', SECS: 2 } },
+    ],
+    // 2) CHECKING IN A LOOP: we look every half second and keep count with the timer.
+    [
+      flag,
+      objs.camera('on'),
+      objs.transparency(30),
+      { op: 'sensing_resettimer' },
+      forever(
+        objs.detect(),
+        ifElse(objs.detected('person'),
+          [{ op: 'sensing_resettimer' }, set('empty seconds', 0)],
+          [
+            set('empty seconds', op('operator_round', { NUM: op('sensing_timer') })),
+            ifThen(gt(v('empty seconds'), 5), say(join('Nobody at the desk for ', join(v('empty seconds'), ' seconds.')))),
+          ]),
+        wait(0.5),
+      ),
+    ],
+  ], { x: 150, y: -100 });
+  write('classroom-helper.sb3', p);
+}

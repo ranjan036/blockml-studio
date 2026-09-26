@@ -13,6 +13,9 @@ const MODELS = {
   'movenet-lightning': 'https://tfhub.dev/google/tfjs-model/movenet/singlepose/lightning/4',
   // Image Model features (MobileNet v2, width 1.0, 224x224) — Apache-2.0
   'mobilenet-v2': 'https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2',
+  // Object Detection: COCO-SSD lite (80 everyday objects) — Apache-2.0 (tfjs-models).
+  // Hosted as a plain folder on Google Cloud Storage, not on TF Hub.
+  'coco-ssd-lite': { plain: 'https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/' },
 };
 
 const only = process.argv.slice(2);
@@ -20,8 +23,10 @@ for (const [name, base] of Object.entries(MODELS)) {
   if (only.length && !only.includes(name)) continue;
   const dir = path.join('models', name);
   fs.mkdirSync(dir, { recursive: true });
-  // TF Hub serves TF.js models as model.json + weight shards next to it.
-  const res = await fetch(`${base}/model.json?tfjs-format=file`);
+  // TF Hub serves TF.js models as model.json + weight shards next to it; plain folders
+  // (Google Cloud Storage) just hold the files.
+  const plain = typeof base === 'object' ? base.plain : null;
+  const res = await fetch(plain ? `${plain}model.json` : `${base}/model.json?tfjs-format=file`);
   if (!res.ok) throw new Error(`${name}: model.json ${res.status}`);
   const modelJson = await res.json();
   fs.writeFileSync(path.join(dir, 'model.json'), JSON.stringify(modelJson));
@@ -29,7 +34,7 @@ for (const [name, base] of Object.entries(MODELS)) {
   for (const group of modelJson.weightsManifest) {
     for (const file of group.paths) {
       // Like TF.js: ask TF Hub for each shard and follow its (signed, one-time) redirect.
-      const w = await fetch(`${base}/${file}?tfjs-format=file`);
+      const w = await fetch(plain ? plain + file : `${base}/${file}?tfjs-format=file`);
       if (!w.ok) throw new Error(`${name}: ${file} ${w.status}`);
       const buf = Buffer.from(await w.arrayBuffer());
       fs.writeFileSync(path.join(dir, file), buf);
