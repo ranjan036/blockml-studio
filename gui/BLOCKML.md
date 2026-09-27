@@ -19,6 +19,7 @@ with a `blockml:` comment so it's easy to find when merging TurboWarp updates.
 | `src/containers/extension-library.jsx`, `src/lib/libraries/extensions/index.jsx` | No online extension gallery; Face Sensing and Custom Extension removed (all standard Scratch extensions stay) | Privacy and safety for students; our own AI extensions come in S2+ |
 | `src/playground/credits/credits.jsx` | Adds who makes BlockML Studio and the source link; keeps all TurboWarp and Scratch credits | Credit and GPL source offer |
 | `static/privacy.html` | Our privacy page | Accurate for this site |
+| `src/components/menu-bar/menu-bar.jsx` (S6) | File > **Make an Android app…** opens BlockML's app exporter and hands it this project (postMessage, to that tab only, after it says it is ready; `?blockml_url=` may point at a localhost BlockML for testing) | Export AI games as Android apps |
 | `src/containers/tw-security-manager.jsx` (S2) | Trust this site's `/extensions/` (and the production site's) instead of extensions.turbowarp.org | Our AI extensions run unsandboxed; outside extensions ask first |
 | `src/lib/libraries/extensions/index.jsx`, `blockml/*.svg`, `src/lib/libraries/tw-extension-tags.js` (S2) | Image Model, Object Detection, Face and Hand & Pose at the top of the extension library, with an "AI" filter | Our AI extensions |
 | `.gitignore` (S2) | `static/extensions/`, `static/starters/` are build output from `../extensions` | Build |

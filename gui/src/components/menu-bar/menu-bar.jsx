@@ -107,6 +107,13 @@ import SeeInsideButton from './tw-see-inside.jsx';
 import {notScratchDesktop} from '../../lib/isScratchDesktop.js';
 import {APP_NAME} from '../../lib/brand.js';
 
+// blockml: where the app exporter lives. For local testing only, ?blockml_url= may point
+// at a localhost BlockML (never anywhere else: the project is sent there).
+const BLOCKML_URL = (() => {
+    const override = new URLSearchParams(location.search).get('blockml_url');
+    return override && /^http:\/\/localhost:\d+$/.test(override) ? override : 'https://blockml.codeai.ltd';
+})();
+
 const ariaMessages = defineMessages({
     tutorials: {
         id: 'gui.menuBar.tutorialsLibrary',
@@ -216,6 +223,7 @@ class MenuBar extends React.Component {
             'handleClickNewWindow',
             'handleClickRemix',
             'handleClickSave',
+            'handleClickMakeApp',
             'handleClickSaveAsCopy',
             'handleClickPackager',
             'handleClickDesktopSettings',
@@ -273,6 +281,24 @@ class MenuBar extends React.Component {
     handleClickDesktopSettings () {
         this.props.onClickDesktopSettings();
         this.props.onRequestCloseSettings();
+    }
+    // blockml: File > Make an Android app… — opens BlockML's app exporter in a new tab
+    // and hands it this project (only that tab, only once it says it is ready).
+    handleClickMakeApp () {
+        this.props.onRequestCloseFile();
+        // Opened before any await, so the browser treats it as a user action (no popup blocker).
+        const exporter = window.open(`${BLOCKML_URL}/?from=studio`, '_blank');
+        if (!exporter) return;
+        const project = this.props.vm.saveProjectSb3().then(blob => blob.arrayBuffer());
+        const name = `${this.props.projectTitle || 'Project'}.sb3`;
+        const onMessage = event => {
+            if (event.origin !== BLOCKML_URL || event.source !== exporter) return;
+            if (!event.data || event.data.type !== 'blockml-ready-for-project') return;
+            window.removeEventListener('message', onMessage);
+            project.then(data => exporter.postMessage({type: 'blockml-project', name, data}, BLOCKML_URL, [data]));
+        };
+        window.addEventListener('message', onMessage);
+        setTimeout(() => window.removeEventListener('message', onMessage), 120000);
     }
     handleClickRestorePoints () {
         this.props.onClickRestorePoints();
@@ -695,6 +721,17 @@ class MenuBar extends React.Component {
                                                 </React.Fragment>
                                             )}
                                         </SB3Downloader>
+                                    </MenuSection>
+                                    {/* blockml: export to an Android app with BlockML's exporter */}
+                                    <MenuSection>
+                                        <MenuItem onClick={this.handleClickMakeApp}>
+                                            <FormattedMessage
+                                                defaultMessage="Make an Android app…"
+                                                // eslint-disable-next-line max-len
+                                                description="Menu bar item that opens BlockML's Android app exporter with this project"
+                                                id="blockml.menuBar.makeApp"
+                                            />
+                                        </MenuItem>
                                     </MenuSection>
                                     {this.props.onClickPackager && (
                                         <MenuSection>
