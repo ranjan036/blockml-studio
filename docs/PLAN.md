@@ -497,3 +497,84 @@ TurboWarp's Face Sensing URL load ours (`rewriteExtensionURL` in the security
 manager). Tested with a student's Scratch face game in the studio and in an app.
 
 **Not yet verified:** an AI app on a real phone (camera prompt, speed).
+
+## 15. Syllabus alignment and roadmap v2 (2026-09-28)
+
+The CODE AI Foundation syllabus (Core Curriculum v3.0, 51 sessions, written
+for PictoBlox) was compared with this plan. Full findings were discussed with
+the founder; the decisions below replace the "After S6" paragraph in §5.
+
+### 15.1 Rules (decided by the founder)
+
+1. **Free only.** Every block, game and app uses free options, even when
+   slower or less accurate. No paid AI services, no per-use cost.
+2. **Heavy use is expected.** Students use the tools at home too, for as long
+   as they are CODE AI students. Hosting must not charge by traffic.
+3. **Every AI game must work in the Scratch-games-to-app exporter** (BlockML's
+   "Export Scratch Games to App"). A block that can't run inside the Android
+   app needs a stated reason (Arduino only, see 15.3).
+4. **S5 is re-scoped to the syllabus games** (below), not the 8 starters in §3.6.
+
+### 15.2 What the syllabus needs, and whether it's built
+
+Ready today: Games 2–6 (Image Model, Face, Pose), AI 1, AI 9, AI 17; AI 19–20
+are discussions. Partly: AI 10 (digits via camera, not a stage drawing),
+AI 11 (hand signs via Image Model, not trained on hand points). Missing:
+voice (Game 1, AI 8), text AI (Game 8, AI 12, AI 18), chat AI (Game 7,
+AI 13–16, AI 18 — the syllabus names ChatGPT in AI 13–16 and 18), QR /
+AprilTag / cards (AI 4–6), OCR and "what is this?" (AI 2–3), web data (AI 7),
+Arduino (sessions 42–50). Reword: AI 2 without celebrity recognition; AI 8
+"build your own voice assistant" instead of Alexa; ChatGPT → "a
+ChatGPT-style chatbot".
+
+Coding concepts the syllabus never names, to be added inside existing games
+(no new sessions): lists (Game 8 word list), My Blocks (Game 7), broadcast
+(Game 5), and/or/not and `repeat until` (Game 4), "for this sprite only"
+variables with clones (Game 3), pen (AI 10), debugging ("fix the bug"
+versions in every game).
+
+### 15.3 Free, app-compatible choice per feature
+
+| Feature | Sessions | Laptop | Android app |
+|---|---|---|---|
+| Speech-to-text | Game 1, AI 8 | Vosk (on-device, ~40 MB per language) | same, bundled; microphone permission |
+| Text-to-speech | AI 8 and many apps | browser's local voices | Android's own offline voice, via the app shell |
+| Text classifier trainer, kindness check | Game 8, AI 12, AI 18 | small on-device text model + our trainer | same, bundled |
+| QR, AprilTag, recognition cards | AI 4–6 | JS/WASM decoders on the shared camera | same, bundled |
+| OCR (printed), "what is this?" (ImageNet) | AI 2–3 | Tesseract.js; MobileNet we already host | same, bundled |
+| Train on stage drawing / hand points | AI 10–11 | extends Image Model / Hand runtime | same |
+| Chat AI | Game 7, AI 13–16, AI 18 | small open model on the laptop (~250–400 MB, WebGPU with CPU fallback) | model downloaded once on first use; **benchmark first** |
+| Weather | AI 7 | a weather API free for commercial use (MET Norway, to confirm) or a saved dataset | same; internet permission |
+| Arduino | 42–50 | Web Serial + Firmata in Chrome | not possible (no USB in phone apps) — exporter says so |
+
+Not used (cost or terms): OpenAI / ChatGPT API (paid; under-13 data needs
+approved zero data retention), Google Gemini API (terms forbid apps likely
+used by under-18s), Open-Meteo (paid for commercial use), Chrome's built-in
+speech recognition (sends audio to Google; not in Android WebView).
+
+### 15.4 Hosting and offline
+
+- Vercel's free Hobby plan is for non-commercial use only; Pro is $20/month
+  per member with 1 TB traffic. **Plan: move model files (and probably both
+  sites) to Cloudflare Pages** (free, commercial use allowed, no bandwidth
+  charge; 25 MiB per file, so large models are sharded). DNS stays at GoDaddy.
+- Real offline caching: the inherited service worker is a no-op today, so
+  models rely on the browser's HTTP cache. Add a model cache (Cache Storage)
+  and a teacher "pre-load all models" button, as §4 promised.
+- One Android app template that declares camera and microphone and asks at
+  first use, instead of a template per permission.
+
+### 15.5 Roadmap v2
+
+| # | Milestone | Unlocks |
+|---|---|---|
+| S5 | Teacher pack for the syllabus games (Games 2–6 complete, basic halves of 1, 7, 8), with the coding-concept additions and "fix the bug" versions | Sessions 2–13 |
+| S5b | Hosting on Cloudflare Pages, model cache + pre-load button, one app template | heavy home use, offline centres |
+| S7 | Voice: offline speech-to-text + text-to-speech (laptop and app) | Game 1, AI 8 |
+| S8 | Text AI: trainable text classifier, kindness check | Game 8, AI 12, AI 18 (part) |
+| S9 | Vision+: QR, AprilTag, cards, OCR, "what is this?", drawing and hand-sign trainers | AI 2–6, 10, 11 |
+| S10 | Chat AI (after a laptop + phone benchmark) and weather | Game 7, AI 7, AI 13–16, AI 18 |
+| S11 | Arduino (Web Serial + Firmata) | Robotics 42–50 |
+
+Every milestone's exit criterion includes: works offline after first use,
+and an AI game using it exports and runs as an Android app.
