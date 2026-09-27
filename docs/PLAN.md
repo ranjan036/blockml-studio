@@ -482,3 +482,18 @@ ordinary laptops, cups and books are what it was trained on.
 
 **Not yet verified:** real classroom objects on a real webcam; the
 classroom-helper's "desk empty" path (needs a camera where the person leaves).
+
+## 14. S6 — AI games as Android apps (2026-09-27)
+
+BlockML's "Make an app" exporter takes AI projects: it adds the vision runtime,
+the extension files and only the models the project uses, and uses a template
+app that may ask for the camera. File → "Make an Android app…" hands the
+current project to blockml.codeai.ltd.
+
+Scratch's own **Face Sensing** is now ours too (`extensions/src/face-sensing.js`,
+same ID, blocks and menu values), so Scratch/TurboWarp projects that use it open
+in the studio and run in apps without the internet. Projects pointing at
+TurboWarp's Face Sensing URL load ours (`rewriteExtensionURL` in the security
+manager). Tested with a student's Scratch face game in the studio and in an app.
+
+**Not yet verified:** an AI app on a real phone (camera prompt, speed).

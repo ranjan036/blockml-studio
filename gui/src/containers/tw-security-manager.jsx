@@ -23,7 +23,14 @@ const manuallyTrustExtension = url => {
  * @param {string} url URL as a string.
  * @returns {boolean} True if the extension can is trusted
  */
+// blockml: Scratch's Face Sensing is provided by BlockML Studio's own, compatible
+// extension; TurboWarp's address for it (used by projects made on Scratch/TurboWarp)
+// is rewritten to ours, so it loads from this site and works offline.
+const TURBOWARP_FACE_SENSING = 'https://extensions.turbowarp.org/lab/face-sensing.js';
+const blockmlFaceSensing = () => `${location.origin}/extensions/face-sensing.js`;
+
 const isTrustedExtension = url => (
+    url === TURBOWARP_FACE_SENSING ||
     // blockml: trust BlockML Studio's own AI extensions (this site's /extensions/ and the
     // production site, so projects saved there load anywhere). TurboWarp's extension
     // site is no longer trusted automatically: projects using it ask first.
@@ -144,7 +151,8 @@ const SECURITY_MANAGER_METHODS = [
     'canNotify',
     'canGeolocate',
     'canEmbed',
-    'canDownload'
+    'canDownload',
+    'rewriteExtensionURL' // blockml
 ];
 
 class TWSecurityManagerComponent extends React.Component {
@@ -236,6 +244,11 @@ class TWSecurityManagerComponent extends React.Component {
      * @param {string} url The extension's URL
      * @returns {string} The VM worker mode to use
      */
+    // blockml: see TURBOWARP_FACE_SENSING
+    rewriteExtensionURL (url) {
+        return Promise.resolve(url === TURBOWARP_FACE_SENSING ? blockmlFaceSensing() : url);
+    }
+
     getSandboxMode (url) {
         if (isTrustedExtension(url)) {
             log.info(`Loading extension ${url} unsandboxed`);

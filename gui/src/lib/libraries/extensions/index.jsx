@@ -65,9 +65,9 @@ import returnIcon from './custom/return.svg';
 import galleryIcon from './gallery/gallery.svg';
 import {APP_NAME} from '../../brand';
 
-// blockml: without Face Sensing (loaded from extensions.turbowarp.org; BlockML Studio
-// has its own Face extension) and Custom Extension (runs code from anywhere).
-const BLOCKML_REMOVED_EXTENSIONS = new Set(['faceSensing', 'custom_extension']);
+// blockml: without Custom Extension (runs code from anywhere). Face Sensing below is
+// BlockML Studio's own Scratch-compatible version.
+const BLOCKML_REMOVED_EXTENSIONS = new Set(['custom_extension']);
 
 // blockml: absolute URL on this site; saved projects keep it and load it again from here.
 const blockmlExtensionURL = file => new URL(`extensions/${file}`, location.href).href;
@@ -185,7 +185,8 @@ export default [
             />
         ),
         extensionId: 'faceSensing',
-        extensionURL: 'https://extensions.turbowarp.org/lab/face-sensing.js',
+        // blockml: our Scratch-compatible Face Sensing (same blocks), served by this site
+        extensionURL: blockmlExtensionURL('face-sensing.js'),
         iconURL: faceSensingIconURL,
         insetIconURL: faceSensingInsetIconURL,
         description: (
