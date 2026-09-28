@@ -147,9 +147,13 @@ export class Project {
         return first;
       }
 
-      t.scripts.forEach((script, i) => {
+      // Scripts go one under another, spaced by how tall each one is (about 48 px per block).
+      const height = (specs) => specs.reduce((h, s) => h + 1 + (s.substack ? height(s.substack) + 1 : 0) + (s.substack2 ? height(s.substack2) + 1 : 0), 0);
+      let y = 40;
+      t.scripts.forEach((script) => {
         const first = stack(script, null);
-        Object.assign(blocks[first], { topLevel: true, x: 40, y: 40 + i * 420 });
+        Object.assign(blocks[first], { topLevel: true, x: 40, y });
+        y += height(script) * 48 + 80;
       });
 
       const base = {

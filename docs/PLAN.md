@@ -578,3 +578,24 @@ speech recognition (sends audio to Google; not in Android WebView).
 
 Every milestone's exit criterion includes: works offline after first use,
 and an AI game using it exports and runs as an Android app.
+
+### 15.6 S5 progress (2026-09-28)
+
+Lessons at `/lessons/` (built by `extensions/starters/build-lessons.mjs`):
+Games 2–6, each with basic, AI and fix-the-bug projects and a printable lesson
+card; Games 2 and 5 also have printable training cards.
+
+| Game | AI version | Planted bug |
+|---|---|---|
+| 2 Catch the Apple | own classifier opens the basket lid for good apples | ground check below the stage |
+| 3 Balloon Pop | pin on your nose, smile to pop | speed shared by all clones |
+| 4 Dino Jump | nose rises above the calibrated standing height | jump allowed in mid-air |
+| 5 Space Shooter | Friend/Foe/Nothing classifier unlocks weapons and docking | broadcast name mismatch |
+| 6 Car Racing | lean (shoulder tilt, with a dead zone) steers continuously | `mod 300` instead of `mod 360` |
+
+Tested in the studio (every rule and bug) and as one Android app with all
+eight basic/AI projects (24 MB; right on-screen controls; face, pose and image
+models load in the app). Not yet: real webcam/children in class. Lesson: Scratch
+keeps sprites on the stage, so "off-screen" checks must use limits the sprite
+can reach (Game 2's planted bug is exactly this); scrolling is computed from
+distance with `mod` rather than moving sprites off-stage.

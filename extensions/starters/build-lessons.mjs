@@ -40,6 +40,45 @@ const gt = (a, b) => bool('operator_gt', { OPERAND1: a, OPERAND2: b });
 const and = (a, b) => bool('operator_and', { OPERAND1: a, OPERAND2: b });
 const not = (a) => bool('operator_not', { OPERAND: a });
 const sub = (a, b) => op('operator_subtract', { NUM1: a, NUM2: b });
+const add = (a, b) => op('operator_add', { NUM1: a, NUM2: b });
+const mul = (a, b) => op('operator_multiply', { NUM1: a, NUM2: b });
+const div = (a, b) => op('operator_divide', { NUM1: a, NUM2: b });
+const or = (a, b) => bool('operator_or', { OPERAND1: a, OPERAND2: b });
+const join2 = (a, b) => op('operator_join', { STRING1: a, STRING2: b });
+const round = (a) => op('operator_round', { NUM: a });
+const repeatUntil = (condition, ...body) => ({ op: 'control_repeat_until', inputs: { CONDITION: condition }, substack: body });
+const wait = (s) => ({ op: 'control_wait', inputs: { DURATION: s } });
+const hide = { op: 'looks_hide' };
+const show = { op: 'looks_show' };
+const setX = (x) => ({ op: 'motion_setx', inputs: { X: x } });
+const setY = (y) => ({ op: 'motion_sety', inputs: { Y: y } });
+const xPosition = () => op('motion_xposition');
+const goToSprite = (sprite) => ({ op: 'motion_goto', inputs: { TO: { menu: 'motion_goto_menu', field: 'TO', value: sprite } } });
+const colorEffect = (value) => ({ op: 'looks_seteffectto', fields: { EFFECT: 'COLOR' }, inputs: { VALUE: value } });
+const front = { op: 'looks_gotofrontback', fields: { FRONT_BACK: 'front' } };
+const timer = () => op('sensing_timer');
+const resetTimer = { op: 'sensing_resettimer' };
+const cloneOf = (sprite = '_myself_') => ({ op: 'control_create_clone_of', inputs: { CLONE_OPTION: { menu: 'control_create_clone_of_menu', field: 'CLONE_OPTION', value: sprite } } });
+const whenClone = { op: 'control_start_as_clone' };
+const deleteClone = { op: 'control_delete_this_clone' };
+const whenClicked = { op: 'event_whenthisspriteclicked' };
+const whenKey = (key) => ({ op: 'event_whenkeypressed', fields: { KEY_OPTION: key } });
+const broadcast = (message) => ({ op: 'event_broadcast', inputs: { BROADCAST_INPUT: { broadcast: message } } });
+const whenReceive = (message) => ({ op: 'event_whenbroadcastreceived', fields: { BROADCAST_OPTION: message } });
+
+const face = {
+  camera: (state = 'on') => ({ op: 'blockmlFace_setCamera', fields: { STATE: state } }),
+  transparency: (n) => ({ op: 'blockmlFace_setTransparency', inputs: { VALUE: n } }),
+  count: () => op('blockmlFace_numberOfFaces'),
+  value: (property, index = 1) => op('blockmlFace_faceValue', { INDEX: index }, { PROPERTY: property }),
+  point: (axis, point, index = 1) => op('blockmlFace_pointValue', { INDEX: index }, { AXIS: axis, POINT: point }),
+};
+const pose = {
+  camera: (state = 'on') => ({ op: 'blockmlHands_setCamera', fields: { STATE: state } }),
+  transparency: (n) => ({ op: 'blockmlHands_setTransparency', inputs: { VALUE: n } }),
+  point: (axis, point) => op('blockmlHands_bodyPoint', {}, { AXIS: axis, POINT: point }),
+  visible: () => bool('blockmlHands_bodyVisible'),
+};
 
 const img = {
   camera: (state = 'on') => ({ op: 'blockmlImage_setCamera', fields: { STATE: state } }),
@@ -289,6 +328,661 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
       'No camera: play the basic game (arrow keys only).',
       'Unplugged card sort: students sort printed apple cards into “good” and “bad” piles and say why. That is labelling, the same thing the AI learns from.',
       'Everything runs on the laptop: after the first visit, the AI needs no internet.',
+    ],
+  };
+  write(game, 'index.html', lessonPage(card));
+  cards.push(card);
+}
+
+// ---- Game 3: Balloon Pop, Smile to Pop (sessions 6–7) -------------------------
+// Basic: cloning, timers, scoring, and "for this sprite only" variables (each
+// clone its own speed). AI (Level 1, Use): a pin follows your nose and a smile
+// pops the balloon it touches — hands-free.
+{
+  const game = 'game3-balloon-pop';
+  const sky = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#e0f2fe"/></linearGradient></defs>
+<rect width="480" height="360" fill="url(#s)"/>
+<g fill="#ffffff" opacity=".9"><ellipse cx="90" cy="70" rx="46" ry="18"/><ellipse cx="120" cy="60" rx="30" ry="18"/><ellipse cx="360" cy="110" rx="52" ry="18"/><ellipse cx="395" cy="98" rx="30" ry="16"/></g>
+<rect y="320" width="480" height="40" fill="#86efac"/></svg>`;
+  const balloon = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="90" viewBox="0 0 60 90">
+<path d="M30 60 C30 70 26 76 30 88" fill="none" stroke="#475569" stroke-width="2"/>
+<ellipse cx="30" cy="30" rx="26" ry="30" fill="#ef4444" stroke="#991b1b" stroke-width="3"/>
+<path d="M26 60 L34 60 L30 66 Z" fill="#991b1b"/><ellipse cx="20" cy="18" rx="6" ry="9" fill="#fecaca"/></svg>`;
+  const pin = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+<circle cx="22" cy="22" r="18" fill="none" stroke="#0b3d6d" stroke-width="4"/><circle cx="22" cy="22" r="4" fill="#ffcc00" stroke="#0b3d6d" stroke-width="2"/>
+<path d="M22 0 V10 M22 34 V44 M0 22 H10 M34 22 H44" stroke="#0b3d6d" stroke-width="4"/></svg>`;
+  const banner = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="90" viewBox="0 0 300 90">
+<rect x="3" y="3" width="294" height="84" rx="20" fill="#0b3d6d" stroke="#ffcc00" stroke-width="5"/>
+<text x="150" y="58" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" fill="#ffcc00">Time's up!</text></svg>`;
+
+  // withSmile: pop by smiling at the pin instead of clicking. localSpeed: false plants the bug.
+  const project = ({ withSmile = false, localSpeed = true } = {}) => {
+    const p = new Project();
+    if (withSmile) p.useExtension('blockmlFace', BASE + 'face.js');
+    p.addStage([p.costume('sky', sky, [240, 180])], [[
+      flag,
+      resetTimer,
+      set('score', 0),
+      repeatUntil(gt(timer(), 30),
+        set('time left', round(sub(30, timer())))),
+      set('time left', 0),
+      broadcast("time's up"),
+    ]]);
+    const popped = [change('score', 1), deleteClone];
+    const balloonScripts = [
+      [
+        flag,
+        hide,
+        // A new balloon every half second or so, until the time is up.
+        repeatUntil(gt(timer(), 30),
+          cloneOf(),
+          wait(random(0.4, 1))),
+      ],
+      [
+        whenClone,
+        // Every clone gets its own speed ("for this sprite only").
+        set('speed', random(2, 5)),
+        goTo(random(-210, 210), -160),
+        colorEffect(random(0, 200)),
+        show,
+        repeatUntil(gt(yPosition(), 160),
+          changeY(v('speed')),
+          ...(withSmile
+            ? [ifThen(and(touching('Pin'), gt(face.value('smile'), 50)), ...popped)]
+            : [])),
+        deleteClone,
+      ],
+      [whenReceive("time's up"), deleteClone],
+    ];
+    if (!withSmile) balloonScripts.push([whenClicked, ...popped]);
+    p.addSprite('Balloon', [p.costume('balloon', balloon, [30, 45])], balloonScripts,
+      { x: 0, y: -160, visible: false, variables: localSpeed ? ['speed'] : [] });
+    if (withSmile) {
+      p.addSprite('Pin', [p.costume('pin', pin, [22, 22])], [[
+        flag,
+        face.camera('on'),
+        face.transparency(60),
+        front,
+        forever(
+          // Follow the nose; hide when no face is seen.
+          ifElse(gt(face.count(), 0),
+            [show, goTo(face.point('x', 'nose tip'), face.point('y', 'nose tip'))],
+            [hide])),
+      ]]);
+    }
+    p.addSprite('Banner', [p.costume('banner', banner, [150, 45])], [
+      [flag, hide],
+      [whenReceive("time's up"), front, show, sayFor(join2('Score: ', v('score')), 3), { op: 'control_stop', fields: { STOP_OPTION: 'all' }, mutation: { tagName: 'mutation', children: [], hasnext: 'false' } }],
+    ], { visible: false });
+    p.showVariable('score', { x: 5, y: 5 });
+    p.showVariable('time left', { x: 5, y: 32 });
+    return p;
+  };
+  write(game, 'basic.sb3', project());
+  write(game, 'ai.sb3', project({ withSmile: true }));
+  // Planted bug: speed is shared by all balloons, so each new balloon changes every balloon's speed.
+  write(game, 'fix-the-bug.sb3', project({ localSpeed: false }));
+
+  const card = {
+    slug: game,
+    kicker: 'Game 3 · Sessions 6–7 · AI Level 1: Use',
+    title: 'Balloon Pop, Smile to Pop',
+    objective: 'I can use cloning and timers, and use a real AI model (face detection) to control gameplay hands-free.',
+    coding: ['clones', 'timer', 'scoring', 'repeat until', '"for this sprite only" variables', 'broadcast'],
+    ai: ['face detection', 'facial landmark points', 'threshold'],
+    materials: ['Laptop with a webcam', 'Good light on your face (face the window, not your back to it)'],
+    sessions: [
+      {
+        title: 'Session 6: build the balloons',
+        steps: [
+          'Open <b>Basic game</b>, press the green flag and click balloons to pop them. You have 30 seconds.',
+          'Find <code>create clone of myself</code>: one Balloon sprite makes many copies (<b>clones</b>).',
+          'Find <code>when I start as a clone</code>: every clone runs this script on its own.',
+          'Click the <b>speed</b> variable: it is <b>for this sprite only</b>, so each clone has its own speed. Why does that matter?',
+          'Find the <b>timer</b> on the Stage and the <code>broadcast time\'s up</code> message: which sprites listen to it?',
+        ],
+      },
+      {
+        title: 'Session 7: smile to pop',
+        say: '“This AI has seen thousands of faces, so it learned where eyes, a nose and a mouth are — dozens of <b>landmark points</b>. From the shape of the mouth points, it works out a smile.”',
+        steps: [
+          'Open <b>AI version</b>. The pin follows your <b>nose</b>: <code>go to x: (x of nose tip of face 1) y: (y of nose tip of face 1)</code>.',
+          'Move your head to put the pin on a balloon, then smile to pop it.',
+          'Find <code>smile of face 1 &gt; 50</code>. Try 20 and 90: what happens?',
+          'Add <code>show points on stage</code> from the Face blocks to see the landmark points the AI tracks.',
+        ],
+      },
+    ],
+    failTests: [
+      'Dim the lights, or sit with a bright window behind you.',
+      'Cover your mouth with your hand. Half-smile. Open your mouth wide without smiling.',
+      'Turn your head to the side, or move far from the camera.',
+      'Put a photo of a smiling face in front of the camera: does it count?',
+    ],
+    misconceptions: [
+      ['The AI sees me the way I see myself.', 'It only tracks landmark points (dots on eyes, nose, mouth) and does geometry on them.'],
+      ['The AI knows I am happy.', 'It measures the shape of your mouth. A fake smile scores the same as a real one.'],
+      ['It should work the same in any lighting.', 'Light and angle change the picture — that is what the fail-tests show.'],
+    ],
+    bug: {
+      symptom: 'In <b>Fix the bug</b>, all the balloons suddenly speed up or slow down together whenever a new balloon appears.',
+      hints: ['Every clone sets <code>speed</code> when it starts. Which balloons does that change?', 'Right-click the speed variable → rename… look at the “for all sprites / for this sprite only” choice.'],
+      answer: '<code>speed</code> was made <b>for all sprites</b>, so there is only one speed shared by every balloon; each new clone overwrites it. Delete it and make a new variable <code>speed</code> <b>for this sprite only</b> — then every clone keeps its own.',
+    },
+    challenges: [
+      'Make a golden balloon (rare) worth 5 points.',
+      'Balloons get faster as time runs out.',
+      'AI version: pop only with a big smile (> 80) for double points.',
+      'Use <code>mouth open</code> instead of smile: pop by saying “Oh!”.',
+    ],
+    app: [
+      'Save your project, then open blockml.codeai.ltd → <b>Export Scratch Games to App</b> and add it.',
+      'Basic game: tap balloons to pop them. AI version: the app asks to use the front camera.',
+    ],
+    offline: [
+      'No camera: play the basic game (click or tap to pop).',
+      'Everything runs on the laptop: after the first visit, face detection needs no internet.',
+    ],
+  };
+  write(game, 'index.html', lessonPage(card));
+  cards.push(card);
+}
+
+// ---- Game 4: Dino Jump, Jump When You Jump (sessions 8–9) ---------------------
+// Basic: gravity simulation (a y-speed variable), conditions, "and", "repeat
+// until". AI (Level 1, Use): pose detection — the dino jumps when your nose
+// rises above where it was when you stood still.
+{
+  const game = 'game4-dino-jump';
+  const GROUND = -95;
+  const desert = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#fef3c7"/><circle cx="400" cy="70" r="34" fill="#fb923c"/>
+<path d="M0 230 Q80 190 160 225 T320 215 T480 225 V360 H0 Z" fill="#fde68a"/>
+<rect y="302" width="480" height="58" fill="#d6a45a"/><rect y="300" width="480" height="5" fill="#92400e"/>
+<g fill="#b45309" opacity=".5"><circle cx="60" cy="330" r="3"/><circle cx="210" cy="340" r="2"/><circle cx="330" cy="325" r="3"/><circle cx="440" cy="345" r="2"/></g></svg>`;
+  const dino = `<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 70 70">
+<path d="M14 44 C8 44 4 38 2 30 C10 36 14 34 18 32 L20 20 C20 10 28 4 40 4 H56 C64 4 68 10 68 16 V24 C68 28 64 30 60 30 H46 V36 L54 38 V42 H46 V48 C46 58 40 62 34 62 V68 H28 V62 H22 V68 H16 V60 C14 56 14 50 14 44 Z" fill="#16a34a" stroke="#14532d" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="48" cy="13" r="4" fill="#ffffff"/><circle cx="49" cy="13" r="2" fill="#111827"/></svg>`;
+  const cactus = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="60" viewBox="0 0 36 60">
+<path d="M14 58 V10 C14 2 22 2 22 10 V58 Z M14 34 H8 C4 34 2 30 2 26 V18 C2 14 8 14 8 18 V26 H14 M22 28 H28 V16 C28 12 34 12 34 16 V26 C34 32 30 34 26 34 H22" fill="#15803d" stroke="#14532d" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
+
+  // withPose: jump for real. onGroundCheck: false plants the bug (jumping in mid-air).
+  const project = ({ withPose = false, onGroundCheck = true } = {}) => {
+    const p = new Project();
+    if (withPose) p.useExtension('blockmlHands', BASE + 'hands.js');
+    p.addStage([p.costume('desert', desert, [240, 180])]);
+    const onGround = eq(yPosition(), GROUND);
+    let jumpPressed = keyPressed('space');
+    if (withPose) {
+      // Your nose is higher than when you stood still: you jumped!
+      jumpPressed = or(keyPressed('space'), and(pose.visible(), gt(pose.point('y', 'nose'), add(v('standing'), 35))));
+    }
+    const dinoScripts = [[
+      flag,
+      goTo(-160, GROUND),
+      set('y speed', 0),
+      ...(withPose ? [
+        pose.camera('on'),
+        pose.transparency(60),
+        say('Stand still so I can see you…'),
+        waitUntil(pose.visible()),
+        wait(2),
+        set('standing', pose.point('y', 'nose')),
+        sayFor('Now jump!', 1),
+      ] : []),
+      broadcast('go'),
+      forever(
+        // Jump only from the ground: that's what the "and" is for.
+        ifThen(onGroundCheck ? and(jumpPressed, onGround) : jumpPressed, set('y speed', 16)),
+        // Gravity: pull the speed down a little every frame, then move by it.
+        change('y speed', -1.2),
+        changeY(v('y speed')),
+        ifThen(lt(yPosition(), GROUND), setY(GROUND), set('y speed', 0)),
+      ),
+    ]];
+    if (withPose) {
+      dinoScripts.push([whenKey('c'), sayFor('Stand still…', 1.5), set('standing', pose.point('y', 'nose')), sayFor('Ready!', 0.5)]);
+    }
+    p.addSprite('Dino', [p.costume('dino', dino, [35, 35])], dinoScripts, { x: -160, y: GROUND, rotationStyle: "don't rotate" });
+    p.addSprite('Cactus', [p.costume('cactus', cactus, [18, 30])], [[flag, goTo(230, GROUND), set('score', 0), set('speed', 6)], [
+      // The cactus starts when the dino is ready (in the AI version, after calibrating).
+      whenReceive('go'),
+      forever(
+        goTo(230, GROUND),
+        // Slide left until off the left side (Scratch keeps sprites on stage, so -225, not -260).
+        repeatUntil(lt(xPosition(), -225),
+          changeX(sub(0, v('speed'))),
+          ifThen(touching('Dino'), sayFor('Ouch! Game over', 2), stopAll)),
+        change('score', 1),
+        change('speed', 0.4)),
+    ]], { x: 230, y: GROUND });
+    p.showVariable('score', { x: 5, y: 5 });
+    return p;
+  };
+  write(game, 'basic.sb3', project());
+  write(game, 'ai.sb3', project({ withPose: true }));
+  write(game, 'fix-the-bug.sb3', project({ onGroundCheck: false }));
+
+  const card = {
+    slug: game,
+    kicker: 'Game 4 · Sessions 8–9 · AI Level 1: Use',
+    title: 'Dino Jump, Jump When You Jump',
+    objective: 'I can use gravity and conditions, and use pose detection to control my character with my own body.',
+    coding: ['gravity (a speed variable)', 'if', 'and / or', 'repeat until', 'coordinates'],
+    ai: ['pose detection', 'key points on the body', 'calibration'],
+    materials: ['Laptop with a webcam', 'Clear, safe space to jump; the whole upper body in the camera'],
+    sessions: [
+      {
+        title: 'Session 8: gravity and jumping',
+        steps: [
+          'Open <b>Basic game</b>: press space to jump over the cacti.',
+          'Find <code>y speed</code>. Every frame: <code>change y speed by -1.2</code> (gravity pulls), then <code>change y by (y speed)</code> (move). That is how real falling works: speed changes, and speed changes position.',
+          'Find <code>if &lt;key space pressed&gt; and &lt;y position = -95&gt;</code>: why do we need the <b>and</b>?',
+          'Find <code>repeat until x position &lt; -225</code> in the Cactus: a loop that stops by itself.',
+          'Change the jump (16) and gravity (-1.2): make it a moon jump, then a heavy jump.',
+        ],
+      },
+      {
+        title: 'Session 9: jump when you jump',
+        say: '“This AI has watched many people move, so it finds 17 <b>key points</b> on a body: nose, shoulders, elbows, wrists, hips, knees, ankles. It does not see you like a photo — just those dots.”',
+        steps: [
+          'Open <b>AI version</b>, step back so your upper body is in view, and stand still: the game remembers your nose height (<code>standing</code>).',
+          'Jump! When <code>y of nose of body &gt; standing + 35</code>, the dino jumps too.',
+          'Press <b>c</b> to re-measure (calibrate) if you moved closer or further.',
+          'Change 35 to 15 and to 80: what goes wrong each time?',
+        ],
+      },
+    ],
+    failTests: [
+      'Small hop versus big jump. Squat and stand up. Stand on tiptoe.',
+      'Move sideways, or walk closer to the camera: does it think you jumped?',
+      'Only your head in the frame. Two people in the frame.',
+    ],
+    misconceptions: [
+      ['It tracks my exact body like a photo.', 'It tracks 17 key points only. Everything else is our own code comparing numbers.'],
+      ['Every jump should register the same.', 'Jump size and where you stand change the numbers — that is why we calibrate.'],
+      ['The AI decides when to jump.', 'The AI only reports where your nose is. Our "if" decides what counts as a jump.'],
+    ],
+    bug: {
+      symptom: 'In <b>Fix the bug</b>, holding space makes the dino fly up and away.',
+      hints: ['When should jumping be allowed?', 'Compare the jump "if" with the one in the basic game.'],
+      answer: 'The jump check is only <code>if key space pressed</code>, so the dino can jump again in mid-air every frame. It needs <code>and &lt;y position = -95&gt;</code>: jump only when standing on the ground.',
+    },
+    challenges: [
+      'Add a flying bird that you must NOT jump over (duck with the down arrow).',
+      'Show the best score of the day in a second variable.',
+      'AI version: a double-high jump when both wrists are above your nose.',
+    ],
+    app: [
+      'Save, then open blockml.codeai.ltd → <b>Export Scratch Games to App</b> and add the project.',
+      'Space becomes an on-screen button. The AI version asks for the camera; prop the phone up far enough to see your body.',
+    ],
+    offline: [
+      'No camera: play the basic game (space or the up arrow).',
+      'Everything runs on the laptop: after the first visit, pose detection needs no internet.',
+    ],
+  };
+  write(game, 'index.html', lessonPage(card));
+  cards.push(card);
+}
+
+// ---- Game 5: Space Shooter, Friend or Foe (sessions 10–11) --------------------
+// Basic: multiple sprites, bullets (clones), lives, broadcast. AI (Level 2,
+// Customize, flagship #2): the student's own Friend / Foe / Nothing classifier
+// unlocks the weapons only when it sees a foe card, and lets friends dock.
+{
+  const game = 'game5-space-shooter';
+  const space = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#0f172a"/>
+<g fill="#ffffff">${Array.from({ length: 70 }, (_, i) => `<circle cx="${(i * 97) % 480}" cy="${(i * 59) % 360}" r="${i % 5 === 0 ? 1.8 : 1}" opacity="${0.4 + (i % 4) * 0.15}"/>`).join('')}</g>
+<circle cx="410" cy="60" r="26" fill="#6366f1" opacity=".7"/><ellipse cx="410" cy="60" rx="40" ry="8" fill="none" stroke="#a5b4fc" stroke-width="3" opacity=".7"/></svg>`;
+  const player = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
+<path d="M30 2 L42 30 L58 44 L58 52 L38 46 L34 56 H26 L22 46 L2 52 L2 44 L18 30 Z" fill="#e2e8f0" stroke="#475569" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="30" cy="24" r="6" fill="#38bdf8"/><path d="M26 56 L30 62 L34 56" fill="#fb923c"/></svg>`;
+  const bullet = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="20" viewBox="0 0 8 20"><rect x="1" y="1" width="6" height="18" rx="3" fill="#fde047"/></svg>';
+  // Friend: rounded green ship with a white star. Foe: spiky red ship with a skull-like face.
+  const friend = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="50" viewBox="0 0 60 50">
+<ellipse cx="30" cy="28" rx="28" ry="14" fill="#22c55e" stroke="#14532d" stroke-width="3"/><ellipse cx="30" cy="20" rx="12" ry="10" fill="#bbf7d0" stroke="#14532d" stroke-width="3"/>
+<path d="M30 12 L32 17 L37 17 L33 20 L35 25 L30 22 L25 25 L27 20 L23 17 L28 17 Z" fill="#ffffff"/></svg>`;
+  const foe = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="50" viewBox="0 0 60 50">
+<path d="M2 10 L18 18 L30 4 L42 18 L58 10 L50 30 L58 46 L30 38 L2 46 L10 30 Z" fill="#dc2626" stroke="#450a0a" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="23" cy="26" r="4" fill="#fde047"/><circle cx="37" cy="26" r="4" fill="#fde047"/></svg>`;
+  const mystery = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="50" viewBox="0 0 60 50">
+<ellipse cx="30" cy="28" rx="28" ry="14" fill="#dc2626" stroke="#450a0a" stroke-width="3"/><ellipse cx="30" cy="20" rx="12" ry="10" fill="#fecaca" stroke="#450a0a" stroke-width="3"/>
+<circle cx="25" cy="20" r="3" fill="#fde047"/><circle cx="35" cy="20" r="3" fill="#fde047"/></svg>`;
+  const gameOverSign = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="90" viewBox="0 0 300 90">
+<rect x="3" y="3" width="294" height="84" rx="20" fill="#0b3d6d" stroke="#ffcc00" stroke-width="5"/>
+<text x="150" y="58" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" fill="#ffcc00">Game over</text></svg>`;
+
+  // withAI: weapons and docking follow the classifier. gameOverMessage: the one the sign listens for (the bug renames it).
+  const project = ({ withAI = false, gameOverMessage = 'game over' } = {}) => {
+    const p = new Project();
+    if (withAI) {
+      p.useExtension('blockmlImage', BASE + 'image.js');
+      p.extensionStorage.blockmlImage = {
+        version: 1,
+        features: 'mobilenet_v2_100_224',
+        classes: ['Friend', 'Foe', 'Nothing'].map((name) => ({ name, samples: [] })),
+      };
+    }
+    p.addStage([p.costume('space', space, [240, 180])]);
+    const fire = cloneOf('Bullet');
+    const shipScripts = [
+      [
+        flag,
+        goTo(0, -140),
+        set('lives', 3),
+        set('score', 0),
+        forever(
+          ifThen(keyPressed('right arrow'), changeX(8)),
+          ifThen(keyPressed('left arrow'), changeX(-8)),
+          ifThen(lt(v('lives'), 1), broadcast('game over'))),
+      ],
+      [whenKey('space'), withAI
+        ? ifElse(eq(v('mode'), 'Foe'), [fire], [sayFor('Weapons locked: show me a foe!', 0.8)])
+        : fire],
+    ];
+    if (withAI) {
+      shipScripts.push([
+        flag,
+        set('mode', 'Nothing'),
+        img.camera('on'),
+        img.transparency(80),
+        ifThen(not(img.trained()),
+          say('Train me first: Friend, Foe and Nothing cards.'),
+          img.openTrainer(),
+          waitUntil(img.trained())),
+        say(''),
+        forever(
+          img.classify(),
+          // Trust the AI only when it is sure; otherwise stay safe.
+          ifElse(and(eq(img.label(), 'Foe'), gt(img.confidence('Foe'), 70)),
+            [set('mode', 'Foe')],
+            [ifElse(and(eq(img.label(), 'Friend'), gt(img.confidence('Friend'), 70)),
+              [set('mode', 'Friend')],
+              [set('mode', 'Nothing')])])),
+      ]);
+    }
+    p.addSprite('Ship', [p.costume('ship', player, [30, 30])], shipScripts, { x: 0, y: -140, rotationStyle: "don't rotate" });
+    p.addSprite('Bullet', [p.costume('bullet', bullet, [4, 10])], [
+      [flag, hide],
+      [whenClone, goToSprite('Ship'), show,
+        repeatUntil(or(gt(yPosition(), 165), touching('Visitor')), changeY(12)),
+        wait(0.05), // stay a moment, so the visitor it hit notices
+        deleteClone],
+    ], { visible: false });
+    const docked = withAI
+      ? ifElse(eq(v('mode'), 'Friend'), [change('score', 2)], [sayFor('Let me dock! Show me a friend card.', 0.5)])
+      : change('score', 2);
+    p.addSprite('Visitor', [p.costume('foe', foe, [30, 25]), p.costume('friend', friend, [30, 25])], [
+      [flag, hide, forever(wait(random(1, 2)), cloneOf())],
+      [
+        whenClone,
+        // Each visitor is its own kind: one in three is a friend.
+        ifElse(eq(random(1, 3), 1), [set('kind', 'friend')], [set('kind', 'foe')]),
+        costumeFrom('kind', 'foe'),
+        goTo(random(-200, 200), 165),
+        show,
+        repeatUntil(lt(yPosition(), -160),
+          changeY(-2.5),
+          ifThen(touching('Bullet'),
+            ifElse(eq(v('kind'), 'foe'), [change('score', 1)], [change('lives', -1)]),
+            deleteClone),
+          ifThen(touching('Ship'),
+            ifElse(eq(v('kind'), 'foe'), [change('lives', -1)], [docked]),
+            deleteClone)),
+        deleteClone,
+      ],
+      [whenReceive('game over'), deleteClone],
+    ], { visible: false, variables: ['kind'] });
+    p.addSprite('Sign', [p.costume('game over', gameOverSign, [150, 45])], [
+      [flag, hide],
+      [whenReceive(gameOverMessage), front, show, stopAll],
+    ], { visible: false });
+    p.showVariable('score', { x: 5, y: 5 });
+    p.showVariable('lives', { x: 5, y: 32 });
+    if (withAI) p.showVariable('mode', { x: 5, y: 59 });
+    return p;
+  };
+  write(game, 'basic.sb3', project());
+  write(game, 'ai.sb3', project({ withAI: true }));
+  // Planted bug: the sign waits for "gameover" but the ship broadcasts "game over".
+  write(game, 'fix-the-bug.sb3', project({ gameOverMessage: 'gameover' }));
+  write(game, 'cards.html', cardsPage('Friend or Foe cards', [
+    ['Friend', friend], ['Friend', friend.replace('#22c55e', '#4ade80')], ['Friend', friend.replace('rx="28"', 'rx="24"')],
+    ['Foe', foe], ['Foe', foe.replace('#dc2626', '#b91c1c')], ['Foe', foe.replace('r="4"', 'r="5"')],
+    ['Mystery ship (fail-test)', mystery],
+  ]));
+
+  const card = {
+    slug: game,
+    kicker: 'Game 5 · Sessions 10–11 · AI Level 2: Customize (flagship #2)',
+    title: 'Space Shooter, Friend or Foe',
+    objective: 'I can customize an AI model to sort friend vs. foe ships — a harder version of what I did in Game 2.',
+    coding: ['multiple sprites', 'bullets (clones)', 'lives', 'broadcast', '"for this sprite only" variables', 'if / else chains'],
+    ai: ['multi-class classifier', 'Example', 'Label', 'Train', 'Predict', 'confidence'],
+    extraButtons: '<a class="btn light" href="cards.html" target="_blank" rel="noopener">🖨 Print ship cards</a>',
+    materials: ['Laptop with a webcam', 'Printed Friend / Foe cards (button above), including the mystery ship', 'AI Vocabulary Card — reinforce, don\'t reteach'],
+    sessions: [
+      {
+        title: 'Session 10: build the shooter',
+        steps: [
+          'Open <b>Basic game</b>: arrow keys move, space fires. Shoot red foes; let green friends reach you to dock (+2).',
+          'Four sprites work together: Ship, Bullet, Visitor, Sign. Find how each talks to the others.',
+          'Find <code>broadcast game over</code>: the Ship sends a message; Visitor and Sign <b>receive</b> it.',
+          'Each Visitor clone has its own <code>kind</code> (for this sprite only) — friend or foe.',
+          'Read the Visitor\'s <code>if / else</code> blocks: what happens for each kind when hit by a bullet, and when reaching the ship?',
+        ],
+      },
+      {
+        title: 'Session 11: train a harder classifier',
+        say: '“Same idea as the apple sorter — examples, labels, train, predict — but now three classes. The harder the difference between classes, the clearer and more varied our examples must be.”',
+        steps: [
+          'Open <b>AI version</b>: the trainer opens with <i>Friend</i>, <i>Foe</i> and <i>Nothing</i>. Record 20+ photos of each card, moving it around; <i>Nothing</i> is the room with no card.',
+          'Train, test, press Done. Now space only fires when the AI says <b>Foe</b> with more than 70% confidence, and friends only dock when it says <b>Friend</b>.',
+          'Play in pairs: one flies, one shows the matching card for what is coming.',
+          'Fail-test: show the <b>mystery ship</b> card. What does the model say, and how sure is it? Why?',
+          'Save the project: the trained model goes inside it.',
+        ],
+      },
+    ],
+    failTests: [
+      'Show the mystery ship (red like a foe, round like a friend).',
+      'Train Friend with only 3 photos and Foe with 30: which class wins when unsure?',
+      'Show the card upside down, very small, or half covered.',
+      'Compare with Game 2: which classifier is more confident, and why?',
+    ],
+    misconceptions: [
+      ['Since I did this before, it will work exactly the same.', 'More classes is harder: the AI needs clearer, more varied examples of each.'],
+      ['If two classes look similar, it\'s the AI\'s fault.', 'It\'s a design problem: what makes two ships easy or hard to tell apart?'],
+      ['The AI knows which ships are enemies.', 'It only knows what we labelled. Swap the labels and it would fire at friends.'],
+    ],
+    bug: {
+      symptom: 'In <b>Fix the bug</b>, when lives reach 0 the game never ends: no “Game over” sign, and new ships keep vanishing.',
+      hints: ['Who sends the game-over message, and who is waiting for it?', 'Compare the message names character by character.'],
+      answer: 'The Ship broadcasts <code>game over</code> but the Sign waits for <code>gameover</code> (no space) — a different message, so the Sign never hears it. Pick <code>game over</code> in the Sign\'s <code>when I receive</code> block.',
+    },
+    challenges: [
+      'Add a third kind of visitor: an asteroid you must dodge (a fourth class to train).',
+      'Show a shield around the ship while the AI says Friend.',
+      'Make foes speed up every 10 points.',
+    ],
+    app: [
+      'Train and test in BlockML Studio, save, then export at blockml.codeai.ltd → <b>Export Scratch Games to App</b>.',
+      'Arrows and space become on-screen buttons; the AI version asks for the camera.',
+      'Print the cards for the phone too — show them to the phone\'s front camera.',
+    ],
+    offline: [
+      'No camera: play the basic game with keys.',
+      'Unplugged: sort printed ship cards into friend / foe piles and discuss the mystery ship.',
+    ],
+  };
+  write(game, 'index.html', lessonPage(card));
+  cards.push(card);
+}
+
+// ---- Game 6: Car Racing, Lean to Steer (sessions 12–13) -----------------------
+// Basic: scrolling (lane lines that wrap around), speed control. AI (Level 1,
+// Use, continuous): steer by leaning — the car turns by how much your
+// shoulders tilt, every frame, instead of a single trigger like Dino Jump.
+{
+  const game = 'game6-car-racing';
+  const road = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#4ade80"/><rect x="60" width="360" height="360" fill="#475569"/>
+<rect x="60" width="10" height="360" fill="#f8fafc"/><rect x="410" width="10" height="360" fill="#f8fafc"/>
+<g fill="#166534">${[20, 90, 160, 230, 300].map((y) => `<circle cx="28" cy="${y}" r="16"/><circle cx="452" cy="${y + 35}" r="16"/>`).join('')}</g></svg>`;
+  const line = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="40" viewBox="0 0 10 40"><rect width="10" height="40" rx="3" fill="#fde047"/></svg>';
+  const car = (body, stripe) => `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="76" viewBox="0 0 44 76">
+<rect x="2" y="8" width="8" height="16" rx="3" fill="#111827"/><rect x="34" y="8" width="8" height="16" rx="3" fill="#111827"/>
+<rect x="2" y="52" width="8" height="16" rx="3" fill="#111827"/><rect x="34" y="52" width="8" height="16" rx="3" fill="#111827"/>
+<rect x="6" y="2" width="32" height="72" rx="12" fill="${body}" stroke="#111827" stroke-width="3"/>
+<rect x="11" y="16" width="22" height="14" rx="4" fill="#bae6fd"/><rect x="19" y="36" width="6" height="34" fill="${stripe}"/></svg>`;
+  const LANE_X = [-60, 60];
+
+  // withLean: steer by leaning. loop: how long the road pattern is (5 lines x 72 = 360; the bug uses 300).
+  const project = ({ withLean = false, loop = 360 } = {}) => {
+    const p = new Project();
+    if (withLean) p.useExtension('blockmlHands', BASE + 'hands.js');
+    p.addStage([p.costume('road', road, [240, 180])]);
+    // Lane lines: 2 columns x 5 clones. Each line's height comes from how far the car
+    // has driven: y = ((start - distance) mod 360) - 180, so lines leaving the bottom
+    // come back at the top, and nothing drifts.
+    p.addSprite('Line', [p.costume('line', line, [5, 20])], [
+      [
+        flag,
+        hide,
+        // Five lines per lane, 72 apart (5 x 72 = 360, the stage height).
+        ...LANE_X.flatMap((x) => [
+          set('start', 0),
+          goTo(x, 0),
+          { op: 'control_repeat', inputs: { TIMES: 5 }, substack: [cloneOf(), change('start', 72)] },
+        ]),
+      ],
+      [
+        whenClone,
+        show,
+        forever(setY(sub(op('operator_mod', { NUM1: sub(v('start'), v('distance')), NUM2: loop }), 180))),
+      ],
+    ], { visible: false, variables: ['start'] });
+    const steering = withLean
+      ? [ifThen(pose.visible(),
+        // Lean left: your left shoulder drops below your right one, so lean is negative: the car moves left.
+        set('lean', sub(pose.point('y', 'left shoulder'), pose.point('y', 'right shoulder'))),
+        // Dead zone: shoulders are never exactly level, so ignore small leans.
+        ifThen(gt(op('operator_mathop', { NUM: v('lean') }, { OPERATOR: 'abs' }), 8), changeX(div(v('lean'), 3))))]
+      : [ifThen(keyPressed('right arrow'), changeX(6)), ifThen(keyPressed('left arrow'), changeX(-6))];
+    p.addSprite('Car', [p.costume('car', car('#ef4444', '#ffffff'), [22, 38])], [[
+      flag,
+      goTo(0, -120),
+      set('speed', 5),
+      set('distance', 0),
+      set('score', 0),
+      set('lives', 3),
+      ...(withLean ? [
+        pose.camera('on'),
+        pose.transparency(65),
+        say('Sit back so I can see both shoulders…'),
+        waitUntil(pose.visible()),
+        sayFor('Lean to steer!', 1),
+      ] : []),
+      broadcast('go'),
+      forever(
+        change('distance', v('speed')),
+        ...steering,
+        // Speed control: up/down arrows, kept between 2 and 14.
+        ifThen(keyPressed('up arrow'), change('speed', 0.2)),
+        ifThen(keyPressed('down arrow'), change('speed', -0.2)),
+        ifThen(gt(v('speed'), 14), set('speed', 14)),
+        ifThen(lt(v('speed'), 2), set('speed', 2)),
+        // Stay on the road.
+        ifThen(gt(xPosition(), 150), setX(150)),
+        ifThen(lt(xPosition(), -150), setX(-150)),
+        ifThen(lt(v('lives'), 1), sayFor('Crash! Game over', 2), stopAll)),
+    ]], { x: 0, y: -120, rotationStyle: "don't rotate" });
+    p.addSprite('Traffic', [p.costume('blue', car('#3b82f6', '#1e3a8a'), [22, 38]), p.costume('yellow', car('#facc15', '#854d0e'), [22, 38])], [
+      [flag, hide],
+      // Traffic starts when the car is ready (in the AI version, once it can see you).
+      [whenReceive('go'), forever(wait(random(1.2, 2.5)), cloneOf())],
+      [
+        whenClone,
+        goTo(random(-140, 140), 160),
+        { op: 'looks_switchcostumeto', inputs: { COSTUME: { reporter: random(1, 2), shadow: { menu: 'looks_costume', field: 'COSTUME', value: 'blue' } } } },
+        show,
+        // Traffic drives more slowly than you, so it comes towards you at (your speed - 2).
+        repeatUntil(lt(yPosition(), -165),
+          changeY(sub(2, v('speed'))),
+          ifThen(touching('Car'), change('lives', -1), deleteClone)),
+        change('score', 1),
+        deleteClone,
+      ],
+    ], { visible: false });
+    p.showVariable('score', { x: 5, y: 5 });
+    p.showVariable('lives', { x: 5, y: 32 });
+    p.showVariable('speed', { x: 5, y: 59 });
+    return p;
+  };
+  write(game, 'basic.sb3', project());
+  write(game, 'ai.sb3', project({ withLean: true }));
+  // Planted bug: the road pattern repeats every 300 instead of 360, so lines bunch up and gaps appear.
+  write(game, 'fix-the-bug.sb3', project({ loop: 300 }));
+
+  const card = {
+    slug: game,
+    kicker: 'Game 6 · Sessions 12–13 · AI Level 1: Use (reused, continuous)',
+    title: 'Car Racing, Lean to Steer',
+    objective: 'I can use scrolling backgrounds and speed control, and reuse pose detection continuously instead of as a single trigger.',
+    coding: ['scrolling', 'speed control', 'clones', 'mod', 'abs', 'limits (keep between 2 and 14)', 'broadcast', 'maths with sensor values'],
+    ai: ['pose detection (reused from Dino Jump)', 'continuous tracking vs. single trigger'],
+    materials: ['Laptop with a webcam', 'Sit or stand with both shoulders in view'],
+    sessions: [
+      {
+        title: 'Session 12: scrolling and speed',
+        steps: [
+          'Open <b>Basic game</b>: ←/→ steer, ↑/↓ change speed. Avoid the traffic.',
+          'The road doesn\'t move — the yellow <b>lane lines</b> do. The Car adds <code>speed</code> to <code>distance</code> every frame, and each line sets <code>y to ((start − distance) mod 360) − 180</code>. <b>mod</b> is the remainder after dividing, so it counts 0…359 and starts again: lines leaving the bottom come back at the top. That is <b>scrolling</b>.',
+          'Find the <b>speed</b> limits: <code>if speed &gt; 14 then set speed to 14</code>. Why do games need limits?',
+          'Traffic moves by <code>2 - speed</code>: when you go faster, they come at you faster. Try it.',
+        ],
+      },
+      {
+        title: 'Session 13: lean to steer',
+        say: '“Same body-tracking AI as Dino Jump — but now we read it <b>every frame</b> and use the number directly, instead of waiting for one jump.”',
+        steps: [
+          'Open <b>AI version</b> and lean left and right: the car follows.',
+          'Find <code>set lean to (y of left shoulder − y of right shoulder)</code> and <code>change x by (lean / 3)</code>. A small lean gives a small number, a big lean a big one: that is <b>continuous</b> control. Tick the <code>lean</code> variable to watch it.',
+          'Find the <b>dead zone</b>: <code>if abs(lean) &gt; 8</code>. Shoulders are never exactly level, so without it the car creeps sideways. Try 0 and 20.',
+          'Change the 3 to 1 and to 10: which feels best?',
+          'Compare with Dino Jump: which kind of control (trigger or continuous) is harder to make feel good? Why?',
+        ],
+      },
+    ],
+    failTests: [
+      'Lean only your head. Raise one shoulder without leaning.',
+      'Sit far back, or with only one shoulder in view.',
+      'Two people in view.',
+    ],
+    misconceptions: [
+      ['Continuous tracking works exactly like the single jump trigger.', 'Every frame\'s number moves the car, so jitter and delay are felt all the time.'],
+      ['The car steers because the AI understands leaning.', 'The AI gives two shoulder heights; our subtraction turns them into steering.'],
+    ],
+    bug: {
+      symptom: 'In <b>Fix the bug</b>, the lane lines slowly bunch together and gaps appear in the road.',
+      hints: ['How far apart are the lines, and how many are in a column?', 'Look at the number after <b>mod</b> in the Line\'s script.'],
+      answer: 'Five lines 72 apart make a pattern 360 long, and the stage is 360 tall, so the line position must use <code>mod 360</code>. The bug uses <code>mod 300</code>, so lines come back too early, bunch together and leave gaps. Change 300 to 360.',
+    },
+    challenges: [
+      'Add a fuel counter that drops with speed; a fuel can refills it.',
+      'Make the traffic change lanes.',
+      'AI version: lean forward (nose lower) to speed up.',
+    ],
+    app: [
+      'Save, then export at blockml.codeai.ltd → <b>Export Scratch Games to App</b>.',
+      'Arrows become an on-screen D-pad. The AI version asks for the camera; prop the phone so your shoulders are in view.',
+    ],
+    offline: [
+      'No camera: play the basic game with the arrow keys.',
+      'Everything runs on the laptop: after the first visit, pose detection needs no internet.',
     ],
   };
   write(game, 'index.html', lessonPage(card));
