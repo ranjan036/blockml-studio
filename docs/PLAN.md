@@ -605,3 +605,32 @@ models load in the app). Not yet: real webcam/children in class. Lesson: Scratch
 keeps sprites on the stage, so "off-screen" checks must use limits the sprite
 can reach (Game 2's planted bug is exactly this); scrolling is computed from
 distance with `mod` rather than moving sprites off-stage.
+
+
+### 15.7 S7 Voice (2026-09-28)
+
+`extensions/src/voice.js` (id `blockmlVoice`): offline speech-to-text with Vosk
+(vosk-browser 0.0.8, WebAssembly; model `vosk-model-small-en-us-0.15`, 40 MB,
+Apache-2.0, packed by `scripts/fetch-voice-models.mjs` as a `.tar.gz` split into
+10 MB parts + `manifest.json`), and text-to-speech with the computer's own
+voices (Android: the app shell's `BlockMLAndroid.speak`, Android TextToSpeech).
+Blocks follow the design rule: `when I hear [ ]`, `what I heard`, `I heard [ ]?`,
+`confidence of what I heard`, `listen only for words ( )` (a grammar: far fewer
+mistakes — itself a lesson), `speak [ ]`. The game's own voice is ignored while
+it speaks.
+
+- vosk-browser stops loading when its IndexedDB cache can't be written (private
+  windows, some WebViews); `scripts/patch-vosk.mjs` makes that a warning. Model
+  archives need directory entries or Vosk can't find the files.
+- Android: the AI template now declares camera and microphone (+
+  MODIFY_AUDIO_SETTINGS); the shell grants either to our own pages after
+  Android's prompt; a `<queries>` entry lets Android 11+ find the TTS engine.
+  The exporter bundles voice.js, vosk.js and the model parts (a voice app is
+  ~43 MB).
+- Game 1 now has its AI version: say up/down/left/right to walk, stop to stop;
+  the game speaks your time.
+- Tested with a synthetic voice as a fake microphone (Windows SAPI → WAV): every
+  command recognised with a word list, and free speech exactly, in the studio
+  and in an exported app's player. **Not yet: a real phone** (microphone prompt,
+  WebView audio capture, Android's voice) **and real children's voices in a
+  classroom.** Hindi (Vosk small Hindi, 42 MB) can be added the same way.

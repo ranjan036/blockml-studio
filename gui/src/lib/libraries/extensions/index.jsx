@@ -10,6 +10,8 @@ import blockmlImageIconURL from './blockml/image.svg';
 import blockmlImageInsetIconURL from './blockml/image-small.svg';
 import blockmlObjectsIconURL from './blockml/objects.svg';
 import blockmlObjectsInsetIconURL from './blockml/objects-small.svg';
+import blockmlVoiceIconURL from './blockml/voice.svg';
+import blockmlVoiceInsetIconURL from './blockml/voice-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -110,6 +112,16 @@ export default [
         iconURL: blockmlHandsIconURL,
         insetIconURL: blockmlHandsInsetIconURL,
         description: 'Track hands, fingers and gestures, and your body, with the camera. The AI runs on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Voice',
+        extensionId: 'blockmlVoice',
+        extensionURL: blockmlExtensionURL('voice.js'),
+        iconURL: blockmlVoiceIconURL,
+        insetIconURL: blockmlVoiceInsetIconURL,
+        description: 'Talk to your project: the AI turns your voice into words, and your project can speak. It runs on this computer, no internet needed.',
         tags: ['ai'],
         featured: true
     },

@@ -3,9 +3,12 @@
 // the editor build publishes at /extensions/.
 import fs from 'node:fs';
 import path from 'node:path';
+import { patchedVosk } from './patch-vosk.mjs';
 
 const DIST = 'dist';
-for (const f of ['face.js', 'hands.js', 'image.js', 'objects.js', 'face-sensing.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
+for (const f of ['face.js', 'hands.js', 'image.js', 'objects.js', 'face-sensing.js', 'voice.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
+// The offline speech recogniser the Voice extension loads (see patch-vosk.mjs).
+fs.writeFileSync(path.join(DIST, 'vosk.js'), patchedVosk());
 fs.cpSync('models', path.join(DIST, 'models'), { recursive: true });
 
 const target = path.join('..', 'gui', 'static', 'extensions');

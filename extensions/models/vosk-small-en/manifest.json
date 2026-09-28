@@ -1,0 +1,11 @@
+{
+  "source": "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
+  "license": "Apache-2.0",
+  "size": 41685154,
+  "parts": [
+    "model.tar.gz.000",
+    "model.tar.gz.001",
+    "model.tar.gz.002",
+    "model.tar.gz.003"
+  ]
+}

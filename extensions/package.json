@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "fetch-models": "node scripts/fetch-models.mjs",
+    "fetch-voice-models": "node scripts/fetch-voice-models.mjs",
     "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs",
     "test": "vitest run"
   },
@@ -19,7 +20,8 @@
     "@tensorflow/tfjs-backend-webgl": "4.22.0",
     "@tensorflow/tfjs-backend-webgpu": "4.22.0",
     "@tensorflow/tfjs-converter": "4.22.0",
-    "@tensorflow/tfjs-core": "4.22.0"
+    "@tensorflow/tfjs-core": "4.22.0",
+    "vosk-browser": "0.0.8"
   },
   "devDependencies": {
     "fflate": "0.8.3",

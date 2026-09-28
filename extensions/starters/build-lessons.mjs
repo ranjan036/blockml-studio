@@ -1016,11 +1016,14 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
 <path d="M20 2 L25 15 L38 15 L27 23 L31 37 L20 29 L9 37 L13 23 L2 15 L15 15 Z" fill="#facc15" stroke="#a16207" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
 
   // bounceRight: how far to step back after walking right into a wall (-4 is right; the bug uses +4).
-  const project = ({ bounceRight = -4 } = {}) => {
+  // withVoice: the runner also walks the way you say ("up", "down", "left", "right") until "stop".
+  const project = ({ bounceRight = -4, withVoice = false } = {}) => {
     const p = new Project();
+    if (withVoice) p.useExtension('blockmlVoice', BASE + 'voice.js');
     p.addStage([p.costume('maze', maze, [240, 180])]);
     const hitWall = () => bool('sensing_touchingcolor', { COLOR: { color: WALL } });
-    const step = (key, move, back, direction) => ifThen(keyPressed(key),
+    const go = (key) => (withVoice ? or(keyPressed(key), eq(v('command'), key.replace(' arrow', ''))) : keyPressed(key));
+    const step = (key, move, back, direction) => ifThen(go(key),
       ...(direction ? [{ op: 'motion_pointindirection', inputs: { DIRECTION: direction } }] : []),
       move,
       // Walked into a wall? Step back.
@@ -1037,9 +1040,23 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
         step('up arrow', changeY(4), changeY(-4)),
         step('down arrow', changeY(-4), changeY(4)),
         ifThen(touching('Goal'),
+          ...(withVoice ? [{ op: 'blockmlVoice_speak', inputs: { TEXT: join2('You made it in ', join2(round(timer()), ' seconds!')) } }] : []),
           sayFor(join2('You made it in ', join2(round(timer()), ' seconds!')), 3),
           stopAll)),
-    ]], { x: -190, y: -130, rotationStyle: 'left-right' });
+    ], ...(withVoice ? [[
+      flag,
+      set('command', 'stop'),
+      // Only five words to choose from: the AI makes far fewer mistakes than with any word.
+      { op: 'blockmlVoice_listenFor', inputs: { WORDS: 'up down left right stop' } },
+      { op: 'blockmlVoice_startListening' },
+      say('Loading the voice AI…'),
+      waitUntil(bool('blockmlVoice_isReady')),
+      sayFor('Say up, down, left, right or stop!', 2),
+      forever(
+        // The AI tells us what it heard; we decide what it means.
+        ...['up', 'down', 'left', 'right', 'stop'].map((w) => ifThen(bool('blockmlVoice_heardWord', { WORD: w }), set('command', w))),
+        { op: 'blockmlVoice_clearHeard' }),
+    ]] : [])], { x: -190, y: -130, rotationStyle: 'left-right' });
     p.addSprite('Goal', [p.costume('star', star, [20, 20])], [[
       flag,
       goTo(180, 130),
@@ -1047,9 +1064,11 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
       forever({ op: 'motion_turnright', inputs: { DEGREES: 5 } }, set('time', round(timer()))),
     ]], { x: 180, y: 130 });
     p.showVariable('time', { x: 380, y: 5 });
+    if (withVoice) p.showVariable('command', { x: 5, y: 5 });
     return p;
   };
   write(game, 'basic.sb3', project());
+  write(game, 'ai.sb3', project({ withVoice: true }));
   write(game, 'fix-the-bug.sb3', project({ bounceRight: 4 }));
 
   const card = {
@@ -1058,10 +1077,9 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
     kicker: 'Game 1 · Sessions 2–3 · AI Level 1: Use',
     title: 'Maze Runner, Voice-Controlled',
     objective: 'I can use motion and collision detection, and use a real AI model (speech-to-text) to control my game.',
-    aiPending: 'coming with the Voice extension',
-    coding: ['sprites', 'costumes', 'events', 'forever loop', 'motion', 'coordinates', 'collision (touching colour)', 'timer'],
-    ai: ['speech-to-text (voice extension, coming soon)'],
-    materials: ['Laptop (a microphone for the AI half, once the Voice extension is ready)'],
+    coding: ['sprites', 'costumes', 'events', 'forever loop', 'motion', 'coordinates', 'collision (touching colour)', 'timer', 'or'],
+    ai: ['speech-to-text', 'a word list (grammar)', 'text-to-speech'],
+    materials: ['Laptop with a microphone (the built-in one is fine)', 'A quiet-ish room — then a noisy one, for the fail-test'],
     sessions: [
       {
         title: 'Session 2: build the maze',
@@ -1078,18 +1096,23 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
         title: 'Session 3: voice control (AI)',
         say: '“This AI has listened to millions of voices before — that\'s how it learned to turn speech into text.”',
         steps: [
-          'The AI half needs BlockML Studio\'s <b>Voice</b> extension (offline speech-to-text), which is being built next. Until then:',
-          'Polish the maze: change the walls in the backdrop (keep the exact same blue!), add a second level, or a monster that moves back and forth.',
-          'Plan the voice commands: which words will move the runner? (“up”, “down”, “left”, “right”, “stop”.) What should happen if the AI hears a word that isn\'t on the list?',
-          'Unplugged: one student is the “speech AI” and moves a paper runner only on exact words; the others give commands with noise in the room. Discuss why it gets confused.',
+          'Open <b>AI version</b> and allow the microphone. The first time, the voice AI (40 MB) takes a moment to load; after that it works without internet.',
+          'Say <b>“right”</b>: the runner keeps walking right until a wall or until you say <b>“stop”</b>. The <code>command</code> variable shows what it understood.',
+          'Find <code>listen only for words (up down left right stop)</code>. With only five words to choose from, the AI makes far fewer mistakes. Try <code>listen for any words</code> instead and watch <code>what I heard</code>: what goes wrong?',
+          'Find <code>if &lt;I heard [up]?&gt; then set command to up</code>: the AI only turns sound into words; our code decides what the words mean.',
+          'Reach the star: the game <b>speaks</b> your time (text-to-speech, the opposite direction).',
         ],
       },
     ],
     failTests: [
+      'Mumble. Whisper. Shout. Say “up” with music or classroom noise in the background.',
+      'Say a word that isn\'t on the list (“jump”), or a word that sounds close (“cup”, “rice”).',
+      'Everyone says a different command at once.',
       'Make the walls thinner: can the runner squeeze through? Why?',
-      'Change the wall colour in the backdrop to a slightly different blue: what breaks?',
     ],
     misconceptions: [
+      ['The computer understands what I\'m saying.', 'It turns sounds into the most likely words using patterns it learned; it doesn\'t know what “up” means — our code does.'],
+      ['If it doesn\'t understand me, it\'s broken.', 'Noise and unclear speech are normal limits of speech AI, not a fault.'],
       ['The computer knows where the walls are.', 'It only checks if the runner touches that exact colour. Paint a different colour and it walks right through.'],
       ['"forever" and "repeat" are the same.', 'forever never stops; repeat runs a set number of times. Predict, then test.'],
       ['Costumes and sprites are the same thing.', 'A sprite is the character; costumes are its different looks.'],
@@ -1106,9 +1129,12 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
     ],
     app: [
       'Save, then open blockml.codeai.ltd → <b>Export Scratch Games to App</b> and add the project.',
-      'The arrow keys become an on-screen D-pad.',
+      'The arrow keys become an on-screen D-pad. The AI version asks for the microphone and speaks with the phone\'s own voice.',
     ],
-    offline: ['The basic game needs no internet and no camera.'],
+    offline: [
+      'Everything runs on the laptop: after the first visit, the voice AI needs no internet.',
+      'No microphone: play the basic game with the arrow keys (the AI version\'s keys work too).',
+    ],
   };
   write(game, 'index.html', lessonPage(card));
   cards.push(card);

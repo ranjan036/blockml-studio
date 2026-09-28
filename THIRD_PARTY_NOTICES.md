@@ -8,6 +8,10 @@
   `-backend-webgpu`) and **TensorFlow.js models** (`@tensorflow-models/face-landmarks-detection`,
   `hand-pose-detection`, `pose-detection`) — Apache-2.0. Bundled in
   `extensions/dist/vision-runtime.js`.
+- **vosk-browser** 0.0.8 (Vosk / Kaldi speech recognition compiled to
+  WebAssembly) — Apache-2.0, https://github.com/ccoreilly/vosk-browser. Served as
+  `extensions/vosk.js` with one change: a failed IndexedDB cache sync no longer
+  stops the model from loading (see `extensions/scripts/patch-vosk.mjs`).
 - **AI model weights** (`extensions/models/`) — Apache-2.0, see
   `extensions/models/NOTICE.txt`.
 - The default sprite is TurboWarp's "dango", based on Twemoji — CC BY 4.0.

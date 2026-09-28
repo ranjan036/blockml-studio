@@ -10,5 +10,8 @@ AI models used by BlockML Studio (served from this folder):
   version — Apache License 2.0 (used for its image features)
 - coco-ssd-lite: COCO-SSD (SSDLite MobileNet v2), TF.js version from
   tfjs-models — Apache License 2.0
+- vosk-small-en: Vosk vosk-model-small-en-us-0.15 (Alpha Cephei,
+  alphacephei.com/vosk/models), repacked as a split .tar.gz for the browser —
+  Apache License 2.0
 
 Source: TensorFlow Hub / Kaggle Models. https://www.apache.org/licenses/LICENSE-2.0
