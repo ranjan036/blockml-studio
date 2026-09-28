@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Project, op, bool, v } from './sb3.mjs';
-import { lessonPage, indexPage, cardsPage } from './lesson-pages.mjs';
+import { lessonPage, indexPage, cardsPage, phrasesPage } from './lesson-pages.mjs';
 
 const BASE = process.env.STARTER_BASE || 'https://studio.blockml.codeai.ltd/extensions/';
 const OUT = path.join('..', 'gui', 'static', 'lessons');
@@ -259,6 +259,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
 
   const card = {
     slug: game,
+    number: 2,
     kicker: 'Game 2 · Sessions 4–5 · AI Level 2: Customize (flagship)',
     title: 'Catch the Apple, Train Your Own Sorter',
     objective: "I can give an AI examples with labels so it learns to sort things the way I want — and I can test it to see when it works and when it doesn't.",
@@ -426,6 +427,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
 
   const card = {
     slug: game,
+    number: 3,
     kicker: 'Game 3 · Sessions 6–7 · AI Level 1: Use',
     title: 'Balloon Pop, Smile to Pop',
     objective: 'I can use cloning and timers, and use a real AI model (face detection) to control gameplay hands-free.',
@@ -566,6 +568,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
 
   const card = {
     slug: game,
+    number: 4,
     kicker: 'Game 4 · Sessions 8–9 · AI Level 1: Use',
     title: 'Dino Jump, Jump When You Jump',
     objective: 'I can use gravity and conditions, and use pose detection to control my character with my own body.',
@@ -757,6 +760,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
 
   const card = {
     slug: game,
+    number: 5,
     kicker: 'Game 5 · Sessions 10–11 · AI Level 2: Customize (flagship #2)',
     title: 'Space Shooter, Friend or Foe',
     objective: 'I can customize an AI model to sort friend vs. foe ships — a harder version of what I did in Game 2.',
@@ -929,6 +933,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
 
   const card = {
     slug: game,
+    number: 6,
     kicker: 'Game 6 · Sessions 12–13 · AI Level 1: Use (reused, continuous)',
     title: 'Car Racing, Lean to Steer',
     objective: 'I can use scrolling backgrounds and speed control, and reuse pose detection continuously instead of as a single trigger.',
@@ -983,6 +988,436 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     offline: [
       'No camera: play the basic game with the arrow keys.',
       'Everything runs on the laptop: after the first visit, pose detection needs no internet.',
+    ],
+  };
+  write(game, 'index.html', lessonPage(card));
+  cards.push(card);
+}
+
+// ---- Game 1: Maze Runner (sessions 2–3) ----------------------------------------
+// Basic: sprites, costumes, events, loops, motion, coordinates, collision (touching
+// a colour). The AI half — voice control — needs the Voice extension (roadmap S7).
+{
+  const game = 'game1-maze-runner';
+  const WALL = '#1e40af';
+  const wallRects = [
+    [0, 0, 480, 12], [0, 348, 480, 12], [0, 0, 12, 360], [468, 0, 12, 360], // border
+    [104, 0, 16, 270], [224, 90, 16, 270], [344, 0, 16, 270], // the three maze walls
+  ];
+  const maze = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#ecfccb"/>
+${wallRects.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${WALL}"/>`).join('')}
+<text x="30" y="335" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#3f6212">START</text></svg>`;
+  const runner = (legs) => `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="36" viewBox="0 0 30 36">
+<circle cx="15" cy="8" r="7" fill="#fbbf24" stroke="#78350f" stroke-width="2"/>
+<rect x="9" y="15" width="12" height="11" rx="3" fill="#f97316" stroke="#7c2d12" stroke-width="2"/>
+${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3" stroke-linecap="round"/>' : '<path d="M13 26 L13 34 M17 26 L17 34" stroke="#7c2d12" stroke-width="3" stroke-linecap="round"/>'}</svg>`;
+  const star = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+<path d="M20 2 L25 15 L38 15 L27 23 L31 37 L20 29 L9 37 L13 23 L2 15 L15 15 Z" fill="#facc15" stroke="#a16207" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
+
+  // bounceRight: how far to step back after walking right into a wall (-4 is right; the bug uses +4).
+  const project = ({ bounceRight = -4 } = {}) => {
+    const p = new Project();
+    p.addStage([p.costume('maze', maze, [240, 180])]);
+    const hitWall = () => bool('sensing_touchingcolor', { COLOR: { color: WALL } });
+    const step = (key, move, back, direction) => ifThen(keyPressed(key),
+      ...(direction ? [{ op: 'motion_pointindirection', inputs: { DIRECTION: direction } }] : []),
+      move,
+      // Walked into a wall? Step back.
+      ifThen(hitWall(), back),
+      { op: 'looks_nextcostume' });
+    p.addSprite('Runner', [p.costume('step 1', runner(true), [15, 18]), p.costume('step 2', runner(false), [15, 18])], [[
+      flag,
+      goTo(-190, -130),
+      { op: 'motion_pointindirection', inputs: { DIRECTION: 90 } },
+      resetTimer,
+      forever(
+        step('right arrow', changeX(4), changeX(bounceRight), 90),
+        step('left arrow', changeX(-4), changeX(4), -90),
+        step('up arrow', changeY(4), changeY(-4)),
+        step('down arrow', changeY(-4), changeY(4)),
+        ifThen(touching('Goal'),
+          sayFor(join2('You made it in ', join2(round(timer()), ' seconds!')), 3),
+          stopAll)),
+    ]], { x: -190, y: -130, rotationStyle: 'left-right' });
+    p.addSprite('Goal', [p.costume('star', star, [20, 20])], [[
+      flag,
+      goTo(180, 130),
+      // A loop that never ends: the star keeps spinning, and the clock keeps counting.
+      forever({ op: 'motion_turnright', inputs: { DEGREES: 5 } }, set('time', round(timer()))),
+    ]], { x: 180, y: 130 });
+    p.showVariable('time', { x: 380, y: 5 });
+    return p;
+  };
+  write(game, 'basic.sb3', project());
+  write(game, 'fix-the-bug.sb3', project({ bounceRight: 4 }));
+
+  const card = {
+    number: 1,
+    slug: game,
+    kicker: 'Game 1 · Sessions 2–3 · AI Level 1: Use',
+    title: 'Maze Runner, Voice-Controlled',
+    objective: 'I can use motion and collision detection, and use a real AI model (speech-to-text) to control my game.',
+    aiPending: 'coming with the Voice extension',
+    coding: ['sprites', 'costumes', 'events', 'forever loop', 'motion', 'coordinates', 'collision (touching colour)', 'timer'],
+    ai: ['speech-to-text (voice extension, coming soon)'],
+    materials: ['Laptop (a microphone for the AI half, once the Voice extension is ready)'],
+    sessions: [
+      {
+        title: 'Session 2: build the maze',
+        steps: [
+          'Open <b>Basic game</b>: arrow keys walk the runner to the star. The clock shows your time.',
+          '<b>Sprites and costumes</b>: the Runner has two costumes; <code>next costume</code> on every step makes it walk.',
+          '<b>Events</b>: <code>when green flag clicked</code> starts everything.',
+          '<b>Loops</b>: <code>forever</code> keeps checking the keys; the star\'s forever loop spins it.',
+          '<b>Coordinates</b>: the runner starts at <code>x: -190 y: -130</code>. Move the mouse over the stage: where is (0, 0)?',
+          '<b>Collision</b>: <code>if touching colour (blue)</code> → step back. Why do we step back the same amount we moved?',
+        ],
+      },
+      {
+        title: 'Session 3: voice control (AI)',
+        say: '“This AI has listened to millions of voices before — that\'s how it learned to turn speech into text.”',
+        steps: [
+          'The AI half needs BlockML Studio\'s <b>Voice</b> extension (offline speech-to-text), which is being built next. Until then:',
+          'Polish the maze: change the walls in the backdrop (keep the exact same blue!), add a second level, or a monster that moves back and forth.',
+          'Plan the voice commands: which words will move the runner? (“up”, “down”, “left”, “right”, “stop”.) What should happen if the AI hears a word that isn\'t on the list?',
+          'Unplugged: one student is the “speech AI” and moves a paper runner only on exact words; the others give commands with noise in the room. Discuss why it gets confused.',
+        ],
+      },
+    ],
+    failTests: [
+      'Make the walls thinner: can the runner squeeze through? Why?',
+      'Change the wall colour in the backdrop to a slightly different blue: what breaks?',
+    ],
+    misconceptions: [
+      ['The computer knows where the walls are.', 'It only checks if the runner touches that exact colour. Paint a different colour and it walks right through.'],
+      ['"forever" and "repeat" are the same.', 'forever never stops; repeat runs a set number of times. Predict, then test.'],
+      ['Costumes and sprites are the same thing.', 'A sprite is the character; costumes are its different looks.'],
+    ],
+    bug: {
+      symptom: 'In <b>Fix the bug</b>, the runner walks straight through walls — but only when going right.',
+      hints: ['Compare the four arrow-key blocks. Which one is different?', 'After moving right by 4 and touching a wall, which way should it step back?'],
+      answer: 'The right-arrow block steps back with <code>change x by 4</code> — further into the wall. It should be <code>change x by -4</code>, the opposite of the move.',
+    },
+    challenges: [
+      'Add a key and a door: the door only opens when you have the key (a variable).',
+      'Add a monster that patrols a corridor with <code>glide</code>.',
+      'Make a best-time variable.',
+    ],
+    app: [
+      'Save, then open blockml.codeai.ltd → <b>Export Scratch Games to App</b> and add the project.',
+      'The arrow keys become an on-screen D-pad.',
+    ],
+    offline: ['The basic game needs no internet and no camera.'],
+  };
+  write(game, 'index.html', lessonPage(card));
+  cards.push(card);
+}
+
+// ---- Game 7: Platform Adventure (sessions 14–15) --------------------------------
+// Basic: advanced collision (step out of platforms), level design (backdrops), My
+// Blocks with and without inputs, and a rule-based Guide (ask & answer) that sets
+// up the AI half: a chat-AI guide (roadmap S10) that can be confidently wrong.
+{
+  const game = 'game7-platform-adventure';
+  const GREEN = '#16a34a';
+  const LAVA = '#dc2626';
+  const level = (platforms, lava) => `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#e0f2fe"/>
+<g fill="#ffffff" opacity=".85"><ellipse cx="300" cy="60" rx="50" ry="16"/><ellipse cx="330" cy="50" rx="30" ry="14"/></g>
+${lava.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${LAVA}"/>`).join('')}
+${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${GREEN}"/>`).join('')}</svg>`;
+  const level1 = level([[0, 300, 180, 60], [260, 300, 220, 60], [300, 240, 80, 14], [390, 180, 90, 14]], [[180, 330, 80, 30]]);
+  const level2 = level([[0, 300, 120, 60], [150, 250, 80, 14], [270, 200, 80, 14], [390, 150, 90, 14]], [[120, 330, 360, 30]]);
+  const hero = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">
+<rect x="2" y="2" width="20" height="28" rx="6" fill="#7c3aed" stroke="#3b0764" stroke-width="2.5"/>
+<circle cx="9" cy="11" r="3" fill="#ffffff"/><circle cx="16" cy="11" r="3" fill="#ffffff"/><circle cx="10" cy="11" r="1.5" fill="#111827"/><circle cx="17" cy="11" r="1.5" fill="#111827"/></svg>`;
+  const star = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 40 40">
+<path d="M20 2 L25 15 L38 15 L27 23 L31 37 L20 29 L9 37 L13 23 L2 15 L15 15 Z" fill="#facc15" stroke="#a16207" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
+  const owl = `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="60" viewBox="0 0 56 60">
+<ellipse cx="28" cy="34" rx="22" ry="24" fill="#a16207" stroke="#422006" stroke-width="3"/><ellipse cx="28" cy="42" rx="13" ry="14" fill="#fde68a"/>
+<circle cx="19" cy="24" r="8" fill="#ffffff" stroke="#422006" stroke-width="2"/><circle cx="37" cy="24" r="8" fill="#ffffff" stroke="#422006" stroke-width="2"/>
+<circle cx="19" cy="24" r="3.5" fill="#111827"/><circle cx="37" cy="24" r="3.5" fill="#111827"/><path d="M25 30 L28 36 L31 30 Z" fill="#f97316"/>
+<path d="M10 12 L16 18 M46 12 L40 18" stroke="#422006" stroke-width="3" stroke-linecap="round"/></svg>`;
+
+  const call = (proccode, args) => ({ op: 'procedures_call', proccode, args });
+  const arg = (name) => op('argument_reporter_string_number', {}, { VALUE: name });
+  const touchColour = (c) => bool('sensing_touchingcolor', { COLOR: { color: c } });
+  const backdropNumber = () => op('looks_backdropnumbername', {}, { NUMBER_NAME: 'number' });
+  const backdrop = (name) => ({ op: 'looks_switchbackdropto', inputs: { BACKDROP: { menu: 'looks_backdrops', field: 'BACKDROP', value: name } } });
+
+  // startAfterNextLevel: false plants the bug (level 2 starts with the hero still on the star).
+  const project = ({ startAfterNextLevel = true } = {}) => {
+    const p = new Project();
+    p.addStage([p.costume('level 1', level1, [240, 180]), p.costume('level 2', level2, [240, 180])]);
+    p.addSprite('Hero', [p.costume('hero', hero, [12, 16])], [
+      [{ op: 'procedures_definition', proccode: 'start level' },
+        goTo(-200, 0),
+        set('y speed', 0),
+        broadcast('level started')],
+      // A My Block with an input: walk (steps), stopping at walls.
+      [{ op: 'procedures_definition', proccode: 'walk %s', args: ['steps'] },
+        changeX(arg('steps')),
+        ifThen(touchColour(GREEN), changeX(sub(0, arg('steps'))))],
+      // Jump only when standing on a platform: peek 2 steps down.
+      [{ op: 'procedures_definition', proccode: 'jump' },
+        changeY(-2),
+        ifThen(touchColour(GREEN), set('y speed', 12)),
+        changeY(2)],
+      [
+        flag,
+        set('lives', 3),
+        backdrop('level 1'),
+        call('start level'),
+        forever(
+          ifThen(keyPressed('right arrow'), call('walk %s', { steps: 5 })),
+          ifThen(keyPressed('left arrow'), call('walk %s', { steps: -5 })),
+          ifThen(keyPressed('up arrow'), call('jump')),
+          // Gravity, then advanced collision: if we moved into a platform, step back out of it.
+          change('y speed', -1),
+          changeY(v('y speed')),
+          ifThen(touchColour(GREEN),
+            ifElse(lt(v('y speed'), 0),
+              [repeatUntil(not(touchColour(GREEN)), changeY(1))], // landed: stand on top
+              [repeatUntil(not(touchColour(GREEN)), changeY(-1))]), // bumped a ceiling
+            set('y speed', 0)),
+          ifThen(or(touchColour(LAVA), lt(yPosition(), -170)),
+            change('lives', -1),
+            call('start level')),
+          ifThen(touching('Star'),
+            ifElse(eq(backdropNumber(), 2),
+              [sayFor('You win!', 3), stopAll],
+              [backdrop('next backdrop'), ...(startAfterNextLevel ? [call('start level')] : [])])),
+          ifThen(lt(v('lives'), 1), sayFor('Game over', 2), stopAll)),
+      ],
+    ], { x: -200, y: 0, rotationStyle: "don't rotate" });
+    p.addSprite('Star', [p.costume('star', star, [18, 18])], [
+      // Each level puts the star somewhere else.
+      [whenReceive('level started'),
+        ifElse(eq(backdropNumber(), 1), [goTo(195, 25)], [goTo(195, 55)])],
+    ], { x: 195, y: 25 });
+    p.addSprite('Guide', [p.costume('owl', owl, [28, 30])], [
+      [flag, goTo(-190, 120), say('Click me to ask a question!')],
+      // A rule-based guide: it only knows the words we taught it.
+      [
+        whenClicked,
+        say(''),
+        { op: 'sensing_askandwait', inputs: { QUESTION: 'What do you want to know?' } },
+        set('question', op('sensing_answer')),
+        ifElse(bool('operator_contains', { STRING1: v('question'), STRING2: 'jump' }),
+          [sayFor('Press the up arrow to jump.', 3)],
+          [ifElse(bool('operator_contains', { STRING1: v('question'), STRING2: 'lava' }),
+            [sayFor("Red lava sends you back to the start. Don't touch it!", 3)],
+            [ifElse(bool('operator_contains', { STRING1: v('question'), STRING2: 'win' }),
+              [sayFor('Reach the star on level 2 to win.', 3)],
+              [sayFor('Hmm, I only know about jumping, lava and winning.', 3)])])]),
+      ],
+    ], { x: -190, y: 120 });
+    p.showVariable('lives', { x: 380, y: 5 });
+    return p;
+  };
+  write(game, 'basic.sb3', project());
+  write(game, 'fix-the-bug.sb3', project({ startAfterNextLevel: false }));
+
+  const card = {
+    number: 7,
+    slug: game,
+    kicker: 'Game 7 · Sessions 14–15 · AI Level 1: Use + reliability lesson',
+    title: 'Platform Adventure, Ask the Guide',
+    objective: 'I can design levels with advanced collision, and I understand that an AI can confidently give a wrong answer — and know what to do when that happens.',
+    aiPending: 'coming with the Chat AI extension',
+    coding: ['My Blocks (functions)', 'inputs (parameters)', 'advanced collision', 'level design (backdrops)', 'broadcast', 'ask & answer', 'if / else chains'],
+    ai: ['chat AI guesses likely answers (chat extension, coming soon)', 'rule-based vs. AI'],
+    materials: ['Laptop'],
+    sessions: [
+      {
+        title: 'Session 14: levels and collision',
+        steps: [
+          'Open <b>Basic game</b>: ←/→ walk, ↑ jumps. Reach the star; avoid the red lava. Level 2 is harder.',
+          '<b>My Blocks</b>: find <code>define start level</code>, <code>define jump</code> and <code>define walk (steps)</code>. A My Block is a name for a group of blocks you use again and again. <code>walk (5)</code> and <code>walk (-5)</code> reuse the same blocks with a different <b>input</b>.',
+          '<b>Advanced collision</b>: after falling into a platform, <code>repeat until not touching green: change y by 1</code> lifts the hero out, pixel by pixel, until it stands on top.',
+          '<b>Level design</b>: levels are backdrops. Paint a level 3 (keep the exact green and red!) and add it to <code>start level</code> and the Star\'s script.',
+        ],
+      },
+      {
+        title: 'Session 15: ask the guide',
+        say: '“Our owl is a <b>rule-based</b> guide: it only knows the three words we taught it. A chat AI guesses the most likely answer from patterns it has seen — it can answer anything, but it doesn\'t truly know facts, and it can be confidently wrong.”',
+        steps: [
+          'Click the owl and ask “how do I jump?”, “what is lava?”, then “what is the capital of France?”. What happens?',
+          'Add a new rule: if the question contains “level”, say how many levels there are.',
+          'Discuss: what would be better and worse about an AI guide that answers <i>anything</i>? (The chat-AI version comes with BlockML Studio\'s Chat AI extension.)',
+          '<b>The wrong-answer moment</b> (guided, do not skip): the teacher plays the AI guide and answers two prepared questions confidently and wrongly. Ask: “What should you do when an AI gives you a wrong answer?”',
+        ],
+      },
+    ],
+    failTests: [
+      'Ask the owl a question with a typo: “how do I jmup?”',
+      'Ask “can I win without jumping?” — which rule answers, and is it right?',
+      'Make a gap in a platform too wide to jump: is the level still possible?',
+    ],
+    misconceptions: [
+      ['The guide understands my question.', 'It only checks if certain words are inside it. A chat AI is better at guessing, but it doesn\'t understand either.'],
+      ['If the AI said it, it must be true.', 'Chat AI guesses from patterns; always check important answers.'],
+      ['My Blocks are just for tidiness.', 'They let you change one place and fix it everywhere, and give a name to an idea.'],
+    ],
+    bug: {
+      symptom: 'In <b>Fix the bug</b>, when you reach the star, level 2 flashes and you win at once.',
+      hints: ['What happens right after <code>switch backdrop to next backdrop</code>?', 'Where is the hero when level 2 begins?'],
+      answer: 'After switching to level 2, the hero is still touching the star, so on the next frame it wins. <code>start level</code> must be called after <code>switch backdrop to next backdrop</code> to send the hero back to the start.',
+    },
+    challenges: [
+      'Add a level 3 with a moving platform (a sprite that glides back and forth).',
+      'Add coins (clones) and a My Block <code>collect coin</code>.',
+      'Teach the owl five more rules. How many would it need to answer everything?',
+    ],
+    app: [
+      'Save, then export at blockml.codeai.ltd → <b>Export Scratch Games to App</b>.',
+      'The arrows become an on-screen D-pad; tap the owl to ask it (the phone keyboard opens).',
+    ],
+    offline: [
+      'The basic game needs no internet.',
+      'If the AI guide is unavailable, the teacher role-plays the guide with the prepared wrong answers — the point is the discussion.',
+    ],
+  };
+  write(game, 'index.html', lessonPage(card));
+  cards.push(card);
+}
+
+// ---- Game 8: Kindness Checker (sessions 16–17) -----------------------------------
+// Basic: string handling (contains, join, length), conditionals, lists and a loop
+// with a counter. The AI half — a moderation model — needs the Text AI extension
+// (roadmap S8); the word-list checker already shows false alarms and misses.
+{
+  const game = 'game8-kindness-checker';
+  const UNKIND = ['stupid', 'idiot', 'dumb', 'ugly', 'hate', 'shut up', 'kill', 'loser'];
+  const KIND = ['thank', 'please', 'sorry', 'well done', 'great', 'awesome', 'kind', 'friend'];
+  const room = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#f5f3ff"/><rect y="270" width="480" height="90" fill="#ddd6fe"/>
+<g fill="#c4b5fd" opacity=".6"><circle cx="60" cy="60" r="24"/><circle cx="420" cy="90" r="30"/><circle cx="380" cy="30" r="14"/></g>
+<text x="240" y="44" font-family="Arial, sans-serif" font-size="26" font-weight="bold" text-anchor="middle" fill="#5b21b6">Kindness Checker</text></svg>`;
+  const robot = (mouth, cheeks = '') => `<svg xmlns="http://www.w3.org/2000/svg" width="140" height="160" viewBox="0 0 140 160">
+<rect x="66" y="4" width="8" height="20" fill="#64748b"/><circle cx="70" cy="6" r="6" fill="#f59e0b"/>
+<rect x="15" y="24" width="110" height="90" rx="22" fill="#e2e8f0" stroke="#334155" stroke-width="4"/>
+<circle cx="48" cy="62" r="12" fill="#1e293b"/><circle cx="92" cy="62" r="12" fill="#1e293b"/><circle cx="52" cy="58" r="4" fill="#fff"/><circle cx="96" cy="58" r="4" fill="#fff"/>
+${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5cf6" stroke="#334155" stroke-width="4"/></svg>`;
+  const happy = robot('<path d="M44 88 Q70 108 96 88" fill="none" stroke="#1e293b" stroke-width="5" stroke-linecap="round"/>', '<circle cx="32" cy="84" r="7" fill="#fda4af"/><circle cx="108" cy="84" r="7" fill="#fda4af"/>');
+  const worried = robot('<path d="M46 98 Q70 82 94 98" fill="none" stroke="#1e293b" stroke-width="5" stroke-linecap="round"/>');
+  const neutral = robot('<path d="M48 92 H92" stroke="#1e293b" stroke-width="5" stroke-linecap="round"/>');
+
+  const contains = (a, b) => bool('operator_contains', { STRING1: a, STRING2: b });
+  const item = (list, index) => op('data_itemoflist', { INDEX: index }, { LIST: list });
+  const length = (list) => op('data_lengthoflist', {}, { LIST: list });
+  // Look through a list for a word inside the message; the word found goes in `into`.
+  const search = (list, into, startAt) => [
+    set(into, ''),
+    set('i', startAt),
+    { op: 'control_repeat', inputs: { TIMES: length(list) }, substack: [
+      ifThen(contains(v('message'), item(list, v('i'))), set(into, item(list, v('i')))),
+      change('i', 1),
+    ] },
+  ];
+
+  // startAt: the first list position to check (1 is right; the bug starts at 0 and misses the last word).
+  const project = ({ startAt = 1 } = {}) => {
+    const p = new Project();
+    p.addStage([p.costume('room', room, [240, 180])]);
+    p.addSprite('Robot', [p.costume('neutral', neutral, [70, 80]), p.costume('happy', happy, [70, 80]), p.costume('worried', worried, [70, 80])], [[
+      flag,
+      costume('neutral'),
+      set('kindness points', 0),
+      { op: 'data_deletealloflist', fields: { LIST: 'unkind words' } },
+      ...UNKIND.map((w) => ({ op: 'data_addtolist', inputs: { ITEM: w }, fields: { LIST: 'unkind words' } })),
+      { op: 'data_deletealloflist', fields: { LIST: 'kind words' } },
+      ...KIND.map((w) => ({ op: 'data_addtolist', inputs: { ITEM: w }, fields: { LIST: 'kind words' } })),
+      forever(
+        { op: 'sensing_askandwait', inputs: { QUESTION: 'Type a message, and I will check if it is kind:' } },
+        set('message', op('sensing_answer')),
+        ...search('unkind words', 'unkind word', startAt),
+        ifElse(bool('operator_not', { OPERAND: eq(v('unkind word'), '') }),
+          [costume('worried'), sayFor(join2('That might hurt someone. I found: ', v('unkind word')), 3)],
+          [
+            ...search('kind words', 'kind word', startAt),
+            ifElse(bool('operator_not', { OPERAND: eq(v('kind word'), '') }),
+              [costume('happy'), change('kindness points', 1), sayFor(join2("That's kind! I found: ", v('kind word')), 3)],
+              [costume('neutral'), sayFor(join2('Looks OK to me. It has ', join2(op('operator_length', { STRING: v('message') }), ' letters.')), 3)]),
+          ]),
+      ),
+    ]], { x: 0, y: -30 });
+    p.showList('unkind words', { x: 5, y: 60, width: 110, height: 200 });
+    p.showVariable('kindness points', { x: 5, y: 5 });
+    return p;
+  };
+  write(game, 'basic.sb3', project());
+  write(game, 'fix-the-bug.sb3', project({ startAt: 0 }));
+  write(game, 'phrases.html', phrasesPage('Kindness Checker: test phrases',
+    'Type each message into the checker. Write what the checker says, what a person would think, and why they differ. The last ones are made to trick it.',
+    [
+      ['Thank you for helping me!', ''], ['You are an idiot.', ''], ['Well done on your project.', ''],
+      ['I hate Mondays.', 'Unkind to whom?'], ['That was a stupid mistake — I made it!', 'About yourself'],
+      ['You\'re killing it at football!', 'A compliment'], ['Nobody wants to play with you.', 'No "bad" word'],
+      ['Great job… NOT.', 'Sarcasm'], ['You are a l0ser.', 'A spelling trick'], ['Go away.', ''],
+    ]));
+
+  const card = {
+    number: 8,
+    slug: game,
+    kicker: 'Game 8 · Sessions 16–17 · AI Level 1: Use + reflect',
+    title: 'Kindness Checker',
+    objective: 'I can use string handling and conditionals, and test an AI moderation tool to understand fairness and responsible use.',
+    aiPending: 'coming with the Text AI extension',
+    coding: ['ask & answer', 'strings: contains, join, length', 'lists', 'loop with a counter', 'if / else', 'not'],
+    ai: ['moderation AI (text AI extension, coming soon)', 'false positives and false negatives'],
+    extraButtons: '<a class="btn light" href="phrases.html" target="_blank" rel="noopener">🖨 Print test phrases</a>',
+    materials: ['Laptop', 'Printed test phrases (button above), including tricky ones'],
+    sessions: [
+      {
+        title: 'Session 16: build the word checker',
+        steps: [
+          'Open <b>Basic game</b> and type messages: kind ones, unkind ones.',
+          '<b>Lists</b>: find the <i>unkind words</i> list on the stage and the <code>add … to unkind words</code> blocks.',
+          '<b>Loop with a counter</b>: <code>set i to 1</code>, then <code>repeat (length of unkind words)</code>: check <code>item i</code>, then <code>change i by 1</code>. That visits every word in the list, one by one.',
+          '<b>Strings</b>: <code>message contains (item i of unkind words)</code> looks for the word anywhere in the message. <code>join</code> builds the robot\'s reply; <code>length of</code> counts the letters.',
+          'Add two words to each list and test them.',
+        ],
+      },
+      {
+        title: 'Session 17: test it, then meet the AI',
+        say: '“A moderation AI learned to flag unkind language by studying thousands of examples — but it can be wrong in both directions: flagging kind messages, and missing unkind ones.”',
+        steps: [
+          'Print the <b>test phrases</b> and type each one. Fill in the sheet: what does the checker say, and what would a person think?',
+          'Find the <b>false alarms</b> (kind messages flagged, e.g. “You\'re killing it!”) and the <b>misses</b> (unkind messages it can\'t see, e.g. “Nobody wants to play with you”).',
+          'Can more words fix it? Try — and discuss why a list of words can never be enough.',
+          'The AI moderation half comes with BlockML Studio\'s <b>Text AI</b> extension. Until then, play “be the AI”: students guess flag / no flag for each printed phrase and argue their reasons.',
+        ],
+      },
+    ],
+    failTests: [
+      'Sarcasm: “Great job… NOT.”',
+      'Spelling tricks: “l0ser”, “st*pid”, “I D I O T”.',
+      'Kind messages with a “bad” word: “I hate it when you\'re sad.”',
+      'Unkind messages without one: “Go away. Nobody likes you.”',
+    ],
+    misconceptions: [
+      ['If it flags a message, it\'s definitely unkind (or the reverse).', 'Both directions can be wrong: false alarms and misses, as the test phrases show.'],
+      ['More words in the list will fix it.', 'Meaning depends on the whole sentence, not single words. That is why people build AI for it — which also makes mistakes.'],
+    ],
+    bug: {
+      symptom: 'In <b>Fix the bug</b>, “you are a loser” is not caught, but “you are an idiot” is.',
+      hints: ['Where is “loser” in the list?', 'Which item does the loop check first? What is item 0 of a list?'],
+      answer: 'The counter starts at <code>set i to 0</code>. There is no item 0, and the loop runs as many times as there are words, so it checks items 0 to 7 — and never item 8, “loser”. Start at 1.',
+    },
+    challenges: [
+      'Count how many unkind words a message has, not just the first one.',
+      'Keep a list of every message that was flagged (a log for the teacher).',
+      'Ignore capital letters — Scratch\'s "contains" already does. Test it.',
+    ],
+    app: [
+      'Save, then export at blockml.codeai.ltd → <b>Export Scratch Games to App</b>.',
+      'In the app, the phone keyboard opens when the robot asks.',
+    ],
+    offline: [
+      'The word checker needs no internet.',
+      '“Be the AI” with the printed phrases works without any computer.',
     ],
   };
   write(game, 'index.html', lessonPage(card));

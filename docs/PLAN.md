@@ -582,8 +582,11 @@ and an AI game using it exports and runs as an Android app.
 ### 15.6 S5 progress (2026-09-28)
 
 Lessons at `/lessons/` (built by `extensions/starters/build-lessons.mjs`):
-Games 2–6, each with basic, AI and fix-the-bug projects and a printable lesson
-card; Games 2 and 5 also have printable training cards.
+All eight syllabus games have basic and fix-the-bug projects and a printable
+lesson card; Games 2–6 also have their AI versions (1, 7 and 8 wait for the
+Voice, Chat and Text AI extensions). Games 2 and 5 have printable training
+cards; Game 8 has printable test phrases. My Blocks (with inputs) are in
+Game 7, lists in Game 8.
 
 | Game | AI version | Planted bug |
 |---|---|---|
@@ -592,6 +595,9 @@ card; Games 2 and 5 also have printable training cards.
 | 4 Dino Jump | nose rises above the calibrated standing height | jump allowed in mid-air |
 | 5 Space Shooter | Friend/Foe/Nothing classifier unlocks weapons and docking | broadcast name mismatch |
 | 6 Car Racing | lean (shoulder tilt, with a dead zone) steers continuously | `mod 300` instead of `mod 360` |
+| 1 Maze Runner (basic only) | voice control — waits for S7 Voice | wall bounce-back has the wrong sign going right |
+| 7 Platform Adventure (basic only) | chat-AI guide — waits for S10; a rule-based owl guide (ask & answer) is in the basic game | `start level` not called after the next backdrop |
+| 8 Kindness Checker (basic only) | moderation AI — waits for S8; printable test phrases show false alarms and misses | list counter starts at 0, so the last word is never checked |
 
 Tested in the studio (every rule and bug) and as one Android app with all
 eight basic/AI projects (24 MB; right on-screen controls; face, pose and image

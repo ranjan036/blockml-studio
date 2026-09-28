@@ -132,7 +132,32 @@ export class Project {
         if (spec.substack) b.inputs.SUBSTACK = [2, stack(spec.substack, id)];
         if (spec.substack2) b.inputs.SUBSTACK2 = [2, stack(spec.substack2, id)];
         if (spec.mutation) b.mutation = spec.mutation;
+        // My Blocks: { op: 'procedures_definition', proccode: 'start level %s', args: ['level'] }
+        // and calls { op: 'procedures_call', proccode, args: { level: 1 } }. Inside a
+        // definition, use an argument with { op: 'argument_reporter_string_number', fields: { VALUE: 'level' } }.
+        if (spec.op === 'procedures_definition') {
+          const names = spec.args || [];
+          const protoId = nextId();
+          const proto = { opcode: 'procedures_prototype', next: null, parent: id, inputs: {}, fields: {}, shadow: true, topLevel: false,
+            mutation: { tagName: 'mutation', children: [], proccode: spec.proccode, argumentids: JSON.stringify(names.map(argId)),
+              argumentnames: JSON.stringify(names), argumentdefaults: JSON.stringify(names.map(() => '')), warp: 'false' } };
+          blocks[protoId] = proto;
+          for (const name of names) {
+            const argShadow = nextId();
+            blocks[argShadow] = { opcode: 'argument_reporter_string_number', next: null, parent: protoId, inputs: {}, fields: { VALUE: [name, null] }, shadow: true, topLevel: false };
+            proto.inputs[argId(name)] = [1, argShadow];
+          }
+          b.inputs.custom_block = [1, protoId];
+        }
+        if (spec.op === 'procedures_call') {
+          const args = spec.args || {};
+          b.mutation = { tagName: 'mutation', children: [], proccode: spec.proccode, argumentids: JSON.stringify(Object.keys(args).map(argId)), warp: 'false' };
+          for (const [name, value] of Object.entries(args)) b.inputs[argId(name)] = input(value, id, name);
+        }
         return id;
+      }
+      function argId(name) {
+        return `arg-${name.replace(/\W/g, '_')}`;
       }
 
       function stack(specs, parentId) {

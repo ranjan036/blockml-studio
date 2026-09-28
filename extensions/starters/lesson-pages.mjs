@@ -66,11 +66,11 @@ export function lessonPage(card) {
 <h2>Open the projects</h2>
 <div class="buttons">
 ${open('basic.sb3', '▶ Basic game', '')}
-${open('ai.sb3', '🤖 AI version', 'ai')}
+${card.aiPending ? `<span class="btn light" style="opacity:.6;cursor:default">🤖 AI version: ${esc(card.aiPending)}</span>` : open('ai.sb3', '🤖 AI version', 'ai')}
 ${open('fix-the-bug.sb3', '🐞 Fix the bug', 'light')}
 ${card.extraButtons || ''}
 </div>
-<p class="small">Opens in BlockML Studio. Save with File → Save to your computer. Or download: <a href="basic.sb3" download>basic.sb3</a> · <a href="ai.sb3" download>ai.sb3</a> · <a href="fix-the-bug.sb3" download>fix-the-bug.sb3</a></p>
+<p class="small">Opens in BlockML Studio. Save with File → Save to your computer. Or download: <a href="basic.sb3" download>basic.sb3</a>${card.aiPending ? '' : ' · <a href="ai.sb3" download>ai.sb3</a>'} · <a href="fix-the-bug.sb3" download>fix-the-bug.sb3</a></p>
 </section>
 <section class="grid2">
 <div><h2>Coding</h2>${card.coding.map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
@@ -92,12 +92,24 @@ ${card.misconceptions.map(([m, h]) => `<tr><td>“${esc(m)}”</td><td>${esc(h)}
 
 /** The lessons index. */
 export function indexPage(cards) {
+  cards = [...cards].sort((a, b) => a.number - b.number);
   return `${HEAD('Lessons')}<body>
 <header><div class="wrap"><div class="kicker">BlockML Studio · CODE AI Core Curriculum</div><h1>Lessons</h1>
 <p class="objective">Each game has a basic version, an AI version and a fix-the-bug version, with a lesson card.</p></div></header>
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
 <p class="small"><a href="../editor.html">Open BlockML Studio</a></p></main></body></html>`;
+}
+
+/** A printable sheet of test phrases: [phrase, note] rows, with columns to fill in. */
+export function phrasesPage(title, intro, rows) {
+  return `${HEAD(title)}<body style="background:#fff">
+<main style="max-width:none;padding:10mm">
+<h1 style="color:var(--ink);font-size:22px;margin:0 0 3mm">${esc(title)}</h1>
+<p class="small" style="margin:0 0 5mm">${intro}</p>
+<table><tr><th>Message</th><th style="width:22%">Checker says</th><th style="width:22%">A person thinks</th><th style="width:22%">Why?</th></tr>
+${rows.map(([phrase, note]) => `<tr><td>“${esc(phrase)}”${note ? `<br><span class="small">${esc(note)}</span>` : ''}</td><td></td><td></td><td></td></tr>`).join('\n')}
+</table></main></body></html>`;
 }
 
 /** A printable A4 sheet of cards (for training an image model). */
