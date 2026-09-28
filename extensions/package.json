@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "fetch-models": "node scripts/fetch-models.mjs",
-    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs",
+    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs",
     "test": "vitest run"
   },
   "dependencies": {

@@ -3,7 +3,10 @@
 //   { op: 'looks_say', inputs: { MESSAGE: 'Hello' } }
 //   { op: 'control_if', inputs: { CONDITION: <boolean block> }, substack: [...] }
 // Input values: a number or string literal, a reporter/boolean block object,
-// { variable: 'name' }, or { menu: 'looks_costume', field: 'COSTUME', value: 'happy' }.
+// { variable: 'name' }, { broadcast: 'message' },
+// or { menu: 'looks_costume', field: 'COSTUME', value: 'happy' }.
+// Variables are global unless listed in a sprite's `variables` option ("for this
+// sprite only", so every clone gets its own copy).
 import { createHash } from 'node:crypto';
 import { zipSync, strToU8 } from 'fflate';
 
@@ -21,7 +24,13 @@ export class Project {
     this.extensionURLs = {};
     this.extensionStorage = {};
     this.lists = {}; // name -> id (all on the stage, i.e. global)
+    this.broadcasts = {}; // message -> id
     this.monitors = [];
+  }
+
+  broadcast(name) {
+    this.broadcasts[name] ||= `msg-${name.replace(/\W/g, '_')}`;
+    return this.broadcasts[name];
   }
 
   list(name) {
@@ -55,15 +64,17 @@ export class Project {
     const data = strToU8(svg);
     const assetId = md5(data);
     this.assets[`${assetId}.svg`] = data;
-    return { name, assetId, md5ext: `${assetId}.svg`, dataFormat: 'svg', rotationCenterX: rotationCenter[0], rotationCenterY: rotationCenter[1] };
+    return { name, assetId, md5ext: `${assetId}.svg`, dataFormat: 'svg', bitmapResolution: 1, rotationCenterX: rotationCenter[0], rotationCenterY: rotationCenter[1] };
   }
 
   addStage(backdrops, scripts = []) {
     this.stage = { isStage: true, name: 'Stage', costumes: backdrops, scripts };
   }
 
-  addSprite(name, costumes, scripts, { x = 0, y = 0, size = 100, visible = true } = {}) {
-    this.targets.push({ isStage: false, name, costumes, scripts, x, y, size, visible });
+  addSprite(name, costumes, scripts, { x = 0, y = 0, size = 100, visible = true, direction = 90, rotationStyle = 'all around', variables = [] } = {}) {
+    // variables: names that are "for this sprite only" (sprite-local).
+    const local = Object.fromEntries(variables.map((v) => [v, `var-${name.replace(/\W/g, '_')}-${v.replace(/\W/g, '_')}`]));
+    this.targets.push({ isStage: false, name, costumes, scripts, x, y, size, visible, direction, rotationStyle, local });
   }
 
   toSb3(agent = 'BlockML Studio starter builder') {
@@ -72,6 +83,8 @@ export class Project {
       let n = 0;
       const nextId = () => `${t.name.replace(/\W/g, '')}-${++n}`;
       const self = this;
+      // This sprite's own copy of a variable if it has one, else the global one.
+      const varId = (name) => (t.local && t.local[name]) || self.variable(name);
 
       function menuShadow(menu, parentId) {
         const id = nextId();
@@ -85,14 +98,20 @@ export class Project {
         if (typeof value === 'number') return [1, [4, String(value)]];
         if (typeof value === 'string') return [1, [10, value]];
         if (value.color) return [1, [9, value.color]];
-        if (value.variable) return [3, [12, value.variable, self.variable(value.variable)], empty];
+        if (value.broadcast) {
+          const shadowId = nextId();
+          blocks[shadowId] = { opcode: 'event_broadcast_menu', next: null, parent: parentId, inputs: {},
+            fields: { BROADCAST_OPTION: [value.broadcast, self.broadcast(value.broadcast)] }, shadow: true, topLevel: false };
+          return [1, shadowId];
+        }
+        if (value.variable) return [3, [12, value.variable, varId(value.variable)], empty];
         if (value.menu) return [1, menuShadow(value, parentId)];
         if (value.reporter) {
           // A reporter dropped over a menu (e.g. a variable in "switch costume to").
           const shadow = menuShadow(value.shadow, parentId);
           const r = value.reporter;
           return r.variable
-            ? [3, [12, r.variable, self.variable(r.variable)], shadow]
+            ? [3, [12, r.variable, varId(r.variable)], shadow]
             : [3, block(r, parentId), shadow];
         }
         const id = block(value, parentId);
@@ -104,8 +123,9 @@ export class Project {
         const b = { opcode: spec.op, next: null, parent: parentId, inputs: {}, fields: {}, shadow: false, topLevel: false };
         blocks[id] = b;
         for (const [name, value] of Object.entries(spec.fields || {})) {
-          if (name === 'VARIABLE') b.fields.VARIABLE = [value, self.variable(value)];
+          if (name === 'VARIABLE') b.fields.VARIABLE = [value, varId(value)];
           else if (name === 'LIST') b.fields.LIST = [value, self.list(value)];
+          else if (name === 'BROADCAST_OPTION') b.fields.BROADCAST_OPTION = [value, self.broadcast(value)];
           else b.fields[name] = [value, null];
         }
         for (const [name, value] of Object.entries(spec.inputs || {})) b.inputs[name] = input(value, id, name);
@@ -139,12 +159,14 @@ export class Project {
       if (t.isStage) {
         return { ...base, tempo: 60, videoTransparency: 50, videoState: 'off', textToSpeechLanguage: null };
       }
-      return { ...base, visible: t.visible, x: t.x, y: t.y, size: t.size, direction: 90, draggable: false, rotationStyle: 'all around' };
+      for (const [name, id] of Object.entries(t.local || {})) base.variables[id] = [name, 0];
+      return { ...base, visible: t.visible, x: t.x, y: t.y, size: t.size, direction: t.direction, draggable: false, rotationStyle: t.rotationStyle };
     });
 
     // Variables are found while writing every target's scripts; all are global (on the stage).
     for (const [name, v] of Object.entries(this.variables)) targets[0].variables[v.id] = [name, v.value];
     for (const [name, l] of Object.entries(this.lists)) targets[0].lists[l.id] = [name, []];
+    for (const [name, id] of Object.entries(this.broadcasts)) targets[0].broadcasts[id] = name;
 
     const project = {
       targets,
