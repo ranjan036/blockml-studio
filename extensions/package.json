@@ -2,12 +2,14 @@
   "name": "blockml-studio-extensions",
   "private": true,
   "version": "0.1.0",
-  "description": "AI extensions for BlockML Studio (Face, Hand & Pose). Models run in the browser.",
+  "description": "AI extensions for BlockML Studio (vision, voice and text). Models run in the browser.",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "fetch-models": "node scripts/fetch-models.mjs",
     "fetch-voice-models": "node scripts/fetch-voice-models.mjs",
+    "fetch-text-model": "node scripts/fetch-text-model.mjs",
+    "train-kindness": "node --max-old-space-size=6000 scripts/train-kindness.mjs",
     "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs",
     "test": "vitest run"
   },
@@ -24,7 +26,10 @@
     "vosk-browser": "0.0.8"
   },
   "devDependencies": {
+    "esbuild": "0.21.5",
     "fflate": "0.8.3",
+    "hyparquet": "1.31.2",
+    "hyparquet-compressors": "1.1.2",
     "vite": "5.4.21",
     "vitest": "2.1.9"
   }

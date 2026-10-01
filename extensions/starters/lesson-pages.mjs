@@ -102,13 +102,14 @@ export function indexPage(cards) {
 }
 
 /** A printable sheet of test phrases: [phrase, note] rows, with columns to fill in. */
-export function phrasesPage(title, intro, rows) {
+export function phrasesPage(title, intro, rows, columns = ['Checker says', 'A person thinks', 'Why?']) {
+  const width = Math.floor(66 / columns.length);
   return `${HEAD(title)}<body style="background:#fff">
 <main style="max-width:none;padding:10mm">
 <h1 style="color:var(--ink);font-size:22px;margin:0 0 3mm">${esc(title)}</h1>
 <p class="small" style="margin:0 0 5mm">${intro}</p>
-<table><tr><th>Message</th><th style="width:22%">Checker says</th><th style="width:22%">A person thinks</th><th style="width:22%">Why?</th></tr>
-${rows.map(([phrase, note]) => `<tr><td>“${esc(phrase)}”${note ? `<br><span class="small">${esc(note)}</span>` : ''}</td><td></td><td></td><td></td></tr>`).join('\n')}
+<table><tr><th>Message</th>${columns.map((c) => `<th style="width:${width}%">${esc(c)}</th>`).join('')}</tr>
+${rows.map(([phrase, note]) => `<tr><td>“${esc(phrase)}”${note ? `<br><span class="small">${esc(note)}</span>` : ''}</td>${columns.map(() => '<td></td>').join('')}</tr>`).join('\n')}
 </table></main></body></html>`;
 }
 

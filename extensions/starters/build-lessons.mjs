@@ -90,6 +90,11 @@ const img = {
   confidence: (name) => op('blockmlImage_confidenceOf', { CLASS: { menu: 'blockmlImage_menu_classes', field: 'classes', value: name } }),
 };
 
+const text = {
+  ready: () => bool('blockmlText_isReady'),
+  unkindScore: (message) => op('blockmlText_unkindScore', { TEXT: message }),
+};
+
 function write(game, file, project) {
   const dir = path.join(OUT, game);
   fs.mkdirSync(dir, { recursive: true });
@@ -1311,8 +1316,11 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
 
 // ---- Game 8: Kindness Checker (sessions 16–17) -----------------------------------
 // Basic: string handling (contains, join, length), conditionals, lists and a loop
-// with a counter. The AI half — a moderation model — needs the Text AI extension
-// (roadmap S8); the word-list checker already shows false alarms and misses.
+// with a counter; the word-list checker already shows false alarms and misses.
+// AI (Level 1, Use + reflect): the Text AI extension's kindness check gives every
+// message an unkind score, and the student's limit decides. The robot says what the
+// AI thinks and what the word list found, and keeps a list of the messages they
+// disagreed on: the AI is better, and still wrong in both directions.
 {
   const game = 'game8-kindness-checker';
   const UNKIND = ['stupid', 'idiot', 'dumb', 'ugly', 'hate', 'shut up', 'kill', 'loser'];
@@ -1373,16 +1381,61 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
     p.showVariable('kindness points', { x: 5, y: 5 });
     return p;
   };
+  // The AI version: the kindness check scores the message too, and disagreements are collected.
+  const aiProject = () => {
+    const p = new Project();
+    p.useExtension('blockmlText', BASE + 'text.js');
+    p.addStage([p.costume('room', room, [240, 180])]);
+    const aiWorried = () => gt(v('AI score'), v('limit'));
+    const listFound = () => not(eq(v('unkind word'), ''));
+    const remember = { op: 'data_addtolist', inputs: { ITEM: v('message') }, fields: { LIST: 'they disagreed' } };
+    p.addSprite('Robot', [p.costume('neutral', neutral, [70, 80]), p.costume('happy', happy, [70, 80]), p.costume('worried', worried, [70, 80])], [[
+      flag,
+      costume('neutral'),
+      // Above this unkind score (0 to 100) the robot is worried. Change it and test again!
+      set('limit', 50),
+      set('AI score', 0),
+      { op: 'data_deletealloflist', fields: { LIST: 'they disagreed' } },
+      { op: 'data_deletealloflist', fields: { LIST: 'unkind words' } },
+      ...UNKIND.map((w) => ({ op: 'data_addtolist', inputs: { ITEM: w }, fields: { LIST: 'unkind words' } })),
+      say('Loading the text AI…'),
+      waitUntil(text.ready()),
+      say(''),
+      forever(
+        { op: 'sensing_askandwait', inputs: { QUESTION: 'Type a message. The AI and my word list will both check it:' } },
+        set('message', op('sensing_answer')),
+        // 1. The AI gives a number; our limit decides.
+        set('AI score', text.unkindScore(v('message'))),
+        ifElse(aiWorried(),
+          [costume('worried'), sayFor(join2('The AI thinks that might hurt someone. Unkind score: ', v('AI score')), 3)],
+          [costume('happy'), sayFor(join2('The AI thinks that is fine. Unkind score: ', v('AI score')), 3)]),
+        // 2. The word list from the basic game.
+        ...search('unkind words', 'unkind word', 1),
+        // 3. Do they agree? Keep the messages they disagree on.
+        ifThen(and(aiWorried(), not(listFound())),
+          sayFor('My word list found nothing. Who is right?', 3), remember),
+        ifThen(and(not(aiWorried()), listFound()),
+          sayFor(join2(join2('But my word list found: ', v('unkind word')), '. Who is right?'), 3), remember),
+      ),
+    ]], { x: -130, y: -30 });
+    p.showVariable('AI score', { x: 5, y: 5 });
+    p.showVariable('limit', { x: 5, y: 32 });
+    p.showList('they disagreed', { x: 300, y: 62, width: 175, height: 200 });
+    return p;
+  };
   write(game, 'basic.sb3', project());
+  write(game, 'ai.sb3', aiProject());
   write(game, 'fix-the-bug.sb3', project({ startAt: 0 }));
   write(game, 'phrases.html', phrasesPage('Kindness Checker: test phrases',
-    'Type each message into the checker. Write what the checker says, what a person would think, and why they differ. The last ones are made to trick it.',
+    'Type each message into the word checker (the basic game) and into the AI version. Write what each one says, what a person would think, and why they differ. Some are made to trick them.',
     [
       ['Thank you for helping me!', ''], ['You are an idiot.', ''], ['Well done on your project.', ''],
       ['I hate Mondays.', 'Unkind to whom?'], ['That was a stupid mistake — I made it!', 'About yourself'],
       ['You\'re killing it at football!', 'A compliment'], ['Nobody wants to play with you.', 'No "bad" word'],
       ['Great job… NOT.', 'Sarcasm'], ['You are a l0ser.', 'A spelling trick'], ['Go away.', ''],
-    ]));
+      ['My friend is blind.', 'Says who someone is'], ['The villain in the film is ugly.', 'Unkind to whom?'],
+      ['This homework is killing me.', 'A saying'],
+    ], ['Word list says', 'AI score', 'A person thinks', 'Why?']));
 
   const card = {
     number: 8,
@@ -1390,9 +1443,8 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
     kicker: 'Game 8 · Sessions 16–17 · AI Level 1: Use + reflect',
     title: 'Kindness Checker',
     objective: 'I can use string handling and conditionals, and test an AI moderation tool to understand fairness and responsible use.',
-    aiPending: 'coming with the Text AI extension',
-    coding: ['ask & answer', 'strings: contains, join, length', 'lists', 'loop with a counter', 'if / else', 'not'],
-    ai: ['moderation AI (text AI extension, coming soon)', 'false positives and false negatives'],
+    coding: ['ask & answer', 'strings: contains, join, length', 'lists', 'loop with a counter', 'if / else', 'and / not'],
+    ai: ['moderation AI (the kindness check)', 'a score and a limit', 'false alarms and misses', 'fairness: an AI learns what its examples show'],
     extraButtons: '<a class="btn light" href="phrases.html" target="_blank" rel="noopener">🖨 Print test phrases</a>',
     materials: ['Laptop', 'Printed test phrases (button above), including tricky ones'],
     sessions: [
@@ -1404,28 +1456,35 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
           '<b>Loop with a counter</b>: <code>set i to 1</code>, then <code>repeat (length of unkind words)</code>: check <code>item i</code>, then <code>change i by 1</code>. That visits every word in the list, one by one.',
           '<b>Strings</b>: <code>message contains (item i of unkind words)</code> looks for the word anywhere in the message. <code>join</code> builds the robot\'s reply; <code>length of</code> counts the letters.',
           'Add two words to each list and test them.',
+          'Print the <b>test phrases</b> and type each one. Fill in the “Word list says” column. Can more words fix the mistakes? Try, and discuss why a list of words can never be enough.',
         ],
       },
       {
-        title: 'Session 17: test it, then meet the AI',
-        say: '“A moderation AI learned to flag unkind language by studying thousands of examples — but it can be wrong in both directions: flagging kind messages, and missing unkind ones.”',
+        title: 'Session 17: meet the AI, and test it',
+        say: '“A moderation AI learned to flag unkind language by studying examples: ours studied 900,000 real comments that people had marked as fine or hurtful. It is better than a word list, and it can still be wrong in both directions: flagging kind messages, and missing unkind ones.”',
         steps: [
-          'Print the <b>test phrases</b> and type each one. Fill in the sheet: what does the checker say, and what would a person think?',
-          'Find the <b>false alarms</b> (kind messages flagged, e.g. “You\'re killing it!”) and the <b>misses</b> (unkind messages it can\'t see, e.g. “Nobody wants to play with you”).',
-          'Can more words fix it? Try — and discuss why a list of words can never be enough.',
-          'The AI moderation half comes with BlockML Studio\'s <b>Text AI</b> extension. Until then, play “be the AI”: students guess flag / no flag for each printed phrase and argue their reasons.',
+          'Open <b>AI version</b>. The first time, the text AI (8 MB) takes a moment to load; after that it works without internet. Nothing you type leaves the laptop.',
+          'Type the printed phrases again and write the <b>AI score</b> (0 to 100) for each. Find <code>unkind score of (message)</code>: the AI only gives a number. Our code decides: <code>if AI score &gt; limit</code>.',
+          'Look at the list <i>they disagreed</i>. “Nobody wants to play with you.” and “Go away.” have no word from the list, but the AI is worried: it learned from whole sentences. “This homework is killing me.” has a word from the list, but the AI says it is fine.',
+          'Now find where the AI is wrong. <b>False alarms</b>: “You\'re killing it at football!”, “I hate Mondays.” <b>Misses</b>: “Great job… NOT.”, “You are a l0ser.”',
+          '<b>The limit</b>: change <code>set limit to 50</code> to 30, then to 80, and test again. A low limit catches more unkind messages and raises more false alarms; a high limit does the opposite. Which limit would you choose for a class chat, and why?',
+          '<b>Fairness</b> (guided, do not skip): type “My friend is blind.” and “My grandmother is a Muslim.” Saying who someone is, is not unkind, and the score should stay under the limit. Many moderation AIs got this wrong: in their examples such words appeared mostly in attacks, so they learned to flag the words. Ours was given extra examples to teach it better. Ask: “Who decides what examples an AI learns from?”',
         ],
       },
     ],
     failTests: [
       'Sarcasm: “Great job… NOT.”',
-      'Spelling tricks: “l0ser”, “st*pid”, “I D I O T”.',
+      'Spelling tricks: “l0ser”, “st*pid”, “I D I O T”. Which ones still get through?',
       'Kind messages with a “bad” word: “I hate it when you\'re sad.”',
-      'Unkind messages without one: “Go away. Nobody likes you.”',
+      'Unkind messages without one: “You can\'t come to my party.”',
+      'Find one kind message the AI flags and one unkind message it misses that are not on the sheet.',
     ],
     misconceptions: [
       ['If it flags a message, it\'s definitely unkind (or the reverse).', 'Both directions can be wrong: false alarms and misses, as the test phrases show.'],
       ['More words in the list will fix it.', 'Meaning depends on the whole sentence, not single words. That is why people build AI for it — which also makes mistakes.'],
+      ['The AI understands the message.', 'It adds up numbers for the pieces of words it reads. A joke, or “NOT” at the end, is invisible to it.'],
+      ['A score of 90 means it is 90% true.', 'The score is a guess from the examples the AI saw. People set the limit and make the decision.'],
+      ['AI is neutral.', 'An AI learns whatever its examples show, including unfair patterns. People have to check for that and fix it.'],
     ],
     bug: {
       symptom: 'In <b>Fix the bug</b>, “you are a loser” is not caught, but “you are an idiot” is.',
@@ -1436,13 +1495,14 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
       'Count how many unkind words a message has, not just the first one.',
       'Keep a list of every message that was flagged (a log for the teacher).',
       'Ignore capital letters — Scratch\'s "contains" already does. Test it.',
+      '<b>Train your own AI</b>: click <code>open the text trainer</code>, make the classes <i>Kind</i> and <i>Unkind</i> from your class\'s own examples, and use <code>text (message) is (Unkind)?</code> in the game. Does your AI beat the ready-made one on the printed phrases?',
     ],
     app: [
       'Save, then export at blockml.codeai.ltd → <b>Export Scratch Games to App</b>.',
-      'In the app, the phone keyboard opens when the robot asks.',
+      'In the app, the phone keyboard opens when the robot asks. The AI version works too: the text AI is packed into the app (about 8 MB) and needs no internet and no permission.',
     ],
     offline: [
-      'The word checker needs no internet.',
+      'Everything runs on the laptop: the word checker needs no internet, and the text AI needs none after the first visit.',
       '“Be the AI” with the printed phrases works without any computer.',
     ],
   };

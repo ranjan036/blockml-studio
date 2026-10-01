@@ -597,7 +597,7 @@ Game 7, lists in Game 8.
 | 6 Car Racing | lean (shoulder tilt, with a dead zone) steers continuously | `mod 300` instead of `mod 360` |
 | 1 Maze Runner (basic only) | voice control — waits for S7 Voice | wall bounce-back has the wrong sign going right |
 | 7 Platform Adventure (basic only) | chat-AI guide — waits for S10; a rule-based owl guide (ask & answer) is in the basic game | `start level` not called after the next backdrop |
-| 8 Kindness Checker (basic only) | moderation AI — waits for S8; printable test phrases show false alarms and misses | list counter starts at 0, so the last word is never checked |
+| 8 Kindness Checker | the kindness check scores each message; the student's limit decides; messages where the AI and the word list disagree are collected (S8) | list counter starts at 0, so the last word is never checked |
 
 Tested in the studio (every rule and bug) and as one Android app with all
 eight basic/AI projects (24 MB; right on-screen controls; face, pose and image
@@ -634,3 +634,52 @@ it speaks.
   and in an exported app's player. **Not yet: a real phone** (microphone prompt,
   WebView audio capture, Android's voice) **and real children's voices in a
   classroom.** Hindi (Vosk small Hindi, 42 MB) can be added the same way.
+
+
+### 15.8 S8 Text AI (2026-09-30)
+
+`extensions/src/text.js` (id `blockmlText`): a trainable text classifier and a
+ready-made kindness check, both in plain JavaScript on one small text model.
+
+- **Model choice.** Static word-piece vectors (Model2Vec potion-base-8M, MIT,
+  29,528 pieces × 256 numbers, repacked to 7.7 MB) instead of a neural sentence
+  encoder (Universal Sentence Encoder + the TF.js toxicity model would be
+  ~55 MB and needs the GPU, which is unreliable for text models on phones).
+  No TensorFlow.js, no GPU, nothing to warm up: the first answer comes ~0.2 s
+  after the files load, in any browser or WebView. Our tokenizer matches the
+  reference library exactly on 3,000 real comments; the smaller file changes
+  sentence vectors by less than 0.0001.
+- **Trainer.** The Image Model's softmax classifier on sentence vectors. With 8
+  examples per class it got 12 of 14 unseen mood sentences and 8 of 8 unseen
+  "lights / music / weather" commands right. Known limits, useful as fail-tests:
+  it ignores word order ("I am not happy" is Happy), and short function-word
+  differences (question or statement?) need many more examples.
+- **Kindness check.** Sentence vector + one weight per word piece, trained on
+  Civil Comments (CC0, ~900,000 rated comments) plus ~1,600 hand-written
+  sentences (`scripts/kindness-phrases.mjs`). On 97,000 unseen comments: AUC
+  0.92; at a score of 50 it catches about 6 in 10 unkind comments and about
+  half of what it flags is unkind (the 50 point is placed where that balance
+  is best). On hand-written sentences it never trained on: 41 of 51 unkind and
+  99 of 102 fine ones right.
+- **Fairness.** Trained on the comments alone, the check scored "I am gay" 95
+  and "She is a black girl" 80: the known bias of moderation models, and not
+  acceptable for children. The added sentences and a final adjustment bring
+  every identity word, alone or in an ordinary sentence, under 50 (e.g. "My
+  friend is blind" 8), while "I really hate …" sentences stay flagged. This is
+  also a lesson step in Game 8 ("Who decides what examples an AI learns from?").
+- **Blocks** follow the design rule: `label of text [ ]`, `confidence that [ ]
+  is [class]`, `text [ ] is [class]?`, `unkind score of [ ]`, `[ ] seems
+  unkind?`, `what the AI reads in [ ]`, plus `open the text trainer`, `add
+  example [ ] to [class]` and `train the text model` (teach it from a list).
+- **Game 8** has its AI version: the robot reports the AI's score against the
+  student's `limit`, then the word list's answer, and collects the messages
+  they disagree on. The printed phrase sheet has a column for each.
+- **Apps.** The exporter bundles text.js, text-runtime.js and the model (an app
+  grows by ~8 MB). Text AI needs no permission, so a text-only game uses the
+  plain app template.
+- Tested in the studio (trainer window, every block, save and reopen, Game 8
+  with all printed phrases) and as an exported app in phone emulation. **Not
+  yet: a real phone, and real children's sentences in a classroom** (spelling
+  mistakes, Hinglish: the model is English-only).
+- Still open for AI 12 and AI 18: their session projects (a sentiment trainer
+  starter, and the final project) are not built; the blocks they need are.

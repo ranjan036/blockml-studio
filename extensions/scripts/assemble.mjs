@@ -3,12 +3,15 @@
 // the editor build publishes at /extensions/.
 import fs from 'node:fs';
 import path from 'node:path';
+import { build } from 'esbuild';
 import { patchedVosk } from './patch-vosk.mjs';
 
 const DIST = 'dist';
-for (const f of ['face.js', 'hands.js', 'image.js', 'objects.js', 'face-sensing.js', 'voice.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
+for (const f of ['face.js', 'hands.js', 'image.js', 'objects.js', 'face-sensing.js', 'voice.js', 'text.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
 // The offline speech recogniser the Voice extension loads (see patch-vosk.mjs).
 fs.writeFileSync(path.join(DIST, 'vosk.js'), patchedVosk());
+// The Text AI extension's runtime: plain JavaScript (no TensorFlow.js), one small module.
+await build({ entryPoints: ['src/runtime/text.js'], bundle: true, format: 'esm', target: 'es2020', minify: true, legalComments: 'none', outfile: path.join(DIST, 'text-runtime.js') });
 fs.cpSync('models', path.join(DIST, 'models'), { recursive: true });
 
 const target = path.join('..', 'gui', 'static', 'extensions');

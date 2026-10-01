@@ -12,6 +12,8 @@ import blockmlObjectsIconURL from './blockml/objects.svg';
 import blockmlObjectsInsetIconURL from './blockml/objects-small.svg';
 import blockmlVoiceIconURL from './blockml/voice.svg';
 import blockmlVoiceInsetIconURL from './blockml/voice-small.svg';
+import blockmlTextIconURL from './blockml/text.svg';
+import blockmlTextInsetIconURL from './blockml/text-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -122,6 +124,16 @@ export default [
         iconURL: blockmlVoiceIconURL,
         insetIconURL: blockmlVoiceInsetIconURL,
         description: 'Talk to your project: the AI turns your voice into words, and your project can speak. It runs on this computer, no internet needed.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Text AI',
+        extensionId: 'blockmlText',
+        extensionURL: blockmlExtensionURL('text.js'),
+        iconURL: blockmlTextIconURL,
+        insetIconURL: blockmlTextInsetIconURL,
+        description: 'Teach an AI to sort sentences (happy or sad? sport or food?) from your own examples, and check if a message is kind. It runs on this computer.',
         tags: ['ai'],
         featured: true
     },

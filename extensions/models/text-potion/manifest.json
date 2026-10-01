@@ -1,0 +1,12 @@
+{
+  "name": "potion-base-8M",
+  "source": "https://huggingface.co/minishlab/potion-base-8M",
+  "license": "MIT",
+  "rows": 29528,
+  "dim": 256,
+  "files": [
+    "vocab.txt",
+    "embeddings.bin",
+    "kindness.bin"
+  ]
+}
