@@ -12,7 +12,7 @@
     "fetch-ocr-model": "node scripts/fetch-ocr-model.mjs",
     "build-cities": "node scripts/build-cities.mjs",
     "train-kindness": "node --max-old-space-size=6000 scripts/train-kindness.mjs",
-    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs && node starters/build-printables.mjs",
+    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs && node starters/build-printables.mjs && node starters/build-ai-sessions.mjs",
     "test": "vitest run"
   },
   "dependencies": {

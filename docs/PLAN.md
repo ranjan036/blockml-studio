@@ -876,3 +876,39 @@ fix-the-bug project loads and runs without errors, and the new blocks were
 checked in play (pops, misses, hurry, running costumes, homing foes, high
 scores, off-road, engine pitch, win screen, list commands); all eight basic games
 still export as one app (1.2 MB; Game 7 gets an M button).
+
+### 15.16 AI sessions page: a project for every AI session (2026-10-02)
+
+The syllabus's 20 pure-AI sessions (AI 1–20, sessions 18–37) now have their own
+page, `/lessons/ai/`, with one lesson card each (objective, AI and coding words,
+what you need, teacher steps, fail-tests, misconceptions, challenges, app,
+offline), built by `extensions/starters/build-ai-sessions.mjs`. The standard-block
+helpers moved from `build-lessons.mjs` to `starters/blocks.mjs` (shared; the game
+projects are byte-for-byte unchanged).
+
+| Session | Project |
+|---|---|
+| AI 1, 7, 9, 10, 11, 13 | link to the existing starters (object counter + classroom helper, weather helper, fruit sorter, digit drawer, hand signs, my chatbot) |
+| AI 2 What place is this? | Lens: guess + second guess, ask what it really is, right/wrong counts, list. Reworded: the model knows 1,000 kinds of things (Taj Mahal → mosque 94%), not names or brands |
+| AI 3 Read My Writing | Lens reads text, Voice reads it aloud |
+| AI 4 Card reaction game | random card (never twice in a row), reaction time to 0.1 s, 10 rounds, best time |
+| AI 5 QR treasure hunt | five codes in order, found list, time; printable `clues.html` |
+| AI 6 AprilTag tracker | arrow copies the tag's place and angle, pen trail, park in a box |
+| AI 8 Voice assistant "Sunny" | wake word, time/date/weather/joke/timer rules, "I don't know that yet" |
+| AI 12 Mood reader | Text AI with empty Happy/Sad/Neutral classes; costumes named like the classes |
+| AI 14 Translator | `Translate into <language>: "<text>"` (French/Spanish/German work; Hindi doesn't) |
+| AI 15 Emoji storyteller | uses the **big** chat model: the small one answered in Chinese for every emoji prompt tried; the big one with "Write only 3 emoji … Do not write any words" gave e.g. 🐶🐱🌳 |
+| AI 16 Personalities | keys 1–4 put a style in front of the question (pirate: "Arr, matey! The capital of France is Paris.") |
+| AI 17 Big vs. Little: vision | Object Detection and your own Image Model answer the same picture; B/L to score |
+| AI 18 Big vs. Little: words | your Text AI and the chat AI answer the same sentence; B/L to score |
+| AI 19, 20 | discussion cards |
+
+Chat projects call `forget` before each question: the conversation otherwise
+carries over (even between projects) and steered later answers (a pirate
+answering in French after the translator). Tested in headless Chrome with a fake
+camera scene (a "go" card, tag 100, QR "treasure 1") and the cached chat models:
+every project loads and runs without errors; AI 2, 4, 5, 6, 12, 14, 15, 16, 18
+were checked in play. Not tested: the voice assistant's commands (no real
+microphone headless) and real classroom photos. All 13 projects pass the app
+exporter's checks; its Chat AI note now says 840 MB when a project uses the big
+model.

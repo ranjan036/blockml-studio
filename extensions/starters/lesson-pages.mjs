@@ -98,6 +98,7 @@ export function indexPage(cards) {
 <p class="objective">Each game has a basic version, an AI version and a fix-the-bug version, with a lesson card.</p></div></header>
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
+<section><div class="kicker" style="color:var(--navy)">Sessions 18–37</div><h2><a href="ai/" style="color:inherit">AI sessions (AI 1–20)</a></h2><p class="small">One project and a lesson card for each pure-AI session.</p></section>
 <section><h2>Printables</h2><p class="small">For the Codes &amp; Cards blocks: <a href="printables/cards.html">recognition cards</a> · <a href="printables/tags.html">AprilTags</a> · <a href="printables/qr.html">QR codes</a></p></section>
 <p class="small"><a href="../editor.html">Open BlockML Studio</a></p></main></body></html>`;
 }
@@ -135,4 +136,54 @@ export function printPage(title, intro, body) {
 <p class="small" style="margin:0 0 6mm">${intro}</p>
 ${body}
 </main></body></html>`;
+}
+
+/**
+ * A lesson card for one pure-AI session (AI 1–20): its projects (or "discussion only"),
+ * then the same teacher sections as the game cards.
+ * card: {number, session, slug, kicker, title, objective, ai[], coding[], projects: [{file, label}],
+ *        extraButtons?, materials[], say?, steps[], failTests[], misconceptions[[m, h]], challenges[], app[], offline[]}
+ */
+export function aiSessionPage(card) {
+  const open = (file, label, i) => `<a class="btn ${i === 0 ? 'ai' : 'light'}" data-project="${file}" target="_blank" rel="noopener">${label}</a>`;
+  const section = (title, html) => (html ? `<section><h2>${title}</h2>${html}</section>` : '');
+  return `${HEAD(card.title)}<body>
+<header><div class="wrap">
+<div class="kicker">${esc(card.kicker)}</div>
+<h1>${esc(card.title)}</h1>
+<p class="objective">“${esc(card.objective)}”</p>
+</div></header>
+<main>
+<section>
+<h2>${card.projects.length ? 'Open the project' : 'No project: a discussion session'}</h2>
+<div class="buttons">
+${card.projects.map((p, i) => open(p.file, p.label, i)).join('\n')}
+${card.extraButtons || ''}
+</div>
+${card.projects.length ? `<p class="small">Opens in BlockML Studio. Save with File → Save to your computer. Or download: ${card.projects.map((p) => { const name = p.file.includes('/') ? p.file.split('/').pop() : `${card.slug}.sb3`; return `<a href="${p.file}" download="${name}">${esc(name)}</a>`; }).join(' · ')}</p>` : ''}
+</section>
+<section class="grid2">
+<div><h2>AI</h2>${card.ai.map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
+<div><h2>Coding</h2>${(card.coding || []).map((c) => `<span class="tag">${esc(c)}</span>`).join('')}</div>
+</section>
+${section('You need', card.materials && list(card.materials))}
+<section><h2>Session ${card.session}</h2>${card.say ? `<p class="say">${card.say}</p>` : ''}${steps(card.steps)}</section>
+${section('Test it: make the AI fail', card.failTests && card.failTests.length && list(card.failTests))}
+${card.misconceptions && card.misconceptions.length ? `<section><h2>Common misconceptions</h2><table><tr><th>Students may think…</th><th>Help them see…</th></tr>
+${card.misconceptions.map(([m, h]) => `<tr><td>“${esc(m)}”</td><td>${esc(h)}</td></tr>`).join('')}</table></section>` : ''}
+${section('Challenges', card.challenges && card.challenges.length && list(card.challenges))}
+${section('📱 Make it an Android app', card.app && card.app.length && steps(card.app))}
+${section('No internet, no camera?', card.offline && card.offline.length && list(card.offline))}
+<p class="small">Part of the CODE AI Core Curriculum, built with BlockML Studio. <a href="../">AI sessions</a> · <a href="../../">All lessons</a></p>
+</main>${OPEN_SCRIPT.replace("'../../editor.html", "'../../../editor.html")}</body></html>`;
+}
+
+/** The AI sessions index. */
+export function aiIndexPage(cards) {
+  return `${HEAD('AI sessions')}<body>
+<header><div class="wrap"><div class="kicker">BlockML Studio · CODE AI Core Curriculum · Sessions 18–37</div><h1>AI sessions</h1>
+<p class="objective">Twenty pure-AI sessions: one project and a lesson card each (AI 19 and 20 are discussions).</p></div></header>
+<main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
+<h2><a href="${c.slug}/" style="color:inherit">AI ${c.number}: ${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
+<p class="small"><a href="../">All lessons</a> · <a href="../../editor.html">Open BlockML Studio</a></p></main></body></html>`;
 }
