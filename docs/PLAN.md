@@ -813,7 +813,11 @@ safety check on every question and answer.
   chat model: the app refuses every other outside address
   (`MainActivity.isModelDownload`). The exporter bundles the chat code and the
   kindness check (~14 MB) and warns that the model downloads on first use and
-  needs WebGPU. Tested from the app's own files in phone emulation; **not yet in
-  a real app** (needs the user's go-ahead to replace the BlockML app on the test
-  phone, and Android WebView must support WebGPU).
+  needs WebGPU. **Tested in a real app** on the OnePlus Nord 2T (Android 14,
+  WebView 153, which has WebGPU on the Mali GPU): Game 7's owl downloaded the
+  model in about 90 s and answered in 2–8 s ("How do I win?" 7.9 s, "What is the
+  capital of France?" 2.4 s, the bomb question blocked at once); after a restart
+  it was ready again from the phone's cache in 14 s. The app reached Hugging Face
+  but was refused example.com and other GitHub files. The download % stays at 0
+  for the first ~45 s (WebLLM reports per finished file of up to 65 MB).
 - Still open in S10: the weather source (AI 7).
