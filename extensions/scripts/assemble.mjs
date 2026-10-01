@@ -7,7 +7,7 @@ import { build } from 'esbuild';
 import { patchedVosk } from './patch-vosk.mjs';
 
 const DIST = 'dist';
-for (const f of ['face.js', 'hands.js', 'image.js', 'objects.js', 'face-sensing.js', 'voice.js', 'text.js', 'scan.js', 'lens.js', 'chat.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
+for (const f of ['face.js', 'hands.js', 'image.js', 'objects.js', 'face-sensing.js', 'voice.js', 'text.js', 'scan.js', 'lens.js', 'chat.js', 'weather.js']) fs.copyFileSync(path.join('src', f), path.join(DIST, f));
 // The offline speech recogniser the Voice extension loads (see patch-vosk.mjs).
 fs.writeFileSync(path.join(DIST, 'vosk.js'), patchedVosk());
 // The Text AI extension's runtime: plain JavaScript (no TensorFlow.js), one small module.
@@ -16,8 +16,9 @@ await build({ entryPoints: ['src/runtime/text.js'], bundle: true, format: 'esm',
 fs.mkdirSync(path.join(DIST, 'ocr'), { recursive: true });
 for (const f of ['tesseract.esm.min.js', 'worker.min.js']) fs.copyFileSync(path.join('node_modules', 'tesseract.js', 'dist', f), path.join(DIST, 'ocr', f));
 for (const f of ['tesseract-core-simd-lstm.wasm.js', 'tesseract-core-lstm.wasm.js']) fs.copyFileSync(path.join('node_modules', 'tesseract.js-core', f), path.join(DIST, 'ocr', f));
-// Chat AI: the small runtime, and the engine (WebLLM, ~6 MB) it loads on first use; minified here.
-for (const [entry, out] of [['chat', 'chat-runtime.js'], ['chat-engine', 'chat-engine.js']]) {
+// Chat AI: the small runtime, and the engine (WebLLM, ~6 MB) it loads on first use; and the
+// Weather runtime. Minified here.
+for (const [entry, out] of [['chat', 'chat-runtime.js'], ['chat-engine', 'chat-engine.js'], ['weather', 'weather-runtime.js']]) {
   await build({ entryPoints: [`src/runtime/${entry}.js`], bundle: true, format: 'esm', target: 'es2020', minify: true, legalComments: 'none', outfile: path.join(DIST, out) });
 }
 fs.cpSync('models', path.join(DIST, 'models'), { recursive: true });

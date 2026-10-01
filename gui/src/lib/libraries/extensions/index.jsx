@@ -20,6 +20,8 @@ import blockmlLensIconURL from './blockml/lens.svg';
 import blockmlLensInsetIconURL from './blockml/lens-small.svg';
 import blockmlChatIconURL from './blockml/chat.svg';
 import blockmlChatInsetIconURL from './blockml/chat-small.svg';
+import blockmlWeatherIconURL from './blockml/weather.svg';
+import blockmlWeatherInsetIconURL from './blockml/weather-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -170,6 +172,16 @@ export default [
         iconURL: blockmlChatIconURL,
         insetIconURL: blockmlChatInsetIconURL,
         description: 'A ChatGPT-style chatbot that runs on this computer, with a safety check on every question and answer. Downloads once (about 280 MB). Needs Chrome or Edge.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Weather',
+        extensionId: 'blockmlWeather',
+        extensionURL: blockmlExtensionURL('weather.js'),
+        iconURL: blockmlWeatherIconURL,
+        insetIconURL: blockmlWeatherInsetIconURL,
+        description: 'Real weather and forecasts for any city: temperature, rain, wind, clouds. Needs the internet. Data from MET Norway.',
         tags: ['ai'],
         featured: true
     },

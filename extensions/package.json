@@ -10,6 +10,7 @@
     "fetch-voice-models": "node scripts/fetch-voice-models.mjs",
     "fetch-text-model": "node scripts/fetch-text-model.mjs",
     "fetch-ocr-model": "node scripts/fetch-ocr-model.mjs",
+    "build-cities": "node scripts/build-cities.mjs",
     "train-kindness": "node --max-old-space-size=6000 scripts/train-kindness.mjs",
     "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs && node starters/build-printables.mjs",
     "test": "vitest run"

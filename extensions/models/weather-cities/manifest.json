@@ -1,0 +1,7 @@
+{
+  "source": "https://www.geonames.org/ (cities15000, admin1CodesASCII)",
+  "license": "CC BY 4.0",
+  "files": [
+    "cities.json"
+  ]
+}

@@ -573,3 +573,36 @@ const robot = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" hei
   ]], { x: 0, y: -60 });
   write('my-chatbot.sb3', p);
 }
+
+// ---- 13. Weather helper (Weather): real data, if/else, comparisons (AI 7) ------------
+// Type a city; the helper gets real weather and gives advice. The advice rules are ours:
+// change the numbers and see how the advice changes.
+
+{
+  const p = new Project();
+  p.useExtension('blockmlWeather', BASE + 'weather.js');
+  p.variable('temperature', 0);
+  p.showVariable('temperature', { x: 5, y: 5 });
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const sayFor = (message, secs) => ({ op: 'looks_sayforsecs', inputs: { MESSAGE: message, SECS: secs } });
+  const smile = '<path d="M36 52 Q50 64 64 52" fill="none" stroke="#67e8f9" stroke-width="5" stroke-linecap="round"/>';
+  p.addSprite('Helper', [p.costume('robot', robot(smile), [50, 55])], [[
+    flag,
+    forever(
+      { op: 'sensing_askandwait', inputs: { QUESTION: 'Which city? (for example Delhi, Guwahati, London)' } },
+      say('Checking the sky…'),
+      { op: 'blockmlWeather_getWeather', inputs: { PLACE: op('sensing_answer') } },
+      ifElse(bool('blockmlWeather_hasWeather'),
+        [
+          set('temperature', op('blockmlWeather_now', {}, { MEASURE: 'temperature (°C)' })),
+          sayFor(join(op('blockmlWeather_place'), join(': ', join(v('temperature'), join(' °C, ', op('blockmlWeather_wordsNow'))))), 3),
+          // Our own advice rules: the data doesn't decide, we do.
+          ifThen(bool('blockmlWeather_willRain', { HOURS: 6 }), sayFor('Take an umbrella: rain in the next 6 hours!', 3)),
+          ifThen(gt(v('temperature'), 32), sayFor('It is hot: drink lots of water.', 3)),
+          ifThen(bool('operator_lt', { OPERAND1: v('temperature'), OPERAND2: 12 }), sayFor('It is cold: wear a sweater.', 3)),
+        ],
+        [sayFor(op('blockmlWeather_problem'), 3)]),
+    ),
+  ]], { x: 0, y: -60 });
+  write('weather-helper.sb3', p);
+}

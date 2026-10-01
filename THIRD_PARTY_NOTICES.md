@@ -26,6 +26,10 @@
   Qwen2.5 Instruct models (Apache-2.0, Alibaba Cloud) from huggingface.co/mlc-ai
   and their compiled code from github.com/mlc-ai/binary-mlc-llm-libs; neither is
   distributed by us.
+- **GeoNames** city data (cities15000, admin1 codes) — CC BY 4.0, https://www.geonames.org/.
+  Served as `extensions/models/weather-cities/cities.json` (Weather).
+- **MET Norway** Locationforecast weather data — CC BY 4.0, https://api.met.no/. Fetched
+  by `api/weather.js` and credited on the Weather blocks.
 - **qrcode-generator** — MIT (Kazuhiko Arase). Used only when building, to draw
   the printable QR codes.
 - **AI model weights** (`extensions/models/`) — Apache-2.0, except the text

@@ -16,6 +16,7 @@ models are served by the studio site itself.
 | **Codes & Cards** (`src/scan.js`, id `blockmlScan`) | when camera sees card [card] · card seen · card [card] seen? · number of cards seen · [x/y/size/direction] of card [card] · number of tags seen · [number/x/y/size/direction] of tag (n) · tag number ( ) seen? · QR code text · camera sees a QR code? · [x/y/size/direction] of QR code — QR codes, AprilTags (36h11) and 30 printable recognition cards (`/lessons/printables/`); no model to download |
 | **Lens** (`src/lens.js`, id `blockmlLens`) | recognise what the camera sees · what the camera sees · confidence of what the camera sees · [name/confidence] of guess (n) · read text in camera image · text read · number of words read · word (n) of text read · confidence of text read — "what is this?" (MobileNet's 1,000 ImageNet things, the Image Model's model) and printed English text (Tesseract.js, `ocr/` + `models/ocr-eng/`) |
 | **Chat AI** (`src/chat.js`, id `blockmlChat`) | ask chat AI [ ] and wait · chat AI's answer · answer was blocked by the safety check? · set chat AI's role to [ ] · forget the conversation · start the chat AI · chat AI is ready? · chat AI download % · use the [small/big] chat model — a chatbot on the graphics chip (WebLLM + WebGPU; Qwen2.5 0.5B by default, 1.5B on request), with our safety check |
+| **Weather** (`src/weather.js`, id `blockmlWeather`) | get the weather for [place] · weather place · [temperature/humidity/wind speed/cloud cover/rain] now · weather now · [measure] in (n) hours · weather in (n) hours · rain in the next (n) hours? · weather is ready? · weather problem — real forecasts (MET Norway via `/api/weather`), places from an offline city list |
 | All vision | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
 
 Design rule: the AI blocks are the **senses** (numbers, names, yes/no); the
@@ -133,6 +134,18 @@ reach the model; self-harm gets a caring reply with India's Tele-MANAS helpline
 (14416). Answers are checked for the same topics and with the Text AI kindness
 check. The model also gets safety rules before the student's role. Blocked
 exchanges are not kept in the conversation.
+
+### Weather
+
+A place name ("Guwahati", "Aurangabad, Bihar", "Bombay", "Paris, France" or
+"26.2, 91.7") is found in `models/weather-cities/cities.json` (5,727 places:
+every Indian town over 15,000 people, every city over 300,000 and every capital,
+from GeoNames, CC BY 4.0; `npm run build-cities`). The forecast comes from MET
+Norway's Locationforecast (free, CC BY 4.0) through our proxy `api/weather.js`
+(a Vercel function, copied in `gui/api/` — whichever folder the Vercel project
+uses): MET asks browsers and apps not to call it directly, so the proxy names
+itself, rounds places to ~1 km and lets the CDN cache answers for 30 minutes,
+and returns 48 hours of hourly data. Only the place is sent.
 
 ## How it works
 

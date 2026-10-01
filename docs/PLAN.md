@@ -573,7 +573,7 @@ speech recognition (sends audio to Google; not in Android WebView).
 | S7 | Voice: offline speech-to-text + text-to-speech (laptop and app) | Game 1, AI 8 |
 | S8 | Text AI: trainable text classifier, kindness check | Game 8, AI 12, AI 18 (part) |
 | S9 | Vision+: QR, AprilTag, cards (done, §15.9), OCR and "what is this?" (done, §15.10), drawing and hand-sign trainers (done, §15.11) | AI 2–6, 10, 11 |
-| S10 | Chat AI (done, §15.13) and weather | Game 7, AI 7, AI 13–16, AI 18 |
+| S10 | Chat AI (done, §15.13) and weather (done, §15.14) | Game 7, AI 7, AI 13–16, AI 18 |
 | S11 | Arduino (Web Serial + Firmata) | Robotics 42–50 |
 
 Every milestone's exit criterion includes: works offline after first use,
@@ -821,3 +821,28 @@ safety check on every question and answer.
   but was refused example.com and other GitHub files. The download % stays at 0
   for the first ~45 s (WebLLM reports per finished file of up to 65 MB).
 - Still open in S10: the weather source (AI 7).
+
+### 15.14 S10: Weather (2026-10-01)
+
+`extensions/src/weather.js` (id `blockmlWeather`), for AI 7.
+
+- **Source:** MET Norway's Locationforecast — free, also for commercial use
+  (CC BY 4.0, credited on the blocks), worldwide, no key. Its terms ask browsers
+  and apps to go through a server that identifies itself and caches, so
+  `api/weather.js` is a small Vercel function: it rounds the place to ~1 km
+  (a class shares one answer), the CDN caches for 30 minutes, and it returns
+  only 48 hours of hourly temperature, humidity, wind, cloud cover, rain and a
+  weather symbol. When the hosting moves to Cloudflare (S5b) it can become a
+  Worker unchanged in logic.
+- **Places** are found offline in a GeoNames list (Indian towns over 15,000,
+  world cities over 300,000, capitals; old names like Bombay or Madras for big
+  cities). No location permission: students type a city.
+- **Blocks:** `get the weather for [ ]` (waits), then numbers and words — now,
+  in N hours, and `rain in the next N hours?` — so the advice is the
+  student's own if/else. Starter `weather-helper.sb3`.
+- **Apps:** the AI template's internet permission now also allows
+  `studio.blockml.codeai.ltd/api/weather` (nothing else of the site); the city
+  list is bundled.
+- Tested in the studio with the proxy run locally: Delhi, Guwahati, Bombay →
+  Mumbai, "Aurangabad, Bihar", London, coordinates; unknown places get a clear
+  message.
