@@ -351,3 +351,55 @@ const robot = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" hei
   ], { x: 150, y: -100 });
   write('classroom-helper.sb3', p);
 }
+
+// ---- 8. Card driver (Codes & Cards): if/else chains, direction, a variable as a menu ----
+// Show the printed recognition cards to the camera: go, stop, left, right, turn around.
+// A QR code makes the car say the words hidden in it.
+
+{
+  const p = new Project();
+  p.useExtension('blockmlScan', BASE + 'scan.js');
+  p.variable('card', '');
+  p.showVariable('card', { x: 5, y: 5 });
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const scan = {
+    camera: (state = 'on') => ({ op: 'blockmlScan_setCamera', fields: { STATE: state } }),
+    transparency: (n) => ({ op: 'blockmlScan_setTransparency', inputs: { VALUE: n } }),
+    cardSeen: () => op('blockmlScan_cardSeen'),
+    qrSeen: () => bool('blockmlScan_isQrSeen'),
+    qrText: () => op('blockmlScan_qrText'),
+  };
+  const car = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="90" viewBox="0 0 60 90">
+<rect x="4" y="14" width="10" height="20" rx="3" fill="#1f2937"/><rect x="46" y="14" width="10" height="20" rx="3" fill="#1f2937"/>
+<rect x="4" y="58" width="10" height="20" rx="3" fill="#1f2937"/><rect x="46" y="58" width="10" height="20" rx="3" fill="#1f2937"/>
+<rect x="10" y="4" width="40" height="82" rx="14" fill="#0284c7" stroke="#075985" stroke-width="3"/>
+<rect x="16" y="16" width="28" height="16" rx="4" fill="#bae6fd"/></svg>`;
+  const is = (name) => eq(v('card'), name);
+  const turn = (degrees) => ({ op: 'motion_turnright', inputs: { DEGREES: degrees } });
+  p.addSprite('Car', [p.costume('car', car, [30, 45])], [[
+    flag,
+    scan.camera('on'),
+    scan.transparency(60),
+    { op: 'motion_gotoxy', inputs: { X: 0, Y: 0 } },
+    { op: 'motion_pointindirection', inputs: { DIRECTION: 0 } },
+    set('card', 'stop'),
+    set('last seen', ''),
+    forever(
+      // The camera only tells us which card it sees; we decide what each card means.
+      // A card counts once when it appears, so "left" turns once, not again every frame.
+      set('seen', scan.cardSeen()),
+      ifThen(and(bool('operator_not', { OPERAND: eq(v('seen'), '') }), bool('operator_not', { OPERAND: eq(v('seen'), v('last seen')) })),
+        set('card', v('seen'))),
+      set('last seen', v('seen')),
+      ifElse(or(is('go'), is('forward')),
+        [{ op: 'motion_movesteps', inputs: { STEPS: 3 } }, { op: 'motion_ifonedgebounce' }],
+        [ifElse(is('left'),
+          [turn(-90), set('card', 'go')],
+          [ifElse(is('right'),
+            [turn(90), set('card', 'go')],
+            [ifThen(is('turn around'), turn(180), set('card', 'go'))])])]),
+      ifElse(scan.qrSeen(), [say(scan.qrText())], [say('')]),
+    ),
+  ]], { x: 0, y: 0 });
+  write('card-driver.sb3', p);
+}

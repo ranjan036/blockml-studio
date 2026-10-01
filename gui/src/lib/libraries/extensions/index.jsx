@@ -14,6 +14,8 @@ import blockmlVoiceIconURL from './blockml/voice.svg';
 import blockmlVoiceInsetIconURL from './blockml/voice-small.svg';
 import blockmlTextIconURL from './blockml/text.svg';
 import blockmlTextInsetIconURL from './blockml/text-small.svg';
+import blockmlScanIconURL from './blockml/scan.svg';
+import blockmlScanInsetIconURL from './blockml/scan-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -134,6 +136,16 @@ export default [
         iconURL: blockmlTextIconURL,
         insetIconURL: blockmlTextInsetIconURL,
         description: 'Teach an AI to sort sentences (happy or sad? sport or food?) from your own examples, and check if a message is kind. It runs on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Codes & Cards',
+        extensionId: 'blockmlScan',
+        extensionURL: blockmlExtensionURL('scan.js'),
+        iconURL: blockmlScanIconURL,
+        insetIconURL: blockmlScanInsetIconURL,
+        description: 'Read QR codes, AprilTags and printable recognition cards (go, stop, left, right, numbers…) with the camera. Works on this computer.',
         tags: ['ai'],
         featured: true
     },

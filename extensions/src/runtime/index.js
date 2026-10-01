@@ -25,6 +25,13 @@ import { normalize } from '../features/classifier.js';
 export { faceIs } from '../features/face.js';
 export { createTrainer, predict, encodeSample, decodeSample } from '../features/classifier.js';
 import { handFeatures, HAND_POINT_NAMES } from '../features/hand.js';
+import jsQR from 'jsqr';
+// js-aruco2 is written as browser scripts; vite.config.js wraps each file in a function.
+import runCv from 'js-aruco2/src/cv.js';
+import runAruco from 'js-aruco2/src/aruco.js';
+import runAprilTags from 'js-aruco2/src/dictionaries/apriltag_36h11.js';
+import { placeOf, cardName } from '../features/scan.js';
+export { CARDS } from '../features/scan.js';
 
 // Models are served next to this file (see scripts/fetch-models.mjs), never from Google.
 // (Built with plain strings on purpose: Vite rewrites `new URL(`./x/${y}`, import.meta.url)`
@@ -37,6 +44,8 @@ const STAGE_H = 360;
 // A model keeps running for this long after one of its blocks was last used.
 const IDLE_AFTER_MS = 3000;
 const SPEEDS = { fast: 0, normal: 33, 'battery saver': 100 };
+// Reading codes is plain JavaScript on the main thread: at most ~7 times a second.
+const MIN_INTERVAL_MS = { scan: 150 };
 
 const LOADERS = {
   face: () => faceLandmarks.createDetector(faceLandmarks.SupportedModels.MediaPipeFaceMesh, {
@@ -55,7 +64,39 @@ const LOADERS = {
   image: () => mobilenet.load({ version: 2, alpha: 1.0, modelUrl: model('mobilenet-v2') }),
   // Object Detection: COCO-SSD lite, 80 everyday objects.
   objects: () => cocoSsd.load({ base: 'lite_mobilenet_v2', modelUrl: model('coco-ssd-lite') }),
+  // Codes & Cards: QR codes and printed tags.
+  scan: async () => createScanner(),
 };
+// Codes & Cards reads codes from a sharper picture than the stage's, never mirrored.
+const SCAN_W = 640;
+const SCAN_H = 480;
+// AprilTag 36h11 codes differ in at least 11 of 36 squares; accept a code with at most
+// 3 squares misread, so random squares on a T-shirt don't count as tags.
+const TAG_MAX_ERRORS = 3;
+
+/** QR codes and AprilTags (the recognition cards are tags too), in plain JavaScript. */
+function createScanner() {
+  const scope = {};
+  runCv(scope);
+  runAruco(scope);
+  scope.AR.DICTIONARIES.APRILTAG_36h11 || runAprilTags(scope);
+  const tags = new scope.AR.Detector({ dictionaryName: 'APRILTAG_36h11', maxHammingDistance: TAG_MAX_ERRORS + 1 });
+  return {
+    scan(image, mirrored) {
+      const where = (corners) => placeOf(corners, { width: image.width, height: image.height, mirrored });
+      const found = tags.detect(image).map((m) => ({ kind: 'tag', id: m.id, card: cardName(m.id), ...where(m.corners) }));
+      const qr = jsQR(image.data, image.width, image.height, { inversionAttempts: 'dontInvert' });
+      if (qr && qr.data) {
+        const l = qr.location;
+        found.push({ kind: 'qr', text: qr.data, ...where([l.topLeftCorner, l.topRightCorner, l.bottomRightCorner, l.bottomLeftCorner]) });
+      }
+      return found.sort((a, b) => a.x - b.x); // the leftmost first
+    },
+  };
+}
+// Models that are not TensorFlow.js models (no engine to start).
+const PLAIN_JS = new Set(['scan']);
+
 const MAX_OBJECTS = 20;
 // Keep weak guesses too: the extension filters by the student's minimum confidence.
 const MIN_OBJECT_SCORE = 0.2;
@@ -121,7 +162,7 @@ class Vision {
     const e = this.entry(kind);
     e.status = 'loading';
     try {
-      await initBackend();
+      if (!PLAIN_JS.has(kind)) await initBackend();
       e.detector = await LOADERS[kind]();
       e.status = 'ready';
     } catch (err) {
@@ -226,6 +267,9 @@ class Vision {
     return this.entry('image').results[0] || null;
   }
 
+  /** QR codes and tags from the latest scan, the leftmost first. */
+  codes() { return this.entry('scan').results; }
+
   faces() { return this.entry('face').results; }
   hands() { return this.entry('hands').results; }
   pose() { return this.entry('pose').results[0] || null; }
@@ -235,7 +279,7 @@ class Vision {
     for (const [kind, e] of Object.entries(this.models)) {
       if (e.status !== 'ready' || e.busy) continue;
       if (now - e.lastWanted > IDLE_AFTER_MS) continue;
-      if (now - e.lastRun < SPEEDS[this.speed]) continue;
+      if (now - e.lastRun < Math.max(SPEEDS[this.speed], MIN_INTERVAL_MS[kind] || 0)) continue;
       const canvas = this.video.videoReady
         ? this.video.getFrame({ format: 'canvas', dimensions: [STAGE_W, STAGE_H] })
         : null;
@@ -279,6 +323,11 @@ class Vision {
     }
     if (kind === 'image') {
       return [await this.embed(detector, canvas)];
+    }
+    if (kind === 'scan') {
+      // Codes must be read the right way round, so ask for the camera image unmirrored.
+      const image = this.video.videoReady ? this.video.getFrame({ format: 'image-data', dimensions: [SCAN_W, SCAN_H], mirror: false }) : null;
+      return image ? detector.scan(image, mirrored) : [];
     }
     if (kind === 'objects') {
       const found = await detector.detect(canvas, MAX_OBJECTS, MIN_OBJECT_SCORE);
@@ -373,6 +422,24 @@ class Vision {
       ctx.fillRect(x1, y1 - 18 * dpr, w, 18 * dpr);
       ctx.fillStyle = '#ffffff';
       ctx.fillText(label, x1 + 4 * dpr, y1 - 5 * dpr);
+    }
+    for (const c of this.entry('scan').results) {
+      // A square turned like the code, with its name.
+      const half = c.size / 2;
+      const a = (c.direction * Math.PI) / 180;
+      const corner = (dx, dy) => px({ x: c.x + dx * Math.cos(a) + dy * Math.sin(a), y: c.y - dx * Math.sin(a) + dy * Math.cos(a) });
+      const pts = [corner(-half, half), corner(half, half), corner(half, -half), corner(-half, -half)];
+      ctx.strokeStyle = '#0284c7';
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.stroke();
+      const label = c.kind === 'qr' ? 'QR' : c.card ? `${c.card} (tag ${c.id})` : `tag ${c.id}`;
+      const [lx, ly] = pts[0];
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(lx, ly - 18 * dpr, ctx.measureText(label).width + 8 * dpr, 18 * dpr);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, lx + 4 * dpr, ly - 5 * dpr);
     }
     const body = this.entry('pose').results[0];
     if (body && body.visible) {

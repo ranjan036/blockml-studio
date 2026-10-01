@@ -98,6 +98,7 @@ export function indexPage(cards) {
 <p class="objective">Each game has a basic version, an AI version and a fix-the-bug version, with a lesson card.</p></div></header>
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
+<section><h2>Printables</h2><p class="small">For the Codes &amp; Cards blocks: <a href="printables/cards.html">recognition cards</a> · <a href="printables/tags.html">AprilTags</a> · <a href="printables/qr.html">QR codes</a></p></section>
 <p class="small"><a href="../editor.html">Open BlockML Studio</a></p></main></body></html>`;
 }
 
@@ -124,4 +125,14 @@ ${cards.map(([label, svg]) => `<div style="border:2px dashed #b8c6dc;border-radi
 <div style="height:45mm;display:flex;align-items:center;justify-content:center">${svg.replace('<svg ', '<svg style="height:100%;width:auto" ')}</div>
 <div style="font-weight:800;color:var(--ink);margin-top:3mm">${esc(label)}</div></div>`).join('\n')}
 </div></main></body></html>`;
+}
+
+/** A printable A4 page: a title, a short note and any content. */
+export function printPage(title, intro, body) {
+  return `${HEAD(title)}<body style="background:#fff">
+<main style="max-width:none;padding:10mm">
+<h1 style="color:var(--ink);font-size:22px;margin:0 0 3mm">${esc(title)}</h1>
+<p class="small" style="margin:0 0 6mm">${intro}</p>
+${body}
+</main></body></html>`;
 }

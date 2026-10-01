@@ -572,7 +572,7 @@ speech recognition (sends audio to Google; not in Android WebView).
 | S5b | Hosting on Cloudflare Pages, model cache + pre-load button, one app template | heavy home use, offline centres |
 | S7 | Voice: offline speech-to-text + text-to-speech (laptop and app) | Game 1, AI 8 |
 | S8 | Text AI: trainable text classifier, kindness check | Game 8, AI 12, AI 18 (part) |
-| S9 | Vision+: QR, AprilTag, cards, OCR, "what is this?", drawing and hand-sign trainers | AI 2–6, 10, 11 |
+| S9 | Vision+: QR, AprilTag, cards (done, §15.9), OCR, "what is this?", drawing and hand-sign trainers | AI 2–6, 10, 11 |
 | S10 | Chat AI (after a laptop + phone benchmark) and weather | Game 7, AI 7, AI 13–16, AI 18 |
 | S11 | Arduino (Web Serial + Firmata) | Robotics 42–50 |
 
@@ -683,3 +683,29 @@ ready-made kindness check, both in plain JavaScript on one small text model.
   mistakes, Hinglish: the model is English-only).
 - Still open for AI 12 and AI 18: their session projects (a sentiment trainer
   starter, and the final project) are not built; the blocks they need are.
+
+### 15.9 S9, part 1: Codes & Cards (2026-10-01)
+
+`extensions/src/scan.js` (id `blockmlScan`): QR codes, AprilTags and printable
+recognition cards, for AI 4–6 and later the robotics sessions.
+
+- **No AI model**: jsQR and js-aruco2 (pure JavaScript, Apache-2.0 / MIT) run in
+  the shared vision runtime (+70 KB gzipped), so it works offline at once and an
+  app grows by ~0.1 MB. Codes are read from the unmirrored 640×480 picture, ~7
+  times a second (~50 ms a pass).
+- **Cards** are AprilTag 36h11 tags 0–29 with names and pictures (go, stop,
+  left, right, forward, back, turn around, jump, 0–9, apple … heart), printable
+  at `/lessons/printables/cards.html`, with `tags.html` (tags 100–111) and
+  `qr.html`. Cards are tags, which is a teaching point: the picture is for
+  people, the square is for the computer.
+- Blocks follow the design rule: names, numbers, places and yes/no; one hat
+  (`when camera sees card`). Places are as the stage shows them (mirrored
+  camera), and `direction` is the Scratch direction the code's top points to,
+  so `point in direction (direction of card …)` turns a sprite with the card.
+- Starter `card-driver.sb3`: cards drive a car; a QR code makes it talk.
+- Tested with a rendered scene as the fake webcam (a turned "stop" card, tag 104,
+  a QR code): every block right in the studio and in an exported app (1.3 MB,
+  camera permission). No false tags in 120 random-squares images. **Not yet:
+  printed cards in front of a real webcam, and a phone.**
+- Next in S9: OCR and "what is this?" (AI 2–3), then the drawing and hand-sign
+  trainers (AI 10–11).

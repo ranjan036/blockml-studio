@@ -12,6 +12,15 @@
   WebAssembly) — Apache-2.0, https://github.com/ccoreilly/vosk-browser. Served as
   `extensions/vosk.js` with one change: a failed IndexedDB cache sync no longer
   stops the model from loading (see `extensions/scripts/patch-vosk.mjs`).
+- **jsQR** 1.4.0 — Apache-2.0, https://github.com/cozmo/jsQR. Bundled in
+  `extensions/dist/vision-runtime.js` (Codes & Cards).
+- **js-aruco2** 2.0.0 — MIT (Juan Mellado, Damiano Falcioni; includes Stack
+  Blur by Mario Klingemann, MIT), https://github.com/damianofalcioni/js-aruco2.
+  Only `cv.js`, `aruco.js` and the AprilTag 36h11 code list are bundled in
+  `vision-runtime.js`; the code list is BSD-2-Clause, Copyright (C) 2013-2016
+  The Regents of The University of Michigan (APRIL Robotics Lab).
+- **qrcode-generator** — MIT (Kazuhiko Arase). Used only when building, to draw
+  the printable QR codes.
 - **AI model weights** (`extensions/models/`) — Apache-2.0, except the text
   model (Model2Vec potion-base-8M, MIT); see `extensions/models/NOTICE.txt`.
 - **Civil Comments** dataset (Jigsaw / Google) — CC0. Used only to train the

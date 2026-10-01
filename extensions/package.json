@@ -10,7 +10,7 @@
     "fetch-voice-models": "node scripts/fetch-voice-models.mjs",
     "fetch-text-model": "node scripts/fetch-text-model.mjs",
     "train-kindness": "node --max-old-space-size=6000 scripts/train-kindness.mjs",
-    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs",
+    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs && node starters/build-printables.mjs",
     "test": "vitest run"
   },
   "dependencies": {
@@ -23,6 +23,8 @@
     "@tensorflow/tfjs-backend-webgpu": "4.22.0",
     "@tensorflow/tfjs-converter": "4.22.0",
     "@tensorflow/tfjs-core": "4.22.0",
+    "js-aruco2": "2.0.0",
+    "jsqr": "1.4.0",
     "vosk-browser": "0.0.8"
   },
   "devDependencies": {
@@ -30,6 +32,7 @@
     "fflate": "0.8.3",
     "hyparquet": "1.31.2",
     "hyparquet-compressors": "1.1.2",
+    "qrcode-generator": "2.0.4",
     "vite": "5.4.21",
     "vitest": "2.1.9"
   }

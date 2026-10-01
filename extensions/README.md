@@ -13,6 +13,7 @@ models are served by the studio site itself.
 | **Object Detection** (`src/objects.js`, id `blockmlObjects`) | when camera sees a [object] · detect objects · number of objects · [name/x/y/size/confidence] of object (n) · number of [object] seen · [object] detected? · set minimum confidence to (50) % · object AI is ready? — 80 COCO objects |
 | **Voice** (`src/voice.js`, id `blockmlVoice`) | when I hear [word] · start / stop listening · listen only for words (up down …) · listen for any words · what I heard · I heard [word]? · confidence of what I heard · forget what I heard · voice AI is ready? · speak [text] (and wait) — offline speech-to-text (Vosk, `vosk.js` + `models/vosk-small-en/`, fetched with `npm run fetch-voice-models`) and the computer's own voices |
 | **Text AI** (`src/text.js`, id `blockmlText`) | open the text trainer · label of text [ ] · confidence that [ ] is [class] · text [ ] is [class]? · number of examples of [class] · text model is trained? · add example [ ] to [class] · train the text model · unkind score of [ ] · [ ] seems unkind? · what the AI reads in [ ] · text AI is ready? — a trainable text classifier and a ready-made kindness check (`text-runtime.js` + `models/text-potion/`, 7.8 MB, no camera or microphone) |
+| **Codes & Cards** (`src/scan.js`, id `blockmlScan`) | when camera sees card [card] · card seen · card [card] seen? · number of cards seen · [x/y/size/direction] of card [card] · number of tags seen · [number/x/y/size/direction] of tag (n) · tag number ( ) seen? · QR code text · camera sees a QR code? · [x/y/size/direction] of QR code — QR codes, AprilTags (36h11) and 30 printable recognition cards (`/lessons/printables/`); no model to download |
 | All vision | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
 
 Design rule: the AI blocks are the **senses** (numbers, names, yes/no); the
@@ -66,6 +67,25 @@ sentences it never trained on. It still makes mistakes in both directions
 (sarcasm and spelling tricks are missed; "I hate Mondays" is a false alarm):
 that is the lesson of Game 8, and the reason the block gives a number and the
 student's code decides.
+
+### Codes & Cards
+
+QR codes (jsQR) and AprilTags of the 36h11 family (js-aruco2's `cv.js` and
+`aruco.js` plus its AprilTag code list; the LGPL `posit*.js` files are not
+used) are read in plain JavaScript inside the vision runtime, about 7 times a
+second (one pass takes ~50 ms on a laptop). The camera picture is read
+unmirrored at 640×480, because a mirrored code can't be read; places and
+directions are then given as the stage shows them (`src/features/scan.js`,
+unit-tested). A tag is accepted with at most 3 of its 36 squares misread: 0
+false tags in 120 test images full of random black-and-white squares. Tags read
+from about 25 camera pixels wide (with normal camera blur).
+
+The **recognition cards** are tags 0–29 with a name (`go`, `stop`, `left`,
+`right`, `forward`, `back`, `turn around`, `jump`, `0`–`9`, and 12
+pictures). `starters/build-printables.mjs` draws the printable cards, tags
+100–111 and six QR codes with the same libraries (QR codes with
+qrcode-generator). `vite.config.js` wraps js-aruco2's script files, which put
+their objects on `this`, so they can be bundled.
 
 ## How it works
 
