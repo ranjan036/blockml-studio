@@ -18,6 +18,8 @@ import blockmlScanIconURL from './blockml/scan.svg';
 import blockmlScanInsetIconURL from './blockml/scan-small.svg';
 import blockmlLensIconURL from './blockml/lens.svg';
 import blockmlLensInsetIconURL from './blockml/lens-small.svg';
+import blockmlChatIconURL from './blockml/chat.svg';
+import blockmlChatInsetIconURL from './blockml/chat-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -158,6 +160,16 @@ export default [
         iconURL: blockmlLensIconURL,
         insetIconURL: blockmlLensInsetIconURL,
         description: 'What is this? The AI guesses what the camera sees (1,000 everyday things) and reads printed words. It runs on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Chat AI',
+        extensionId: 'blockmlChat',
+        extensionURL: blockmlExtensionURL('chat.js'),
+        iconURL: blockmlChatIconURL,
+        insetIconURL: blockmlChatInsetIconURL,
+        description: 'A ChatGPT-style chatbot that runs on this computer, with a safety check on every question and answer. Downloads once (about 280 MB). Needs Chrome or Edge.',
         tags: ['ai'],
         featured: true
     },

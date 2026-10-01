@@ -1178,8 +1178,13 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
   const backdrop = (name) => ({ op: 'looks_switchbackdropto', inputs: { BACKDROP: { menu: 'looks_backdrops', field: 'BACKDROP', value: name } } });
 
   // startAfterNextLevel: false plants the bug (level 2 starts with the hero still on the star).
-  const project = ({ startAfterNextLevel = true } = {}) => {
+  // withChat: the owl is a chat AI that has been told about the game (its "role").
+  const ROLE = 'You are Owl, a wise and friendly guide in a platform game. Facts about the game: the player walks with the left and right arrows ' +
+    'and jumps with the up arrow. Red lava sends the player back to the start and costs a life; there are 3 lives. There are 2 levels. ' +
+    'Reaching the yellow star on level 1 goes to level 2; reaching the star on level 2 wins the game. Answer in one or two short sentences.';
+  const project = ({ startAfterNextLevel = true, withChat = false } = {}) => {
     const p = new Project();
+    if (withChat) p.useExtension('blockmlChat', BASE + 'chat.js');
     p.addStage([p.costume('level 1', level1, [240, 180]), p.costume('level 2', level2, [240, 180])]);
     p.addSprite('Hero', [p.costume('hero', hero, [12, 16])], [
       [{ op: 'procedures_definition', proccode: 'start level' },
@@ -1227,7 +1232,26 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
       [whenReceive('level started'),
         ifElse(eq(backdropNumber(), 1), [goTo(195, 25)], [goTo(195, 55)])],
     ], { x: 195, y: 25 });
-    p.addSprite('Guide', [p.costume('owl', owl, [28, 30])], [
+    const chatGuide = [
+      [
+        flag,
+        goTo(-190, 120),
+        // The chat AI's "role": everything it knows about OUR game is in this sentence.
+        { op: 'blockmlChat_setRole', inputs: { ROLE } },
+        { op: 'blockmlChat_start' },
+        repeatUntil(bool('blockmlChat_isReady'), say(join2('Waking up… ', join2(op('blockmlChat_progress'), '%')))),
+        say('Click me and ask me anything!'),
+      ],
+      [
+        whenClicked,
+        say(''),
+        { op: 'sensing_askandwait', inputs: { QUESTION: 'What do you want to know?' } },
+        say('Hmm…'),
+        { op: 'blockmlChat_ask', inputs: { QUESTION: op('sensing_answer') } },
+        sayFor(op('blockmlChat_answer'), 6),
+      ],
+    ];
+    p.addSprite('Guide', [p.costume('owl', owl, [28, 30])], withChat ? chatGuide : [
       [flag, goTo(-190, 120), say('Click me to ask a question!')],
       // A rule-based guide: it only knows the words we taught it.
       [
@@ -1248,6 +1272,7 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
     return p;
   };
   write(game, 'basic.sb3', project());
+  write(game, 'ai.sb3', project({ withChat: true }));
   write(game, 'fix-the-bug.sb3', project({ startAfterNextLevel: false }));
 
   const card = {
@@ -1256,10 +1281,9 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
     kicker: 'Game 7 · Sessions 14–15 · AI Level 1: Use + reliability lesson',
     title: 'Platform Adventure, Ask the Guide',
     objective: 'I can design levels with advanced collision, and I understand that an AI can confidently give a wrong answer — and know what to do when that happens.',
-    aiPending: 'coming with the Chat AI extension',
     coding: ['My Blocks (functions)', 'inputs (parameters)', 'advanced collision', 'level design (backdrops)', 'broadcast', 'ask & answer', 'if / else chains'],
-    ai: ['chat AI guesses likely answers (chat extension, coming soon)', 'rule-based vs. AI'],
-    materials: ['Laptop'],
+    ai: ['chat AI guesses likely answers', 'rule-based vs. AI', 'a role (system prompt)', 'safety checks'],
+    materials: ['Laptop with Chrome or Edge (the chat AI needs WebGPU)', 'Two prepared questions for the wrong-answer moment'],
     sessions: [
       {
         title: 'Session 14: levels and collision',
@@ -1276,19 +1300,26 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
         steps: [
           'Click the owl and ask “how do I jump?”, “what is lava?”, then “what is the capital of France?”. What happens?',
           'Add a new rule: if the question contains “level”, say how many levels there are.',
-          'Discuss: what would be better and worse about an AI guide that answers <i>anything</i>? (The chat-AI version comes with BlockML Studio\'s Chat AI extension.)',
-          '<b>The wrong-answer moment</b> (guided, do not skip): the teacher plays the AI guide and answers two prepared questions confidently and wrongly. Ask: “What should you do when an AI gives you a wrong answer?”',
+          'Open <b>AI version</b>. The first time, the owl\'s chat AI downloads (about 280 MB, once per computer; the owl shows %). After that it works without internet. Nothing you type leaves the laptop.',
+          'Ask the same questions, then “what is the capital of France?” and “can I win without jumping?”. The chat AI answers <i>anything</i> — but is it right about our game?',
+          'Find <code>set chat AI\'s role to […]</code>: that sentence is all the AI knows about our game. Take out the part about lava and ask about lava again. Then add a fact about your level 3.',
+          '<b>The wrong-answer moment</b> (guided, do not skip): find two questions the owl answers confidently and wrongly (try “how many lives do I have after I touch lava twice?”). Ask: “What should you do when an AI gives you a wrong answer?” Check it, ask again in a different way, or ask a person.',
+          '<b>The safety check</b>: BlockML Studio checks every question and answer before you see it, and some questions are never sent to the AI at all. Try <code>answer was blocked by the safety check?</code> with a <code>say</code> block. Why would a children\'s app need this?',
         ],
       },
     ],
     failTests: [
-      'Ask the owl a question with a typo: “how do I jmup?”',
+      'Ask the owl a question with a typo: “how do I jmup?” — the rule-based owl and the chat owl.',
+      'Ask the chat owl something about the game that is NOT in its role: “what colour is the hero?”',
+      'Ask the same question three times: are the answers the same?',
       'Ask “can I win without jumping?” — which rule answers, and is it right?',
       'Make a gap in a platform too wide to jump: is the level still possible?',
     ],
     misconceptions: [
       ['The guide understands my question.', 'It only checks if certain words are inside it. A chat AI is better at guessing, but it doesn\'t understand either.'],
       ['If the AI said it, it must be true.', 'Chat AI guesses from patterns; always check important answers.'],
+      ['The chat AI knows my game.', 'It only knows what its role tells it, plus general patterns from its training. Everything else is a guess.'],
+      ['The AI is safe on its own.', 'Small chat AIs will answer harmful questions; that is why BlockML Studio checks every question and answer.'],
       ['My Blocks are just for tidiness.', 'They let you change one place and fix it everywhere, and give a name to an idea.'],
     ],
     bug: {
@@ -1304,10 +1335,12 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
     app: [
       'Save, then export at blockml.codeai.ltd → <b>Export Scratch Games to App</b>.',
       'The arrows become an on-screen D-pad; tap the owl to ask it (the phone keyboard opens).',
+      'The AI version needs the internet once, to download the chat AI (about 280 MB) on the phone, and a phone whose browser engine supports WebGPU.',
     ],
     offline: [
       'The basic game needs no internet.',
-      'If the AI guide is unavailable, the teacher role-plays the guide with the prepared wrong answers — the point is the discussion.',
+      'The chat AI downloads once (about 280 MB) and then works offline. Download it before class on every laptop (open the AI version once).',
+      'If the AI guide is unavailable (no WebGPU, no download), the teacher role-plays the guide with the prepared wrong answers — the point is the discussion.',
     ],
   };
   write(game, 'index.html', lessonPage(card));

@@ -15,6 +15,7 @@ models are served by the studio site itself.
 | **Text AI** (`src/text.js`, id `blockmlText`) | open the text trainer · label of text [ ] · confidence that [ ] is [class] · text [ ] is [class]? · number of examples of [class] · text model is trained? · add example [ ] to [class] · train the text model · unkind score of [ ] · [ ] seems unkind? · what the AI reads in [ ] · text AI is ready? — a trainable text classifier and a ready-made kindness check (`text-runtime.js` + `models/text-potion/`, 7.8 MB, no camera or microphone) |
 | **Codes & Cards** (`src/scan.js`, id `blockmlScan`) | when camera sees card [card] · card seen · card [card] seen? · number of cards seen · [x/y/size/direction] of card [card] · number of tags seen · [number/x/y/size/direction] of tag (n) · tag number ( ) seen? · QR code text · camera sees a QR code? · [x/y/size/direction] of QR code — QR codes, AprilTags (36h11) and 30 printable recognition cards (`/lessons/printables/`); no model to download |
 | **Lens** (`src/lens.js`, id `blockmlLens`) | recognise what the camera sees · what the camera sees · confidence of what the camera sees · [name/confidence] of guess (n) · read text in camera image · text read · number of words read · word (n) of text read · confidence of text read — "what is this?" (MobileNet's 1,000 ImageNet things, the Image Model's model) and printed English text (Tesseract.js, `ocr/` + `models/ocr-eng/`) |
+| **Chat AI** (`src/chat.js`, id `blockmlChat`) | ask chat AI [ ] and wait · chat AI's answer · answer was blocked by the safety check? · set chat AI's role to [ ] · forget the conversation · start the chat AI · chat AI is ready? · chat AI download % · use the [small/big] chat model — a chatbot on the graphics chip (WebLLM + WebGPU; Qwen2.5 0.5B by default, 1.5B on request), with our safety check |
 | All vision | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
 
 Design rule: the AI blocks are the **senses** (numbers, names, yes/no); the
@@ -112,6 +113,26 @@ tessdata_fast (Apache-2.0, 2 MB gzipped; `npm run fetch-ocr-model`). The engine
 with SIMD is used where the browser has it, else the plain one (both served,
 3.9 MB each). The first read loads ~6 MB; later reads take ~0.1–0.5 s. The
 GUI build copies `ocr/` without minifying it (see `gui/webpack.config.js`).
+
+### Chat AI
+
+`chat-runtime.js` (small) loads `chat-engine.js` (WebLLM 0.2.85, Apache-2.0,
+~6 MB) on first use; the engine runs in the page because in a Web Worker it was
+about three times slower in our tests. The model weights come from the mlc-ai
+repositories on Hugging Face and the compiled model code from MLC's
+binary-mlc-llm-libs on GitHub (we don't host them: up to 111 MB per file); the
+browser keeps them. Default model: Qwen2.5 0.5B (276 MB; 1–2 s per answer on
+the test laptop), `use the big chat model` switches to Qwen2.5 1.5B (840 MB;
+better and safer on its own, but 6–28 s per answer once the laptop was warm).
+Without WebGPU the blocks answer with a message saying so.
+
+Safety (`src/features/chat-safety.js`, unit-tested): questions about weapons,
+violence, self-harm, drugs and alcohol, adult content and crime, and questions
+with personal details (phone numbers, addresses, passwords, emails), never
+reach the model; self-harm gets a caring reply with India's Tele-MANAS helpline
+(14416). Answers are checked for the same topics and with the Text AI kindness
+check. The model also gets safety rules before the student's role. Blocked
+exchanges are not kept in the conversation.
 
 ## How it works
 

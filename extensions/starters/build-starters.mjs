@@ -541,3 +541,35 @@ const robot = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" hei
   ], { x: 150, y: -100 });
   write('hand-signs.sb3', p);
 }
+
+// ---- 12. My chatbot (Chat AI): a ChatGPT-style chatbot with your own role (AI 13–16) ----
+// Change the role to make your own character. Every question and answer goes through
+// BlockML Studio's safety check; the robot says when an answer was blocked.
+
+{
+  const p = new Project();
+  p.useExtension('blockmlChat', BASE + 'chat.js');
+  p.variable('role', 'You are Robo, a cheerful robot who loves science and explains things simply.');
+  p.showVariable('role', { x: 5, y: 5 });
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const smile = '<path d="M36 52 Q50 64 64 52" fill="none" stroke="#fca5a5" stroke-width="5" stroke-linecap="round"/>';
+  p.addSprite('Robo', [p.costume('robot', robot(smile), [50, 55])], [[
+    flag,
+    { op: 'blockmlChat_setRole', inputs: { ROLE: v('role') } },
+    { op: 'blockmlChat_start' },
+    { op: 'control_repeat_until', inputs: { CONDITION: bool('blockmlChat_isReady') }, substack: [say(join('Loading my brain… ', join(op('blockmlChat_progress'), '%')))] },
+    forever(
+      { op: 'sensing_askandwait', inputs: { QUESTION: 'Ask me anything (type "bye" to start again):' } },
+      ifElse(eq(op('sensing_answer'), 'bye'),
+        [{ op: 'blockmlChat_forget' }, say('Bye! Let\'s start a new chat.')],
+        [
+          say('Thinking…'),
+          { op: 'blockmlChat_ask', inputs: { QUESTION: op('sensing_answer') } },
+          ifElse(bool('blockmlChat_wasBlocked'),
+            [say(join('[Safety check] ', op('blockmlChat_answer')))],
+            [say(op('blockmlChat_answer'))]),
+        ]),
+    ),
+  ]], { x: 0, y: -60 });
+  write('my-chatbot.sb3', p);
+}

@@ -231,11 +231,16 @@ module.exports = [
                         from: 'static',
                         to: '',
                         // blockml: the text reader's files are already minified (and huge)
-                        globOptions: {ignore: ['**/extensions/ocr/**']}
+                        globOptions: {ignore: ['**/extensions/ocr/**', '**/extensions/chat-engine.js']}
                     },
                     {
                         from: 'static/extensions/ocr',
                         to: 'extensions/ocr',
+                        info: {minimized: true}
+                    },
+                    {
+                        from: 'static/extensions/chat-engine.js',
+                        to: 'extensions/chat-engine.js',
                         info: {minimized: true}
                     }
                 ]

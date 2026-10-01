@@ -573,7 +573,7 @@ speech recognition (sends audio to Google; not in Android WebView).
 | S7 | Voice: offline speech-to-text + text-to-speech (laptop and app) | Game 1, AI 8 |
 | S8 | Text AI: trainable text classifier, kindness check | Game 8, AI 12, AI 18 (part) |
 | S9 | Vision+: QR, AprilTag, cards (done, §15.9), OCR and "what is this?" (done, §15.10), drawing and hand-sign trainers (done, §15.11) | AI 2–6, 10, 11 |
-| S10 | Chat AI (after a laptop + phone benchmark) and weather | Game 7, AI 7, AI 13–16, AI 18 |
+| S10 | Chat AI (done, §15.13) and weather | Game 7, AI 7, AI 13–16, AI 18 |
 | S11 | Arduino (Web Serial + Firmata) | Robotics 42–50 |
 
 Every milestone's exit criterion includes: works offline after first use,
@@ -787,3 +787,33 @@ Findings:
   (mlc-ai) avoids both; nothing typed is sent anywhere either way.
 - **Not yet known:** speed on a real CODE AI i5/8 GB laptop, and whether
   Android WebView (exported apps) has WebGPU — Chrome on the phone does.
+
+### 15.13 S10: Chat AI (2026-10-01)
+
+`extensions/src/chat.js` (id `blockmlChat`), decided from the benchmark (§15.12)
+with the founder: WebLLM on WebGPU, models loaded from Hugging Face, and our own
+safety check on every question and answer.
+
+- **Model:** Qwen2.5 0.5B by default everywhere. The plan was 1.5B on laptops,
+  but on the test laptop 1.5B took 6–28 s per answer once the laptop had been
+  working for a while (the integrated graphics slows down when warm), while 0.5B
+  stayed at 1–2 s. `use the big chat model` still offers 1.5B for strong
+  computers. The model is warmed up when it starts, so the first question isn't
+  slow.
+- **Safety:** see `extensions/README.md`. All 6 harmful test questions, the
+  self-harm case and a phone number were blocked before reaching the model;
+  ordinary questions with game words ("kill the zombie") go through. The block
+  `answer was blocked by the safety check?` lets lessons show the check.
+- **Game 7** has its AI version: the owl is the chat AI, told about the game in
+  its role; it shows the download %, answers anything, and is sometimes
+  confidently wrong about the game (seen in testing: "reach the star on level 1
+  to win") — exactly the session-15 wrong-answer lesson.
+- **Starter** `my-chatbot.sb3` (AI 13–16): your own character via the role.
+- **Apps:** the AI template now has the internet permission, used only for the
+  chat model: the app refuses every other outside address
+  (`MainActivity.isModelDownload`). The exporter bundles the chat code and the
+  kindness check (~14 MB) and warns that the model downloads on first use and
+  needs WebGPU. Tested from the app's own files in phone emulation; **not yet in
+  a real app** (needs the user's go-ahead to replace the BlockML app on the test
+  phone, and Android WebView must support WebGPU).
+- Still open in S10: the weather source (AI 7).

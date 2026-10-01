@@ -21,6 +21,11 @@
   The Regents of The University of Michigan (APRIL Robotics Lab).
 - **Tesseract.js** 7.0.0 and **tesseract.js-core** 7.0.0 — Apache-2.0,
   https://github.com/naptha/tesseract.js. Served as `extensions/ocr/` (Lens).
+- **WebLLM** (`@mlc-ai/web-llm`) 0.2.85 — Apache-2.0, https://github.com/mlc-ai/web-llm.
+  Bundled as `extensions/chat-engine.js` (Chat AI). At run time it downloads the
+  Qwen2.5 Instruct models (Apache-2.0, Alibaba Cloud) from huggingface.co/mlc-ai
+  and their compiled code from github.com/mlc-ai/binary-mlc-llm-libs; neither is
+  distributed by us.
 - **qrcode-generator** — MIT (Kazuhiko Arase). Used only when building, to draw
   the printable QR codes.
 - **AI model weights** (`extensions/models/`) — Apache-2.0, except the text
