@@ -403,3 +403,55 @@ const robot = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" hei
   ]], { x: 0, y: 0 });
   write('card-driver.sb3', p);
 }
+
+// ---- 9. Lens explorer (Lens): "what is this?" and reading signs, thresholds ----------
+// Space: the robot guesses what the camera sees, but only says it when it is sure enough.
+// R: it reads the printed words in front of the camera.
+
+{
+  const p = new Project();
+  p.useExtension('blockmlLens', BASE + 'lens.js');
+  p.variable('sure enough', 50);
+  p.showVariable('sure enough', { x: 5, y: 5 });
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const lens = {
+    camera: (state = 'on') => ({ op: 'blockmlLens_setCamera', fields: { STATE: state } }),
+    transparency: (n) => ({ op: 'blockmlLens_setTransparency', inputs: { VALUE: n } }),
+    recognize: () => ({ op: 'blockmlLens_recognize' }),
+    thing: () => op('blockmlLens_thing'),
+    confidence: () => op('blockmlLens_thingConfidence'),
+    secondGuess: () => op('blockmlLens_guess', { INDEX: 2 }, { PROPERTY: 'name' }),
+    read: () => ({ op: 'blockmlLens_readText' }),
+    text: () => op('blockmlLens_textRead'),
+    words: () => op('blockmlLens_numberOfWords'),
+  };
+  const sayFor = (message, secs) => ({ op: 'looks_sayforsecs', inputs: { MESSAGE: message, SECS: secs } });
+  const whenKey = (key) => ({ op: 'event_whenkeypressed', fields: { KEY_OPTION: key } });
+  const eyes = '<circle cx="38" cy="49" r="7" fill="#a5b4fc"/><circle cx="62" cy="49" r="7" fill="#a5b4fc"/>';
+  const lensBot = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="110" viewBox="0 0 100 110">
+<rect x="46" y="4" width="8" height="16" fill="#64748b"/><circle cx="50" cy="6" r="5" fill="#6366f1"/>
+<rect x="12" y="20" width="76" height="62" rx="16" fill="#1e1b4b" stroke="#4338ca" stroke-width="4"/>${eyes}
+<path d="M36 66 Q50 74 64 66" fill="none" stroke="#a5b4fc" stroke-width="4" stroke-linecap="round"/>
+<rect x="28" y="84" width="44" height="22" rx="6" fill="#6366f1"/></svg>`;
+  p.addSprite('Lens bot', [p.costume('robot', lensBot, [50, 55])], [
+    [flag, lens.camera('on'), lens.transparency(20), say('Space: what is this? R: read the words.')],
+    [
+      whenKey('space'),
+      say('Hmm…'),
+      lens.recognize(),
+      // The AI always guesses something; we decide when a guess is good enough to say.
+      ifElse(gt(lens.confidence(), v('sure enough')),
+        [sayFor(join('I think this is: ', join(lens.thing(), '!')), 3)],
+        [sayFor(join('Not sure… maybe ', join(lens.thing(), join(' or ', join(lens.secondGuess(), '?')))), 3)]),
+    ],
+    [
+      whenKey('r'),
+      say('Reading…'),
+      lens.read(),
+      ifElse(gt(lens.words(), 0),
+        [sayFor(join('It says: ', lens.text()), 4)],
+        [sayFor('I can\'t see any words. Hold them closer.', 3)]),
+    ],
+  ], { x: 150, y: -100 });
+  write('lens-explorer.sb3', p);
+}

@@ -1,0 +1,7 @@
+{
+  "source": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata",
+  "license": "Apache-2.0",
+  "files": [
+    "eng.traineddata.gz"
+  ]
+}

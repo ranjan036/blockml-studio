@@ -19,6 +19,8 @@
   Only `cv.js`, `aruco.js` and the AprilTag 36h11 code list are bundled in
   `vision-runtime.js`; the code list is BSD-2-Clause, Copyright (C) 2013-2016
   The Regents of The University of Michigan (APRIL Robotics Lab).
+- **Tesseract.js** 7.0.0 and **tesseract.js-core** 7.0.0 — Apache-2.0,
+  https://github.com/naptha/tesseract.js. Served as `extensions/ocr/` (Lens).
 - **qrcode-generator** — MIT (Kazuhiko Arase). Used only when building, to draw
   the printable QR codes.
 - **AI model weights** (`extensions/models/`) — Apache-2.0, except the text

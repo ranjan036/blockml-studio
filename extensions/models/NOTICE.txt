@@ -13,6 +13,8 @@ AI models used by BlockML Studio (served from this folder):
 - vosk-small-en: Vosk vosk-model-small-en-us-0.15 (Alpha Cephei,
   alphacephei.com/vosk/models), repacked as a split .tar.gz for the browser —
   Apache License 2.0
+- ocr-eng: Tesseract "tessdata_fast" English model (eng.traineddata, gzipped),
+  github.com/tesseract-ocr/tessdata_fast — Apache License 2.0
 - text-potion: Model2Vec "potion-base-8M" static text embeddings (Minish Lab,
   huggingface.co/minishlab/potion-base-8M), repacked as one byte per number —
   MIT License, Copyright (c) 2024 Thomas van Dongen (see below).

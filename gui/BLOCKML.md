@@ -11,7 +11,7 @@ with a `blockml:` comment so it's easy to find when merging TurboWarp updates.
 |---|---|---|
 | `src/lib/brand.js` | App name "BlockML Studio" | Branding |
 | `src/lib/themes/index.js` | Default accent blue | BlockML colour |
-| `static/` icons, `manifest.webmanifest`, `src/playground/index.ejs`, `webpack.config.js` | Our icon, name, page titles and description | Branding (no TurboWarp logo) |
+| `static/` icons, `manifest.webmanifest`, `src/playground/index.ejs`, `webpack.config.js` | Our icon, name, page titles and description; `static/extensions/ocr/` (Lens text reader, already minified, ~8 MB) is copied without minifying | Branding (no TurboWarp logo); build time |
 | `src/components/menu-bar/` | "BlockML Studio" name at the left; "BlockML (data science)" link replaces TurboWarp's feedback button; error-report links go to our GitHub issues; no TurboWarp news banner | Branding, support |
 | `src/playground/render-gui.jsx` | No cloud variable server; no "See Project Page" button | Privacy (clouddata.turbowarp.org); not a Scratch-website client |
 | `src/lib/project-fetcher-hoc.jsx` | Opening scratch.mit.edu projects by ID is disabled (it goes through trampoline.turbowarp.org); `?project_url=` still works | Privacy, no dependency on TurboWarp's servers |
@@ -21,7 +21,7 @@ with a `blockml:` comment so it's easy to find when merging TurboWarp updates.
 | `static/privacy.html` | Our privacy page | Accurate for this site |
 | `src/components/menu-bar/menu-bar.jsx` (S6) | File > **Make an Android app…** opens BlockML's app exporter and hands it this project (postMessage, to that tab only, after it says it is ready; `?blockml_url=` may point at a localhost BlockML for testing) | Export AI games as Android apps |
 | `src/containers/tw-security-manager.jsx` (S2) | Trust this site's `/extensions/` (and the production site's) instead of extensions.turbowarp.org; projects that use TurboWarp's Face Sensing load ours instead (`rewriteExtensionURL`, S6) | Our AI extensions run unsandboxed; outside extensions ask first; Scratch Face Sensing projects work offline |
-| `src/lib/libraries/extensions/index.jsx`, `blockml/*.svg`, `src/lib/libraries/tw-extension-tags.js` (S2) | Image Model, Object Detection, Face, Hand & Pose, Voice (S7), Text AI (S8) and Codes & Cards (S9) at the top of the extension library, with an "AI" filter | Our AI extensions |
+| `src/lib/libraries/extensions/index.jsx`, `blockml/*.svg`, `src/lib/libraries/tw-extension-tags.js` (S2) | Image Model, Object Detection, Face, Hand & Pose, Voice (S7), Text AI (S8), Codes & Cards and Lens (S9) at the top of the extension library, with an "AI" filter | Our AI extensions |
 | `.gitignore` (S2) | `static/extensions/`, `static/starters/` are build output from `../extensions` | Build |
 | `vercel.json` (here and at the repo root) | Build and hosting settings for studio.blockml.codeai.ltd. The root copy builds `gui/` when the Vercel project's Root Directory is the repo root; this copy is used when it is `gui`. Keep them in sync. `/extensions/*` is served with `Access-Control-Allow-Origin: *` so BlockML's app exporter can copy the AI files into Android apps. | Deployment |
 

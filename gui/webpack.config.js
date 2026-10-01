@@ -229,7 +229,14 @@ module.exports = [
                 patterns: [
                     {
                         from: 'static',
-                        to: ''
+                        to: '',
+                        // blockml: the text reader's files are already minified (and huge)
+                        globOptions: {ignore: ['**/extensions/ocr/**']}
+                    },
+                    {
+                        from: 'static/extensions/ocr',
+                        to: 'extensions/ocr',
+                        info: {minimized: true}
                     }
                 ]
             }),

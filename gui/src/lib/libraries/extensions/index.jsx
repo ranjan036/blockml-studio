@@ -16,6 +16,8 @@ import blockmlTextIconURL from './blockml/text.svg';
 import blockmlTextInsetIconURL from './blockml/text-small.svg';
 import blockmlScanIconURL from './blockml/scan.svg';
 import blockmlScanInsetIconURL from './blockml/scan-small.svg';
+import blockmlLensIconURL from './blockml/lens.svg';
+import blockmlLensInsetIconURL from './blockml/lens-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -146,6 +148,16 @@ export default [
         iconURL: blockmlScanIconURL,
         insetIconURL: blockmlScanInsetIconURL,
         description: 'Read QR codes, AprilTags and printable recognition cards (go, stop, left, right, numbers…) with the camera. Works on this computer.',
+        tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Lens',
+        extensionId: 'blockmlLens',
+        extensionURL: blockmlExtensionURL('lens.js'),
+        iconURL: blockmlLensIconURL,
+        insetIconURL: blockmlLensInsetIconURL,
+        description: 'What is this? The AI guesses what the camera sees (1,000 everyday things) and reads printed words. It runs on this computer.',
         tags: ['ai'],
         featured: true
     },

@@ -572,7 +572,7 @@ speech recognition (sends audio to Google; not in Android WebView).
 | S5b | Hosting on Cloudflare Pages, model cache + pre-load button, one app template | heavy home use, offline centres |
 | S7 | Voice: offline speech-to-text + text-to-speech (laptop and app) | Game 1, AI 8 |
 | S8 | Text AI: trainable text classifier, kindness check | Game 8, AI 12, AI 18 (part) |
-| S9 | Vision+: QR, AprilTag, cards (done, §15.9), OCR, "what is this?", drawing and hand-sign trainers | AI 2–6, 10, 11 |
+| S9 | Vision+: QR, AprilTag, cards (done, §15.9), OCR and "what is this?" (done, §15.10), drawing and hand-sign trainers | AI 2–6, 10, 11 |
 | S10 | Chat AI (after a laptop + phone benchmark) and weather | Game 7, AI 7, AI 13–16, AI 18 |
 | S11 | Arduino (Web Serial + Firmata) | Robotics 42–50 |
 
@@ -709,3 +709,25 @@ recognition cards, for AI 4–6 and later the robotics sessions.
   printed cards in front of a real webcam, and a phone.**
 - Next in S9: OCR and "what is this?" (AI 2–3), then the drawing and hand-sign
   trainers (AI 10–11).
+
+### 15.10 S9, part 2: Lens — "what is this?" and reading text (2026-10-01)
+
+`extensions/src/lens.js` (id `blockmlLens`), for AI 2–3.
+
+- **What is this?** MobileNet v2's own ImageNet guesses (top 5, with confidence)
+  from the model the Image Model already uses: no new download. A banana photo:
+  "banana" 100%; a printed sign: "envelope" 60% (a good fail-test: it only knows
+  1,000 things and always guesses one).
+- **Read text**: Tesseract.js 7 with the fast English model, in a Web Worker, on
+  the unmirrored camera picture. A printed sign seen through a (fake) camera with
+  blur and noise was read exactly ("TURN LEFT at the big tree Level 2 starts
+  here", 95%), first read 0.5 s, then ~0.1 s; the non-SIMD engine read it too.
+  Printed English only; handwriting and Hindi are not supported (Hindi could be
+  added the same way).
+- Blocks are commands that wait (`recognise …`, `read text …`) plus reporters,
+  like `detect objects`; no hats. The starter `lens-explorer.sb3` says a guess
+  only when its confidence is above a variable, otherwise its top two guesses.
+- Apps: MobileNet + Tesseract (both engines) + the English model, ~19.5 MB; the
+  Lens explorer app read the sign and recognised in phone emulation.
+- **Not yet:** a real webcam with real objects and printed pages, and a phone.
+- Still open in S9: the drawing and hand-sign trainers (AI 10–11).

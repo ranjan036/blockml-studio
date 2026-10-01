@@ -94,6 +94,34 @@ function createScanner() {
     },
   };
 }
+// Reading text: Tesseract.js (Apache-2.0), served from ocr/ next to this file (copied by
+// scripts/assemble.mjs), and its English model from models/ocr-eng/. Loaded only when a
+// project reads text.
+const OCR = HERE + 'ocr/';
+// The smallest WebAssembly module that uses SIMD (as in wasm-feature-detect): SIMD makes
+// the reader about twice as fast; older devices get the plain version.
+const SIMD_TEST = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]);
+let ocrPromise = null;
+function ocrWorker() {
+  if (!ocrPromise) {
+    ocrPromise = import(/* @vite-ignore */ OCR + 'tesseract.esm.min.js')
+      .then((m) => (m.createWorker ? m : m.default).createWorker('eng', 1, {
+        workerPath: OCR + 'worker.min.js',
+        workerBlobURL: false,
+        corePath: OCR + (WebAssembly.validate(SIMD_TEST) ? 'tesseract-core-simd-lstm.wasm.js' : 'tesseract-core-lstm.wasm.js'),
+        langPath: HERE + 'models/ocr-eng/',
+        gzip: true,
+        // The browser's own cache keeps the files; Tesseract's IndexedDB cache fails in some WebViews.
+        cacheMethod: 'none',
+      }))
+      .catch((err) => {
+        ocrPromise = null;
+        throw err;
+      });
+  }
+  return ocrPromise;
+}
+
 // Models that are not TensorFlow.js models (no engine to start).
 const PLAIN_JS = new Set(['scan']);
 
@@ -216,6 +244,42 @@ class Vision {
   /** The current camera frame as a 480x360 canvas (as shown on the stage), or null. */
   frameCanvas() {
     return this.video.videoReady ? this.video.getFrame({ format: 'canvas', dimensions: [STAGE_W, STAGE_H] }) : null;
+  }
+
+  /** Waits (up to 3 s) for a camera frame; null if the camera doesn't start. */
+  async waitForFrame(options) {
+    if (this.cameraState === 'auto') this.setCamera('on');
+    for (let i = 0; i < 60; i++) {
+      if (this.video.videoReady) return this.video.getFrame(options);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return null;
+  }
+
+  /**
+   * "What is this?": MobileNet's own guesses among the 1,000 ImageNet things (the same
+   * model the Image Model learns from). Best guess first: [{name, confidence}].
+   */
+  async recognizeNow(guesses = 5) {
+    const detector = await this.ready('image');
+    const canvas = await this.waitForFrame({ format: 'canvas', dimensions: [STAGE_W, STAGE_H] });
+    if (!canvas) return [];
+    const found = await detector.classify(canvas, guesses);
+    // ImageNet names list synonyms ("tabby, tabby cat"): keep the first.
+    return found.map(({ className, probability }) => ({ name: className.split(',')[0].trim(), confidence: Math.round(probability * 100) }));
+  }
+
+  /**
+   * Reads printed text in the camera image (Tesseract.js, English), from the unmirrored
+   * picture. Resolves with {text, confidence}. The OCR engine (~6 MB) loads on first use.
+   */
+  async readTextNow() {
+    const worker = await ocrWorker();
+    const canvas = await this.waitForFrame({ format: 'canvas', dimensions: [SCAN_W, SCAN_H], mirror: false });
+    if (!canvas) return { text: '', confidence: 0 };
+    const { data } = await worker.recognize(canvas);
+    const text = (data.text || '').replace(/\s+/g, ' ').trim();
+    return { text, confidence: text ? Math.round(data.confidence) : 0 };
   }
 
   /** MobileNet features of the camera image right now (normalized), or null if the camera is off. */

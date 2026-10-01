@@ -14,6 +14,7 @@ models are served by the studio site itself.
 | **Voice** (`src/voice.js`, id `blockmlVoice`) | when I hear [word] · start / stop listening · listen only for words (up down …) · listen for any words · what I heard · I heard [word]? · confidence of what I heard · forget what I heard · voice AI is ready? · speak [text] (and wait) — offline speech-to-text (Vosk, `vosk.js` + `models/vosk-small-en/`, fetched with `npm run fetch-voice-models`) and the computer's own voices |
 | **Text AI** (`src/text.js`, id `blockmlText`) | open the text trainer · label of text [ ] · confidence that [ ] is [class] · text [ ] is [class]? · number of examples of [class] · text model is trained? · add example [ ] to [class] · train the text model · unkind score of [ ] · [ ] seems unkind? · what the AI reads in [ ] · text AI is ready? — a trainable text classifier and a ready-made kindness check (`text-runtime.js` + `models/text-potion/`, 7.8 MB, no camera or microphone) |
 | **Codes & Cards** (`src/scan.js`, id `blockmlScan`) | when camera sees card [card] · card seen · card [card] seen? · number of cards seen · [x/y/size/direction] of card [card] · number of tags seen · [number/x/y/size/direction] of tag (n) · tag number ( ) seen? · QR code text · camera sees a QR code? · [x/y/size/direction] of QR code — QR codes, AprilTags (36h11) and 30 printable recognition cards (`/lessons/printables/`); no model to download |
+| **Lens** (`src/lens.js`, id `blockmlLens`) | recognise what the camera sees · what the camera sees · confidence of what the camera sees · [name/confidence] of guess (n) · read text in camera image · text read · number of words read · word (n) of text read · confidence of text read — "what is this?" (MobileNet's 1,000 ImageNet things, the Image Model's model) and printed English text (Tesseract.js, `ocr/` + `models/ocr-eng/`) |
 | All vision | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
 
 Design rule: the AI blocks are the **senses** (numbers, names, yes/no); the
@@ -86,6 +87,19 @@ pictures). `starters/build-printables.mjs` draws the printable cards, tags
 100–111 and six QR codes with the same libraries (QR codes with
 qrcode-generator). `vite.config.js` wraps js-aruco2's script files, which put
 their objects on `this`, so they can be bundled.
+
+### Lens
+
+**recognise what the camera sees** asks MobileNet v2 (already served for the
+Image Model) for its top 5 of the 1,000 ImageNet things; names keep the first
+synonym ("tabby, tabby cat" → "tabby"). About 20 ms once loaded.
+
+**read text in camera image** runs Tesseract.js 7 (Apache-2.0) in a Web Worker
+on the unmirrored 640×480 camera picture, with the fast English model from
+tessdata_fast (Apache-2.0, 2 MB gzipped; `npm run fetch-ocr-model`). The engine
+with SIMD is used where the browser has it, else the plain one (both served,
+3.9 MB each). The first read loads ~6 MB; later reads take ~0.1–0.5 s. The
+GUI build copies `ocr/` without minifying it (see `gui/webpack.config.js`).
 
 ## How it works
 
