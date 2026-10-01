@@ -845,4 +845,7 @@ safety check on every question and answer.
   list is bundled.
 - Tested in the studio with the proxy run locally: Delhi, Guwahati, Bombay →
   Mumbai, "Aurangabad, Bihar", London, coordinates; unknown places get a clear
-  message.
+  message. The live proxy answers and the CDN serves repeats from its cache.
+  **In a real app** on the test phone, the Weather helper answered Guwahati
+  (28.6 °C, mostly clear, umbrella advice) and Delhi in about 1 s each and said
+  it didn't know "Narnia"; the app reached /api/weather but not other studio pages.
