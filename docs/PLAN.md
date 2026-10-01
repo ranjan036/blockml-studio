@@ -849,3 +849,30 @@ safety check on every question and answer.
   **In a real app** on the test phone, the Weather helper answered Guwahati
   (28.6 °C, mostly clear, umbrella advice) and Delhi in about 1 s each and said
   it didn't know "Narnia"; the app reached /api/weather but not other studio pages.
+
+### 15.15 Every standard Scratch block in the syllabus games (2026-10-01)
+
+Checked against the syllabus (Core Curriculum v3.0, 51 sessions): every coding
+concept it names for Games 1–8 was already taught. But the 24 game projects used
+only 67 of MIT Scratch's 121 standard blocks (extensions not counted) — no Sound
+blocks at all. Now all 121 are used inside the existing games (no new sessions;
+`control_while` is TurboWarp-only and not counted):
+
+| Game | Added |
+|---|---|
+| 1 Maze Runner | set rotation style, broadcast and wait + the star glides to the runner, win sound; AI: loudness warning |
+| 2 Catch the Apple | basket glides in, press near the ground (mouse down, mouse x/y), catch/miss sounds, day/night backdrops (when stage clicked, next backdrop) |
+| 3 Balloon Pop | pop animation (change size, ghost effect, turn left, go forward a layer), score by size, random pitch, balloons move/bounce/wobble (direction), when timer > 20, misses by clicking the sky |
+| 4 Dino Jump | running costumes ((costume #) mod 2 + 1), jump and crash sounds, the jump sound rises (change pitch effect, clear effects) |
+| 5 Space Shooter | foes point towards the ship within a distance, friends curve (direction, turn), laser/explosion sounds, high-scores list (insert, delete, show/hide), broadcast and wait |
+| 6 Car Racing | engine sound (set volume, pitch = speed x 10), off-road check (colour touching colour), traffic drifts towards x position of Car |
+| 7 Platform Adventure | music (play until done, volume, M to mute with the volume reporter, fade with change volume, stop all sounds), next backdrop, when backdrop switches to, switch backdrop and wait (win screen), show/hide variable, think, drag mode |
+| 8 Kindness Checker | greeting (current hour, username, days since 2000), "!" check (letter of), teacher commands add/remove/stats (contains, insert, item #, delete, replace, show/hide list), sounds |
+
+Sounds are our own, synthesised by `extensions/starters/sounds.mjs` (no third-party
+files). Each planted bug still behaves as its card describes (Game 5's symptom
+text updated: game over is now broadcast once). Tested: every basic, AI and
+fix-the-bug project loads and runs without errors, and the new blocks were
+checked in play (pops, misses, hurry, running costumes, homing foes, high
+scores, off-road, engine pitch, win screen, list commands); all eight basic games
+still export as one app (1.2 MB; Game 7 gets an M button).

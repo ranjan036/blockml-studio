@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Project, op, bool, v } from './sb3.mjs';
 import { lessonPage, indexPage, cardsPage, phrasesPage } from './lesson-pages.mjs';
+import { SOUNDS } from './sounds.mjs';
 
 const BASE = process.env.STARTER_BASE || 'https://studio.blockml.codeai.ltd/extensions/';
 const OUT = path.join('..', 'gui', 'static', 'lessons');
@@ -65,6 +66,66 @@ const whenClicked = { op: 'event_whenthisspriteclicked' };
 const whenKey = (key) => ({ op: 'event_whenkeypressed', fields: { KEY_OPTION: key } });
 const broadcast = (message) => ({ op: 'event_broadcast', inputs: { BROADCAST_INPUT: { broadcast: message } } });
 const whenReceive = (message) => ({ op: 'event_whenbroadcastreceived', fields: { BROADCAST_OPTION: message } });
+
+// More standard Scratch blocks: sound, looks effects, layers, motion, sensing, lists.
+const soundMenu = (name) => ({ menu: 'sound_sounds_menu', field: 'SOUND_MENU', value: name });
+const startSound = (name) => ({ op: 'sound_play', inputs: { SOUND_MENU: soundMenu(name) } });
+const playUntilDone = (name) => ({ op: 'sound_playuntildone', inputs: { SOUND_MENU: soundMenu(name) } });
+const stopAllSounds = { op: 'sound_stopallsounds' };
+const setPitch = (value) => ({ op: 'sound_seteffectto', fields: { EFFECT: 'PITCH' }, inputs: { VALUE: value } });
+const changePitch = (by) => ({ op: 'sound_changeeffectby', fields: { EFFECT: 'PITCH' }, inputs: { VALUE: by } });
+const clearSoundEffects = { op: 'sound_cleareffects' };
+const setVolume = (value) => ({ op: 'sound_setvolumeto', inputs: { VOLUME: value } });
+const changeVolume = (by) => ({ op: 'sound_changevolumeby', inputs: { VOLUME: by } });
+const volume = () => op('sound_volume');
+const think = (message) => ({ op: 'looks_think', inputs: { MESSAGE: message } });
+const thinkFor = (message, secs) => ({ op: 'looks_thinkforsecs', inputs: { MESSAGE: message, SECS: secs } });
+const setSize = (s) => ({ op: 'looks_setsizeto', inputs: { SIZE: s } });
+const changeSize = (by) => ({ op: 'looks_changesizeby', inputs: { CHANGE: by } });
+const size = () => op('looks_size');
+const changeGhost = (by) => ({ op: 'looks_changeeffectby', fields: { EFFECT: 'GHOST' }, inputs: { CHANGE: by } });
+const clearGraphicEffects = { op: 'looks_cleargraphiceffects' };
+const forwardLayers = (n) => ({ op: 'looks_goforwardbackwardlayers', fields: { FORWARD_BACKWARD: 'forward' }, inputs: { NUM: n } });
+const costumeNumber = () => op('looks_costumenumbername', {}, { NUMBER_NAME: 'number' });
+const nextBackdrop = { op: 'looks_nextbackdrop' };
+const switchBackdropAndWait = (name) => ({ op: 'looks_switchbackdroptoandwait', inputs: { BACKDROP: { menu: 'looks_backdrops', field: 'BACKDROP', value: name } } });
+const moveSteps = (n) => ({ op: 'motion_movesteps', inputs: { STEPS: n } });
+const turnLeft = (d) => ({ op: 'motion_turnleft', inputs: { DEGREES: d } });
+const pointIn = (d) => ({ op: 'motion_pointindirection', inputs: { DIRECTION: d } });
+const direction = () => op('motion_direction');
+const pointTowards = (sprite) => ({ op: 'motion_pointtowards', inputs: { TOWARDS: { menu: 'motion_pointtowards_menu', field: 'TOWARDS', value: sprite } } });
+const glideTo = (secs, sprite) => ({ op: 'motion_glideto', inputs: { SECS: secs, TO: { menu: 'motion_glideto_menu', field: 'TO', value: sprite } } });
+const glide = (secs, x, y) => ({ op: 'motion_glidesecstoxy', inputs: { SECS: secs, X: x, Y: y } });
+const bounceOnEdge = { op: 'motion_ifonedgebounce' };
+const rotationStyle = (style) => ({ op: 'motion_setrotationstyle', fields: { STYLE: style } });
+const distanceTo = (sprite) => op('sensing_distanceto', { DISTANCETOMENU: { menu: 'sensing_distancetomenu', field: 'DISTANCETOMENU', value: sprite } });
+const mouseX = () => op('sensing_mousex');
+const mouseY = () => op('sensing_mousey');
+const mouseDown = () => bool('sensing_mousedown');
+const propertyOf = (property, sprite) => op('sensing_of', { OBJECT: { menu: 'sensing_of_object_menu', field: 'OBJECT', value: sprite } }, { PROPERTY: property });
+const colourTouchingColour = (a, c) => bool('sensing_coloristouchingcolor', { COLOR: { color: a }, COLOR2: { color: c } });
+const loudness = () => op('sensing_loudness');
+const current = (what) => op('sensing_current', {}, { CURRENTMENU: what });
+const daysSince2000 = () => op('sensing_dayssince2000');
+const username = () => op('sensing_username');
+const dragMode = (mode) => ({ op: 'sensing_setdragmode', fields: { DRAG_MODE: mode } });
+const letterOf = (n, text) => op('operator_letter_of', { LETTER: n, STRING: text });
+const showVariable = (name) => ({ op: 'data_showvariable', fields: { VARIABLE: name } });
+const hideVariable = (name) => ({ op: 'data_hidevariable', fields: { VARIABLE: name } });
+const whenStageClicked = { op: 'event_whenstageclicked' };
+const whenBackdropIs = (name) => ({ op: 'event_whenbackdropswitchesto', fields: { BACKDROP: name } });
+const whenTimerOver = (n) => ({ op: 'event_whengreaterthan', fields: { WHENGREATERTHANMENU: 'TIMER' }, inputs: { VALUE: n } });
+const broadcastAndWait = (message) => ({ op: 'event_broadcastandwait', inputs: { BROADCAST_INPUT: { broadcast: message } } });
+const addTo = (list, item) => ({ op: 'data_addtolist', inputs: { ITEM: item }, fields: { LIST: list } });
+const insertAt = (list, item, index) => ({ op: 'data_insertatlist', inputs: { ITEM: item, INDEX: index }, fields: { LIST: list } });
+const deleteOf = (list, index) => ({ op: 'data_deleteoflist', inputs: { INDEX: index }, fields: { LIST: list } });
+const replaceItem = (list, index, item) => ({ op: 'data_replaceitemoflist', inputs: { INDEX: index, ITEM: item }, fields: { LIST: list } });
+const itemNumberOf = (list, item) => op('data_itemnumoflist', { ITEM: item }, { LIST: list });
+const listContains = (list, item) => bool('data_listcontainsitem', { ITEM: item }, { LIST: list });
+const showList = (list) => ({ op: 'data_showlist', fields: { LIST: list } });
+const hideList = (list) => ({ op: 'data_hidelist', fields: { LIST: list } });
+/** Sounds from sounds.mjs, for a sprite's or the stage's sound list. */
+const sounds = (p, ...names) => names.map((n) => p.sound(n, SOUNDS[n]()));
 
 const face = {
   camera: (state = 'on') => ({ op: 'blockmlFace_setCamera', fields: { STATE: state } }),
@@ -143,10 +204,12 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     forever(
       changeY(sub(0, v('speed'))),
       ifThen(touching('Basket'),
+        startSound('catch'),
         change('score', 1),
         change('speed', 0.3), // a little faster after every catch
         goTo(random(-210, 210), 170)),
       ifThen(lt(yPosition(), groundY),
+        startSound('thud'),
         change('lives', -1),
         goTo(random(-210, 210), 170)),
       ifThen(eq(v('lives'), 0),
@@ -156,18 +219,26 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
   ]];
   const basketKeys = [
     flag,
-    goTo(0, -130),
+    // Slide in from below the grass.
+    goTo(0, -175),
+    glide(0.6, 0, -130),
     forever(
       ifThen(keyPressed('right arrow'), changeX(10)),
       ifThen(keyPressed('left arrow'), changeX(-10)),
+      // Or press (or touch) near the bottom of the stage: the basket goes there.
+      ifThen(and(mouseDown(), lt(mouseY(), -60)), setX(mouseX())),
     ),
   ];
+  const night = orchard.replace('stop-color="#bae6fd"', 'stop-color="#1e1b4b"').replace('stop-color="#e0f2fe"', 'stop-color="#312e81"')
+    .replace('fill="#fde047"', 'fill="#e2e8f0"');
+  // Click the sky to switch between day and night (presses near the ground move the basket).
+  const stageScripts = [[whenStageClicked, ifThen(gt(mouseY(), 0), nextBackdrop)]];
 
   const basicProject = (groundY) => {
     const p = new Project();
-    p.addStage([p.costume('orchard', orchard, [240, 180])]);
+    p.addStage([p.costume('day', orchard, [240, 180]), p.costume('night', night, [240, 180])], stageScripts);
     p.addSprite('Basket', [p.costume('open', basket('open'), [60, 40])], [basketKeys], { x: 0, y: -130 });
-    p.addSprite('Apple', [p.costume('good', apple(true), [25, 27])], basicApple(groundY), { x: 0, y: 170 });
+    p.addSprite('Apple', [p.costume('good', apple(true), [25, 27])], basicApple(groundY), { x: 0, y: 170, sounds: sounds(p, 'catch', 'thud') });
     p.showVariable('score', { x: 5, y: 5 });
     p.showVariable('lives', { x: 5, y: 32 });
     return p;
@@ -186,7 +257,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     features: 'mobilenet_v2_100_224',
     classes: ['Good apple', 'Bad apple', 'Nothing'].map((name) => ({ name, samples: [] })),
   };
-  p.addStage([p.costume('orchard', orchard, [240, 180])]);
+  p.addStage([p.costume('day', orchard, [240, 180]), p.costume('night', night, [240, 180])], stageScripts);
   p.addSprite('Basket', [
     p.costume('closed', basket('closed'), [60, 40]),
     p.costume('open', basket('open'), [60, 40]),
@@ -234,10 +305,10 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
       ifThen(touching('Basket'),
         ifElse(eq(v('lid'), 'open'),
           [ifElse(eq(v('apple'), 'good'),
-            [change('score', 1), sayFor('Yum!', 0.5)],
-            [change('lives', -1), sayFor('Yuck! A bad apple got in.', 1)])],
+            [startSound('catch'), change('score', 1), sayFor('Yum!', 0.5)],
+            [startSound('thud'), change('lives', -1), sayFor('Yuck! A bad apple got in.', 1)])],
           [ifElse(eq(v('apple'), 'bad'),
-            [change('score', 1), sayFor('Sorted! Bad apple kept out.', 0.5)],
+            [startSound('catch'), change('score', 1), sayFor('Sorted! Bad apple kept out.', 0.5)],
             [sayFor('Oh no, the lid was shut!', 1)])]),
         change('speed', 0.2),
         ...respawn),
@@ -249,7 +320,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
         sayFor('Game over!', 2),
         stopAll),
     ),
-  ]], { x: 0, y: 170 });
+  ]], { x: 0, y: 170, sounds: sounds(p, 'catch', 'thud') });
   p.showVariable('score', { x: 5, y: 5 });
   p.showVariable('lives', { x: 5, y: 32 });
   p.showVariable('lid', { x: 5, y: 59 });
@@ -268,7 +339,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     kicker: 'Game 2 · Sessions 4–5 · AI Level 2: Customize (flagship)',
     title: 'Catch the Apple, Train Your Own Sorter',
     objective: "I can give an AI examples with labels so it learns to sort things the way I want — and I can test it to see when it works and when it doesn't.",
-    coding: ['variables', 'scoring', 'random positions', 'if', 'coordinates', 'and', 'comparing text'],
+    coding: ['variables', 'scoring', 'random positions', 'if', 'coordinates', 'and', 'comparing text', 'mouse x / y', 'glide', 'sounds', 'backdrops'],
     ai: ['Example', 'Label', 'Train', 'Predict', 'confidence', 'image classifier'],
     extraButtons: '<a class="btn light" href="cards.html" target="_blank" rel="noopener">🖨 Print apple cards</a>',
     materials: [
@@ -284,6 +355,9 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
           'Find <code>set score to 0</code> and <code>set lives to 3</code>: these are <b>variables</b>, the game\'s memory.',
           'Find <code>go to x: (pick random -210 to 210) y: 170</code>: a <b>random position</b>, so every apple starts somewhere new.',
           'Read the <code>if touching Basket</code> and <code>if y position &lt; -150</code> blocks: what happens to score and lives?',
+          'Find <code>start sound catch</code> and <code>start sound thud</code>: games feel alive with sound. Open the <b>Sounds</b> tab to hear them.',
+          'Press near the bottom of the stage: <code>if mouse down and mouse y &lt; -60 then set x to mouse x</code> moves the basket there. On a phone, that is a touch.',
+          'Click the sky: <code>when stage clicked → if mouse y &gt; 0 then next backdrop</code> switches day and night.',
           'Change the numbers: start faster, more lives, a smaller basket. Test after each change.',
         ],
       },
@@ -370,12 +444,26 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
       flag,
       resetTimer,
       set('score', 0),
+      set('misses', 0),
+      set('hurry', 0),
       repeatUntil(gt(timer(), 30),
         set('time left', round(sub(30, timer())))),
       set('time left', 0),
       broadcast("time's up"),
-    ]]);
-    const popped = [change('score', 1), deleteClone];
+    ],
+    // An event that watches the timer by itself: the last 10 seconds are faster.
+    [whenTimerOver(20), set('hurry', 2)],
+    // Clicking the sky instead of a balloon is a miss.
+    [whenStageClicked, change('misses', 1)]]);
+    // Smaller balloons are worth more: 100 / size. Then a pop animation: grow, fade, spin.
+    const popped = [
+      setPitch(random(-40, 40)),
+      startSound('pop'),
+      change('score', round(div(100, size()))),
+      forwardLayers(1),
+      { op: 'control_repeat', inputs: { TIMES: 4 }, substack: [changeSize(12), changeGhost(25), turnLeft(15)] },
+      deleteClone,
+    ];
     const balloonScripts = [
       [
         flag,
@@ -387,13 +475,21 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
       ],
       [
         whenClone,
-        // Every clone gets its own speed ("for this sprite only").
-        set('speed', random(2, 5)),
-        goTo(random(-210, 210), -160),
+        // Every clone gets its own speed ("for this sprite only"), and its own size and colour.
+        set('speed', add(random(2, 5), v('hurry'))),
+        goTo(random(-200, 200), -160),
+        clearGraphicEffects,
+        setSize(random(60, 120)),
         colorEffect(random(0, 200)),
+        // Drift a little to one side; balloons bounce off the side edges.
+        rotationStyle("don't rotate"),
+        pointIn(random(-25, 25)),
         show,
-        repeatUntil(gt(yPosition(), 160),
-          changeY(v('speed')),
+        repeatUntil(gt(yPosition(), 115),
+          moveSteps(v('speed')),
+          bounceOnEdge,
+          // A gentle wobble: turn a tiny bit left or right of where it is going.
+          pointIn(add(direction(), random(-4, 4))),
           ...(withSmile
             ? [ifThen(and(touching('Pin'), gt(face.value('smile'), 50)), ...popped)]
             : [])),
@@ -403,7 +499,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     ];
     if (!withSmile) balloonScripts.push([whenClicked, ...popped]);
     p.addSprite('Balloon', [p.costume('balloon', balloon, [30, 45])], balloonScripts,
-      { x: 0, y: -160, visible: false, variables: localSpeed ? ['speed'] : [] });
+      { x: 0, y: -160, visible: false, variables: localSpeed ? ['speed'] : [], sounds: sounds(p, 'pop') });
     if (withSmile) {
       p.addSprite('Pin', [p.costume('pin', pin, [22, 22])], [[
         flag,
@@ -423,6 +519,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     ], { visible: false });
     p.showVariable('score', { x: 5, y: 5 });
     p.showVariable('time left', { x: 5, y: 32 });
+    p.showVariable('misses', { x: 5, y: 59 });
     return p;
   };
   write(game, 'basic.sb3', project());
@@ -436,7 +533,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     kicker: 'Game 3 · Sessions 6–7 · AI Level 1: Use',
     title: 'Balloon Pop, Smile to Pop',
     objective: 'I can use cloning and timers, and use a real AI model (face detection) to control gameplay hands-free.',
-    coding: ['clones', 'timer', 'scoring', 'repeat until', '"for this sprite only" variables', 'broadcast'],
+    coding: ['clones', 'timer', 'scoring', 'repeat until', '"for this sprite only" variables', 'broadcast', 'size and effects', 'sound pitch', 'move / bounce', 'when timer >', 'when stage clicked'],
     ai: ['face detection', 'facial landmark points', 'threshold'],
     materials: ['Laptop with a webcam', 'Good light on your face (face the window, not your back to it)'],
     sessions: [
@@ -448,6 +545,9 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
           'Find <code>when I start as a clone</code>: every clone runs this script on its own.',
           'Click the <b>speed</b> variable: it is <b>for this sprite only</b>, so each clone has its own speed. Why does that matter?',
           'Find the <b>timer</b> on the Stage and the <code>broadcast time\'s up</code> message: which sprites listen to it?',
+          'Pop animation: <code>repeat 4: change size by 12, change ghost effect by 25, turn left 15</code>. Smaller balloons score more: <code>change score by (100 / size)</code>. Each pop has a random <b>pitch</b>.',
+          'Balloons <code>move</code>, <code>if on edge, bounce</code> and wobble with <code>point in direction (direction + random)</code>.',
+          'Two events that need no green flag: <code>when timer &gt; 20</code> (hurry up!) and <code>when stage clicked</code> (a miss).',
         ],
       },
       {
@@ -508,8 +608,9 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
 <path d="M0 230 Q80 190 160 225 T320 215 T480 225 V360 H0 Z" fill="#fde68a"/>
 <rect y="302" width="480" height="58" fill="#d6a45a"/><rect y="300" width="480" height="5" fill="#92400e"/>
 <g fill="#b45309" opacity=".5"><circle cx="60" cy="330" r="3"/><circle cx="210" cy="340" r="2"/><circle cx="330" cy="325" r="3"/><circle cx="440" cy="345" r="2"/></g></svg>`;
-  const dino = `<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 70 70">
-<path d="M14 44 C8 44 4 38 2 30 C10 36 14 34 18 32 L20 20 C20 10 28 4 40 4 H56 C64 4 68 10 68 16 V24 C68 28 64 30 60 30 H46 V36 L54 38 V42 H46 V48 C46 58 40 62 34 62 V68 H28 V62 H22 V68 H16 V60 C14 56 14 50 14 44 Z" fill="#16a34a" stroke="#14532d" stroke-width="3" stroke-linejoin="round"/>
+  const dinoLegs = (front, back) => `<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 70 70">
+<path d="M14 44 C8 44 4 38 2 30 C10 36 14 34 18 32 L20 20 C20 10 28 4 40 4 H56 C64 4 68 10 68 16 V24 C68 28 64 30 60 30 H46 V36 L54 38 V42 H46 V48 C46 58 40 62 34 62 H16 V60 C14 56 14 50 14 44 Z" fill="#16a34a" stroke="#14532d" stroke-width="3" stroke-linejoin="round"/>
+<path d="M${front} 61 V68 M${back} 61 V68" stroke="#14532d" stroke-width="6" stroke-linecap="round"/>
 <circle cx="48" cy="13" r="4" fill="#ffffff"/><circle cx="49" cy="13" r="2" fill="#111827"/></svg>`;
   const cactus = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="60" viewBox="0 0 36 60">
 <path d="M14 58 V10 C14 2 22 2 22 10 V58 Z M14 34 H8 C4 34 2 30 2 26 V18 C2 14 8 14 8 18 V26 H14 M22 28 H28 V16 C28 12 34 12 34 16 V26 C34 32 30 34 26 34 H22" fill="#15803d" stroke="#14532d" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
@@ -541,7 +642,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
       broadcast('go'),
       forever(
         // Jump only from the ground: that's what the "and" is for.
-        ifThen(onGroundCheck ? and(jumpPressed, onGround) : jumpPressed, set('y speed', 16)),
+        ifThen(onGroundCheck ? and(jumpPressed, onGround) : jumpPressed, set('y speed', 16), startSound('jump')),
         // Gravity: pull the speed down a little every frame, then move by it.
         change('y speed', -1.2),
         changeY(v('y speed')),
@@ -551,7 +652,14 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     if (withPose) {
       dinoScripts.push([whenKey('c'), sayFor('Stand still…', 1.5), set('standing', pose.point('y', 'nose')), sayFor('Ready!', 0.5)]);
     }
-    p.addSprite('Dino', [p.costume('dino', dino, [35, 35])], dinoScripts, { x: -160, y: GROUND, rotationStyle: "don't rotate" });
+    // Running: swap between costume 1 and 2 while on the ground ((costume # mod 2) + 1).
+    dinoScripts.push([
+      whenReceive('go'),
+      clearSoundEffects,
+      forever(ifThen(eq(yPosition(), GROUND), { op: 'looks_switchcostumeto', inputs: { COSTUME: { reporter: add(op('operator_mod', { NUM1: costumeNumber(), NUM2: 2 }), 1), shadow: { menu: 'looks_costume', field: 'COSTUME', value: 'run 1' } } } }), wait(0.12)),
+    ]);
+    p.addSprite('Dino', [p.costume('run 1', dinoLegs(25, 33), [35, 35]), p.costume('run 2', dinoLegs(20, 38), [35, 35])], dinoScripts,
+      { x: -160, y: GROUND, rotationStyle: "don't rotate", sounds: sounds(p, 'jump') });
     p.addSprite('Cactus', [p.costume('cactus', cactus, [18, 30])], [[flag, goTo(230, GROUND), set('score', 0), set('speed', 6)], [
       // The cactus starts when the dino is ready (in the AI version, after calibrating).
       whenReceive('go'),
@@ -560,10 +668,13 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
         // Slide left until off the left side (Scratch keeps sprites on stage, so -225, not -260).
         repeatUntil(lt(xPosition(), -225),
           changeX(sub(0, v('speed'))),
-          ifThen(touching('Dino'), sayFor('Ouch! Game over', 2), stopAll)),
+          ifThen(touching('Dino'), playUntilDone('crash'), sayFor('Ouch! Game over', 2), stopAll)),
         change('score', 1),
-        change('speed', 0.4)),
-    ]], { x: 230, y: GROUND });
+        change('speed', 0.4),
+        // Each cactus passed makes the jump sound a little higher.
+        broadcast('higher')),
+    ]], { x: 230, y: GROUND, sounds: sounds(p, 'crash') });
+    p.targets.find((t) => t.name === 'Dino').scripts.push([whenReceive('higher'), changePitch(5)]);
     p.showVariable('score', { x: 5, y: 5 });
     return p;
   };
@@ -577,7 +688,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     kicker: 'Game 4 · Sessions 8–9 · AI Level 1: Use',
     title: 'Dino Jump, Jump When You Jump',
     objective: 'I can use gravity and conditions, and use pose detection to control my character with my own body.',
-    coding: ['gravity (a speed variable)', 'if', 'and / or', 'repeat until', 'coordinates'],
+    coding: ['gravity (a speed variable)', 'if', 'and / or', 'repeat until', 'coordinates', 'costume number', 'sound effects'],
     ai: ['pose detection', 'key points on the body', 'calibration'],
     materials: ['Laptop with a webcam', 'Clear, safe space to jump; the whole upper body in the camera'],
     sessions: [
@@ -589,6 +700,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
           'Find <code>if &lt;key space pressed&gt; and &lt;y position = -95&gt;</code>: why do we need the <b>and</b>?',
           'Find <code>repeat until x position &lt; -225</code> in the Cactus: a loop that stops by itself.',
           'Change the jump (16) and gravity (-1.2): make it a moon jump, then a heavy jump.',
+          'The dino runs by switching costume: <code>switch costume to ((costume #) mod 2) + 1</code> gives 1, 2, 1, 2… Every cactus passed sends <code>higher</code>, and the dino <code>changes the pitch effect by 5</code>: listen to the jump sound.',
         ],
       },
       {
@@ -685,7 +797,8 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
         forever(
           ifThen(keyPressed('right arrow'), changeX(8)),
           ifThen(keyPressed('left arrow'), changeX(-8)),
-          ifThen(lt(v('lives'), 1), broadcast('game over'))),
+          // Game over: tell everyone once, then stop steering.
+          ifThen(lt(v('lives'), 1), broadcast('game over'), { op: 'control_stop', fields: { STOP_OPTION: 'this script' }, mutation: { tagName: 'mutation', children: [], hasnext: 'false' } })),
       ],
       [whenKey('space'), withAI
         ? ifElse(eq(v('mode'), 'Foe'), [fire], [sayFor('Weapons locked: show me a foe!', 0.8)])
@@ -715,11 +828,11 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     p.addSprite('Ship', [p.costume('ship', player, [30, 30])], shipScripts, { x: 0, y: -140, rotationStyle: "don't rotate" });
     p.addSprite('Bullet', [p.costume('bullet', bullet, [4, 10])], [
       [flag, hide],
-      [whenClone, goToSprite('Ship'), show,
+      [whenClone, goToSprite('Ship'), show, startSound('laser'),
         repeatUntil(or(gt(yPosition(), 165), touching('Visitor')), changeY(12)),
         wait(0.05), // stay a moment, so the visitor it hit notices
         deleteClone],
-    ], { visible: false });
+    ], { visible: false, sounds: sounds(p, 'laser') });
     const docked = withAI
       ? ifElse(eq(v('mode'), 'Friend'), [change('score', 2)], [sayFor('Let me dock! Show me a friend card.', 0.5)])
       : change('score', 2);
@@ -731,10 +844,17 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
         ifElse(eq(random(1, 3), 1), [set('kind', 'friend')], [set('kind', 'foe')]),
         costumeFrom('kind', 'foe'),
         goTo(random(-200, 200), 165),
+        rotationStyle("don't rotate"),
+        pointIn(180),
         show,
         repeatUntil(lt(yPosition(), -160),
-          changeY(-2.5),
+          // Foes close to the ship turn towards it; friends fly in a gentle curve.
+          ifElse(eq(v('kind'), 'foe'),
+            [ifThen(lt(distanceTo('Ship'), 150), pointTowards('Ship'))],
+            [ifThen(lt(direction(), 200), { op: 'motion_turnright', inputs: { DEGREES: 0.5 } })]),
+          moveSteps(2.5),
           ifThen(touching('Bullet'),
+            startSound('boom'),
             ifElse(eq(v('kind'), 'foe'), [change('score', 1)], [change('lives', -1)]),
             deleteClone),
           ifThen(touching('Ship'),
@@ -743,14 +863,28 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
         deleteClone,
       ],
       [whenReceive('game over'), deleteClone],
-    ], { visible: false, variables: ['kind'] });
+    ], { visible: false, variables: ['kind'], sounds: sounds(p, 'boom') });
     p.addSprite('Sign', [p.costume('game over', gameOverSign, [150, 45])], [
-      [flag, hide],
-      [whenReceive(gameOverMessage), front, show, stopAll],
+      [flag, hide, hideList('high scores')],
+      [
+        whenReceive(gameOverMessage),
+        front,
+        show,
+        // The last five scores, newest first: insert at 1, keep at most 5.
+        insertAt('high scores', v('score'), 1),
+        ifThen(gt(op('data_lengthoflist', {}, { LIST: 'high scores' }), 5), deleteOf('high scores', 6)),
+        showList('high scores'),
+        broadcastAndWait('explode'),
+        stopAll,
+      ],
     ], { visible: false });
+    // The ship explodes, and the game waits for it to finish (broadcast and wait).
+    p.targets.find((t) => t.name === 'Ship').scripts.push([whenReceive('explode'), playUntilDone('boom')]);
+    p.targets.find((t) => t.name === 'Ship').sounds = sounds(p, 'boom');
     p.showVariable('score', { x: 5, y: 5 });
     p.showVariable('lives', { x: 5, y: 32 });
     if (withAI) p.showVariable('mode', { x: 5, y: 59 });
+    p.showList('high scores', { x: 360, y: 5, width: 110, height: 150 });
     return p;
   };
   write(game, 'basic.sb3', project());
@@ -769,7 +903,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     kicker: 'Game 5 · Sessions 10–11 · AI Level 2: Customize (flagship #2)',
     title: 'Space Shooter, Friend or Foe',
     objective: 'I can customize an AI model to sort friend vs. foe ships — a harder version of what I did in Game 2.',
-    coding: ['multiple sprites', 'bullets (clones)', 'lives', 'broadcast', '"for this sprite only" variables', 'if / else chains'],
+    coding: ['multiple sprites', 'bullets (clones)', 'lives', 'broadcast (and wait)', '"for this sprite only" variables', 'if / else chains', 'point towards / distance to', 'direction', 'lists (insert, delete, show)', 'sounds'],
     ai: ['multi-class classifier', 'Example', 'Label', 'Train', 'Predict', 'confidence'],
     extraButtons: '<a class="btn light" href="cards.html" target="_blank" rel="noopener">🖨 Print ship cards</a>',
     materials: ['Laptop with a webcam', 'Printed Friend / Foe cards (button above), including the mystery ship', 'AI Vocabulary Card — reinforce, don\'t reteach'],
@@ -782,6 +916,8 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
           'Find <code>broadcast game over</code>: the Ship sends a message; Visitor and Sign <b>receive</b> it.',
           'Each Visitor clone has its own <code>kind</code> (for this sprite only) — friend or foe.',
           'Read the Visitor\'s <code>if / else</code> blocks: what happens for each kind when hit by a bullet, and when reaching the ship?',
+          'Foes chase you: <code>if distance to Ship &lt; 150 then point towards Ship</code>, then <code>move 2.5 steps</code>. Friends curve: <code>if direction &lt; 200 then turn right 0.5 degrees</code>.',
+          'Game over: the Sign <code>inserts score at 1 of high scores</code>, deletes item 6 if there are more than 5, and <code>broadcasts explode and waits</code> until the ship\'s explosion sound is done.',
         ],
       },
       {
@@ -808,7 +944,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
       ['The AI knows which ships are enemies.', 'It only knows what we labelled. Swap the labels and it would fire at friends.'],
     ],
     bug: {
-      symptom: 'In <b>Fix the bug</b>, when lives reach 0 the game never ends: no “Game over” sign, and new ships keep vanishing.',
+      symptom: 'In <b>Fix the bug</b>, when lives reach 0 the game never ends: no “Game over” sign and no high score, the ship stops moving, and new ships keep coming.',
       hints: ['Who sends the game-over message, and who is waiting for it?', 'Compare the message names character by character.'],
       answer: 'The Ship broadcasts <code>game over</code> but the Sign waits for <code>gameover</code> (no space) — a different message, so the Sign never hears it. Pick <code>game over</code> in the Sign\'s <code>when I receive</code> block.',
     },
@@ -904,11 +1040,18 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
         ifThen(keyPressed('down arrow'), change('speed', -0.2)),
         ifThen(gt(v('speed'), 14), set('speed', 14)),
         ifThen(lt(v('speed'), 2), set('speed', 2)),
-        // Stay on the road.
-        ifThen(gt(xPosition(), 150), setX(150)),
-        ifThen(lt(xPosition(), -150), setX(-150)),
+        // Stay on the road; tyres on the white edge line slow you down.
+        ifThen(gt(xPosition(), 160), setX(160)),
+        ifThen(lt(xPosition(), -160), setX(-160)),
+        ifThen(colourTouchingColour('#111827', '#f8fafc'), set('speed', 2)),
         ifThen(lt(v('lives'), 1), sayFor('Crash! Game over', 2), stopAll)),
-    ]], { x: 0, y: -120, rotationStyle: "don't rotate" });
+    ], [
+      // The engine: its pitch follows the speed (speed x 10).
+      whenReceive('go'),
+      clearSoundEffects,
+      setVolume(40),
+      forever(setPitch(mul(v('speed'), 10)), playUntilDone('engine')),
+    ]], { x: 0, y: -120, rotationStyle: "don't rotate", sounds: sounds(p, 'engine', 'crash') });
     p.addSprite('Traffic', [p.costume('blue', car('#3b82f6', '#1e3a8a'), [22, 38]), p.costume('yellow', car('#facc15', '#854d0e'), [22, 38])], [
       [flag, hide],
       // Traffic starts when the car is ready (in the AI version, once it can see you).
@@ -921,11 +1064,14 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
         // Traffic drives more slowly than you, so it comes towards you at (your speed - 2).
         repeatUntil(lt(yPosition(), -165),
           changeY(sub(2, v('speed'))),
-          ifThen(touching('Car'), change('lives', -1), deleteClone)),
+          // Traffic drifts slowly towards your car's x position.
+          ifElse(gt(propertyOf('x position', 'Car'), xPosition()), [changeX(0.4)], [changeX(-0.4)]),
+          ifThen(touching('Car'), broadcast('crash'), change('lives', -1), deleteClone)),
         change('score', 1),
         deleteClone,
       ],
     ], { visible: false });
+    p.targets.find((t) => t.name === 'Car').scripts.push([whenReceive('crash'), startSound('crash')]);
     p.showVariable('score', { x: 5, y: 5 });
     p.showVariable('lives', { x: 5, y: 32 });
     p.showVariable('speed', { x: 5, y: 59 });
@@ -942,7 +1088,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     kicker: 'Game 6 · Sessions 12–13 · AI Level 1: Use (reused, continuous)',
     title: 'Car Racing, Lean to Steer',
     objective: 'I can use scrolling backgrounds and speed control, and reuse pose detection continuously instead of as a single trigger.',
-    coding: ['scrolling', 'speed control', 'clones', 'mod', 'abs', 'limits (keep between 2 and 14)', 'broadcast', 'maths with sensor values'],
+    coding: ['scrolling', 'speed control', 'clones', 'mod', 'abs', 'limits (keep between 2 and 14)', 'broadcast', 'maths with sensor values', 'colour touching colour', 'x position of another sprite', 'sound pitch and volume'],
     ai: ['pose detection (reused from Dino Jump)', 'continuous tracking vs. single trigger'],
     materials: ['Laptop with a webcam', 'Sit or stand with both shoulders in view'],
     sessions: [
@@ -953,6 +1099,8 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
           'The road doesn\'t move — the yellow <b>lane lines</b> do. The Car adds <code>speed</code> to <code>distance</code> every frame, and each line sets <code>y to ((start − distance) mod 360) − 180</code>. <b>mod</b> is the remainder after dividing, so it counts 0…359 and starts again: lines leaving the bottom come back at the top. That is <b>scrolling</b>.',
           'Find the <b>speed</b> limits: <code>if speed &gt; 14 then set speed to 14</code>. Why do games need limits?',
           'Traffic moves by <code>2 - speed</code>: when you go faster, they come at you faster. Try it.',
+          'Traffic drifts towards you: it compares <code>x position of Car</code> with its own x. Tyres on the white edge line: <code>if colour (black) is touching (white)</code> → slow down.',
+          'The engine sound: <code>set pitch effect to (speed × 10)</code>, then <code>play sound engine until done</code>, forever. Speed up and listen.',
         ],
       },
       {
@@ -1036,6 +1184,7 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
       { op: 'looks_nextcostume' });
     p.addSprite('Runner', [p.costume('step 1', runner(true), [15, 18]), p.costume('step 2', runner(false), [15, 18])], [[
       flag,
+      rotationStyle('left-right'),
       goTo(-190, -130),
       { op: 'motion_pointindirection', inputs: { DIRECTION: 90 } },
       resetTimer,
@@ -1045,8 +1194,12 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
         step('up arrow', changeY(4), changeY(-4)),
         step('down arrow', changeY(-4), changeY(4)),
         ifThen(touching('Goal'),
-          ...(withVoice ? [{ op: 'blockmlVoice_speak', inputs: { TEXT: join2('You made it in ', join2(round(timer()), ' seconds!')) } }] : []),
-          sayFor(join2('You made it in ', join2(round(timer()), ' seconds!')), 3),
+          set('time', round(timer())),
+          // Wait until the star has flown to the runner, then celebrate.
+          broadcastAndWait('win'),
+          startSound('win'),
+          ...(withVoice ? [{ op: 'blockmlVoice_speak', inputs: { TEXT: join2('You made it in ', join2(v('time'), ' seconds!')) } }] : []),
+          sayFor(join2('You made it in ', join2(v('time'), ' seconds!')), 3),
           stopAll)),
     ], ...(withVoice ? [[
       flag,
@@ -1060,14 +1213,16 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
       forever(
         // The AI tells us what it heard; we decide what it means.
         ...['up', 'down', 'left', 'right', 'stop'].map((w) => ifThen(bool('blockmlVoice_heardWord', { WORD: w }), set('command', w))),
-        { op: 'blockmlVoice_clearHeard' }),
-    ]] : [])], { x: -190, y: -130, rotationStyle: 'left-right' });
+        { op: 'blockmlVoice_clearHeard' },
+        // Noise makes speech AI guess wrong: warn when the room is loud.
+        ifThen(gt(loudness(), 70), sayFor('It is noisy! Speak clearly, close to the microphone.', 1.5))),
+    ]] : [])], { x: -190, y: -130, rotationStyle: 'left-right', sounds: sounds(p, 'win') });
     p.addSprite('Goal', [p.costume('star', star, [20, 20])], [[
       flag,
       goTo(180, 130),
       // A loop that never ends: the star keeps spinning, and the clock keeps counting.
       forever({ op: 'motion_turnright', inputs: { DEGREES: 5 } }, set('time', round(timer()))),
-    ]], { x: 180, y: 130 });
+    ], [whenReceive('win'), glideTo(0.5, 'Runner')]], { x: 180, y: 130 });
     p.showVariable('time', { x: 380, y: 5 });
     if (withVoice) p.showVariable('command', { x: 5, y: 5 });
     return p;
@@ -1082,7 +1237,7 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
     kicker: 'Game 1 · Sessions 2–3 · AI Level 1: Use',
     title: 'Maze Runner, Voice-Controlled',
     objective: 'I can use motion and collision detection, and use a real AI model (speech-to-text) to control my game.',
-    coding: ['sprites', 'costumes', 'events', 'forever loop', 'motion', 'coordinates', 'collision (touching colour)', 'timer', 'or'],
+    coding: ['sprites', 'costumes', 'events', 'forever loop', 'motion', 'coordinates', 'collision (touching colour)', 'timer', 'or', 'rotation style', 'glide to a sprite', 'broadcast and wait', 'sound'],
     ai: ['speech-to-text', 'a word list (grammar)', 'text-to-speech'],
     materials: ['Laptop with a microphone (the built-in one is fine)', 'A quiet-ish room — then a noisy one, for the fail-test'],
     sessions: [
@@ -1095,6 +1250,8 @@ ${legs ? '<path d="M12 26 L7 34 M18 26 L23 34" stroke="#7c2d12" stroke-width="3"
           '<b>Loops</b>: <code>forever</code> keeps checking the keys; the star\'s forever loop spins it.',
           '<b>Coordinates</b>: the runner starts at <code>x: -190 y: -130</code>. Move the mouse over the stage: where is (0, 0)?',
           '<b>Collision</b>: <code>if touching colour (blue)</code> → step back. Why do we step back the same amount we moved?',
+          '<code>set rotation style left-right</code>: the runner faces left or right but never walks upside down. Try <i>all around</i>.',
+          'At the star: <code>broadcast win and wait</code> → the star <code>glides 0.5 secs to Runner</code>; only then does the runner play the win sound and say the time.',
         ],
       },
       {
@@ -1182,10 +1339,21 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
   const ROLE = 'You are Owl, a wise and friendly guide in a platform game. Facts about the game: the player walks with the left and right arrows ' +
     'and jumps with the up arrow. Red lava sends the player back to the start and costs a life; there are 3 lives. There are 2 levels. ' +
     'Reaching the yellow star on level 1 goes to level 2; reaching the star on level 2 wins the game. Answer in one or two short sentences.';
+  const winScreen = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<rect width="480" height="360" fill="#0b3d6d"/><text x="240" y="170" font-family="Arial, sans-serif" font-size="56" font-weight="bold" text-anchor="middle" fill="#ffcc00">You win!</text>
+<text x="240" y="220" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" fill="#ffffff">Press the green flag to play again</text></svg>`;
   const project = ({ startAfterNextLevel = true, withChat = false } = {}) => {
     const p = new Project();
     if (withChat) p.useExtension('blockmlChat', BASE + 'chat.js');
-    p.addStage([p.costume('level 1', level1, [240, 180]), p.costume('level 2', level2, [240, 180])]);
+    p.addStage([p.costume('level 1', level1, [240, 180]), p.costume('level 2', level2, [240, 180]), p.costume('you win', winScreen, [240, 180])], [
+      // Background music, round and round.
+      [flag, stopAllSounds, setVolume(40), forever(playUntilDone('music'))],
+      // M mutes and unmutes: the volume itself tells us which.
+      [whenKey('m'), ifElse(gt(volume(), 0), [setVolume(0)], [setVolume(40)])],
+      // The win screen: the music fades out, then the stage switches and waits for every
+      // "when backdrop switches to you win" script to finish.
+      [whenReceive('you win'), { op: 'control_repeat', inputs: { TIMES: 8 }, substack: [changeVolume(-5), wait(0.1)] }, stopAllSounds, switchBackdropAndWait('you win')],
+    ], { sounds: sounds(p, 'music') });
     p.addSprite('Hero', [p.costume('hero', hero, [12, 16])], [
       [{ op: 'procedures_definition', proccode: 'start level' },
         goTo(-200, 0),
@@ -1202,9 +1370,11 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
         changeY(2)],
       [
         flag,
+        show,
         set('lives', 3),
         backdrop('level 1'),
         call('start level'),
+        showVariable('lives'),
         forever(
           ifThen(keyPressed('right arrow'), call('walk %s', { steps: 5 })),
           ifThen(keyPressed('left arrow'), call('walk %s', { steps: -5 })),
@@ -1222,19 +1392,26 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
             call('start level')),
           ifThen(touching('Star'),
             ifElse(eq(backdropNumber(), 2),
-              [sayFor('You win!', 3), stopAll],
-              [backdrop('next backdrop'), ...(startAfterNextLevel ? [call('start level')] : [])])),
+              [hide, hideVariable('lives'), broadcastAndWait('you win'), stopAll],
+              [nextBackdrop, ...(startAfterNextLevel ? [call('start level')] : [])])),
           ifThen(lt(v('lives'), 1), sayFor('Game over', 2), stopAll)),
       ],
     ], { x: -200, y: 0, rotationStyle: "don't rotate" });
     p.addSprite('Star', [p.costume('star', star, [18, 18])], [
-      // Each level puts the star somewhere else.
-      [whenReceive('level started'),
-        ifElse(eq(backdropNumber(), 1), [goTo(195, 25)], [goTo(195, 55)])],
+      // Each level puts the star somewhere else: events for each backdrop.
+      [whenBackdropIs('level 1'), show, goTo(195, 25)],
+      [whenBackdropIs('level 2'), goTo(195, 55)],
+      [whenBackdropIs('you win'), hide],
     ], { x: 195, y: 25 });
+    // The owl can be dragged out of the way, even in full screen; it cheers on the win screen.
+    const owlCommon = [
+      [whenBackdropIs('you win'), goTo(0, -60), sayFor('You did it! Well played!', 2)],
+      [whenReceive('level started'), sayFor(join2('Level ', backdropNumber()), 1)],
+    ];
     const chatGuide = [
       [
         flag,
+        dragMode('draggable'),
         goTo(-190, 120),
         // The chat AI's "role": everything it knows about OUR game is in this sentence.
         { op: 'blockmlChat_setRole', inputs: { ROLE } },
@@ -1246,19 +1423,22 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
         whenClicked,
         say(''),
         { op: 'sensing_askandwait', inputs: { QUESTION: 'What do you want to know?' } },
-        say('Hmm…'),
+        think('Hmm…'),
         { op: 'blockmlChat_ask', inputs: { QUESTION: op('sensing_answer') } },
         sayFor(op('blockmlChat_answer'), 6),
       ],
+      ...owlCommon,
     ];
     p.addSprite('Guide', [p.costume('owl', owl, [28, 30])], withChat ? chatGuide : [
-      [flag, goTo(-190, 120), say('Click me to ask a question!')],
+      ...owlCommon,
+      [flag, dragMode('draggable'), goTo(-190, 120), say('Click me to ask a question!')],
       // A rule-based guide: it only knows the words we taught it.
       [
         whenClicked,
         say(''),
         { op: 'sensing_askandwait', inputs: { QUESTION: 'What do you want to know?' } },
         set('question', op('sensing_answer')),
+        thinkFor('Let me think…', 1),
         ifElse(bool('operator_contains', { STRING1: v('question'), STRING2: 'jump' }),
           [sayFor('Press the up arrow to jump.', 3)],
           [ifElse(bool('operator_contains', { STRING1: v('question'), STRING2: 'lava' }),
@@ -1281,7 +1461,7 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
     kicker: 'Game 7 · Sessions 14–15 · AI Level 1: Use + reliability lesson',
     title: 'Platform Adventure, Ask the Guide',
     objective: 'I can design levels with advanced collision, and I understand that an AI can confidently give a wrong answer — and know what to do when that happens.',
-    coding: ['My Blocks (functions)', 'inputs (parameters)', 'advanced collision', 'level design (backdrops)', 'broadcast', 'ask & answer', 'if / else chains'],
+    coding: ['My Blocks (functions)', 'inputs (parameters)', 'advanced collision', 'level design (backdrops)', 'broadcast (and wait)', 'ask & answer', 'if / else chains', 'when backdrop switches to', 'music and volume', 'show / hide variable', 'think', 'drag mode'],
     ai: ['chat AI guesses likely answers', 'rule-based vs. AI', 'a role (system prompt)', 'safety checks'],
     materials: ['Laptop with Chrome or Edge (the chat AI needs WebGPU)', 'Two prepared questions for the wrong-answer moment'],
     sessions: [
@@ -1291,7 +1471,9 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
           'Open <b>Basic game</b>: ←/→ walk, ↑ jumps. Reach the star; avoid the red lava. Level 2 is harder.',
           '<b>My Blocks</b>: find <code>define start level</code>, <code>define jump</code> and <code>define walk (steps)</code>. A My Block is a name for a group of blocks you use again and again. <code>walk (5)</code> and <code>walk (-5)</code> reuse the same blocks with a different <b>input</b>.',
           '<b>Advanced collision</b>: after falling into a platform, <code>repeat until not touching green: change y by 1</code> lifts the hero out, pixel by pixel, until it stands on top.',
-          '<b>Level design</b>: levels are backdrops. Paint a level 3 (keep the exact green and red!) and add it to <code>start level</code> and the Star\'s script.',
+          '<b>Level design</b>: levels are backdrops. <code>next backdrop</code> moves to the next level, and the Star has a script for each level: <code>when backdrop switches to level 2</code>. Paint a level 3 (keep the exact green and red!) and give the Star a script for it.',
+          'Winning: the Hero hides, hides the <code>lives</code> variable and <code>broadcasts you win and waits</code>. The Stage fades the music (<code>change volume by -5</code>) and <code>switches backdrop to you win and waits</code> until the owl has cheered.',
+          'Press <b>M</b>: <code>if volume &gt; 0 then set volume to 0 else set volume to 40</code> mutes and unmutes the music.',
         ],
       },
       {
@@ -1324,8 +1506,8 @@ ${platforms.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="
     ],
     bug: {
       symptom: 'In <b>Fix the bug</b>, when you reach the star, level 2 flashes and you win at once.',
-      hints: ['What happens right after <code>switch backdrop to next backdrop</code>?', 'Where is the hero when level 2 begins?'],
-      answer: 'After switching to level 2, the hero is still touching the star, so on the next frame it wins. <code>start level</code> must be called after <code>switch backdrop to next backdrop</code> to send the hero back to the start.',
+      hints: ['What happens right after <code>next backdrop</code>?', 'Where is the hero when level 2 begins?'],
+      answer: 'After switching to level 2, the hero is still at the star\'s old place, and the star moves to its level-2 place right next to it, so the hero touches it and wins. <code>start level</code> must be called after <code>next backdrop</code> to send the hero back to the start.',
     },
     challenges: [
       'Add a level 3 with a moving platform (a sprite that glides back and forth).',
@@ -1384,6 +1566,35 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
     ] },
   ];
 
+  // Hello! Good morning / afternoon / evening, with the user's name if Scratch knows it.
+  const greeting = [
+    ifElse(lt(current('HOUR'), 12), [set('hello', 'Good morning')], [ifElse(lt(current('HOUR'), 17), [set('hello', 'Good afternoon')], [set('hello', 'Good evening')])]),
+    ifElse(eq(username(), ''), [set('name', 'friend')], [set('name', username())]),
+    sayFor(join2(v('hello'), join2(', ', join2(v('name'), '!'))), 2),
+    sayFor(join2('Fun fact: it is day ', join2(round(daysSince2000()), ' since 1 January 2000.')), 2),
+  ];
+  // The last letter tells us about the mood: "!" means excited.
+  const excited = ifThen(eq(letterOf(op('operator_length', { STRING: v('message') }), v('message')), '!'), sayFor('…and you sound excited!', 1.5));
+  // Teacher commands: change the word list while the game runs.
+  const addWord = [
+    { op: 'sensing_askandwait', inputs: { QUESTION: 'Which unkind word should I add?' } },
+    ifElse(listContains('unkind words', op('sensing_answer')),
+      [sayFor('I already have that word.', 2)],
+      [insertAt('unkind words', op('sensing_answer'), 1), insertAt('times found', 0, 1), sayFor(join2('Added: ', op('sensing_answer')), 2)]),
+  ];
+  const removeWord = [
+    { op: 'sensing_askandwait', inputs: { QUESTION: 'Which word should I remove?' } },
+    ifElse(listContains('unkind words', op('sensing_answer')),
+      [
+        set('n', itemNumberOf('unkind words', op('sensing_answer'))),
+        deleteOf('unkind words', v('n')),
+        deleteOf('times found', v('n')),
+        sayFor(join2('Removed: ', op('sensing_answer')), 2),
+      ],
+      [sayFor('That word is not on my list.', 2)]),
+  ];
+  const stats = [showList('times found'), sayFor('How often each unkind word was found, in the same order as my list.', 4), hideList('times found')];
+
   // startAt: the first list position to check (1 is right; the bug starts at 0 and misses the last word).
   const project = ({ startAt = 1 } = {}) => {
     const p = new Project();
@@ -1396,21 +1607,37 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
       ...UNKIND.map((w) => ({ op: 'data_addtolist', inputs: { ITEM: w }, fields: { LIST: 'unkind words' } })),
       { op: 'data_deletealloflist', fields: { LIST: 'kind words' } },
       ...KIND.map((w) => ({ op: 'data_addtolist', inputs: { ITEM: w }, fields: { LIST: 'kind words' } })),
+      // How often each unkind word was found: one number for each word, same order.
+      { op: 'data_deletealloflist', fields: { LIST: 'times found' } },
+      { op: 'control_repeat', inputs: { TIMES: op('data_lengthoflist', {}, { LIST: 'unkind words' }) }, substack: [addTo('times found', 0)] },
+      hideList('times found'),
+      ...greeting,
       forever(
-        { op: 'sensing_askandwait', inputs: { QUESTION: 'Type a message, and I will check if it is kind:' } },
+        { op: 'sensing_askandwait', inputs: { QUESTION: 'Type a message to check (or: add, remove, stats):' } },
         set('message', op('sensing_answer')),
-        ...search('unkind words', 'unkind word', startAt),
-        ifElse(bool('operator_not', { OPERAND: eq(v('unkind word'), '') }),
-          [costume('worried'), sayFor(join2('That might hurt someone. I found: ', v('unkind word')), 3)],
-          [
-            ...search('kind words', 'kind word', startAt),
-            ifElse(bool('operator_not', { OPERAND: eq(v('kind word'), '') }),
-              [costume('happy'), change('kindness points', 1), sayFor(join2("That's kind! I found: ", v('kind word')), 3)],
-              [costume('neutral'), sayFor(join2('Looks OK to me. It has ', join2(op('operator_length', { STRING: v('message') }), ' letters.')), 3)]),
-          ]),
+        ifElse(eq(v('message'), 'add'), addWord, [ifElse(eq(v('message'), 'remove'), removeWord, [ifElse(eq(v('message'), 'stats'), stats, [
+          ...search('unkind words', 'unkind word', startAt),
+          ifElse(bool('operator_not', { OPERAND: eq(v('unkind word'), '') }),
+            [
+              costume('worried'),
+              startSound('uhoh'),
+              // Count it: replace this word's number with one more.
+              set('n', itemNumberOf('unkind words', v('unkind word'))),
+              replaceItem('times found', v('n'), add(item('times found', v('n')), 1)),
+              sayFor(join2('That might hurt someone. I found: ', v('unkind word')), 3),
+            ],
+            [
+              ...search('kind words', 'kind word', startAt),
+              ifElse(bool('operator_not', { OPERAND: eq(v('kind word'), '') }),
+                [costume('happy'), startSound('chime'), change('kindness points', 1), sayFor(join2("That's kind! I found: ", v('kind word')), 3)],
+                [costume('neutral'), sayFor(join2('Looks OK to me. It has ', join2(op('operator_length', { STRING: v('message') }), ' letters.')), 3)]),
+            ]),
+          excited,
+        ])])]),
       ),
-    ]], { x: 0, y: -30 });
+    ]], { x: 0, y: -30, sounds: sounds(p, 'chime', 'uhoh') });
     p.showList('unkind words', { x: 5, y: 60, width: 110, height: 200 });
+    p.showList('times found', { x: 120, y: 60, width: 80, height: 200 });
     p.showVariable('kindness points', { x: 5, y: 5 });
     return p;
   };
@@ -1440,8 +1667,8 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
         // 1. The AI gives a number; our limit decides.
         set('AI score', text.unkindScore(v('message'))),
         ifElse(aiWorried(),
-          [costume('worried'), sayFor(join2('The AI thinks that might hurt someone. Unkind score: ', v('AI score')), 3)],
-          [costume('happy'), sayFor(join2('The AI thinks that is fine. Unkind score: ', v('AI score')), 3)]),
+          [costume('worried'), startSound('uhoh'), sayFor(join2('The AI thinks that might hurt someone. Unkind score: ', v('AI score')), 3)],
+          [costume('happy'), startSound('chime'), sayFor(join2('The AI thinks that is fine. Unkind score: ', v('AI score')), 3)]),
         // 2. The word list from the basic game.
         ...search('unkind words', 'unkind word', 1),
         // 3. Do they agree? Keep the messages they disagree on.
@@ -1450,7 +1677,7 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
         ifThen(and(not(aiWorried()), listFound()),
           sayFor(join2(join2('But my word list found: ', v('unkind word')), '. Who is right?'), 3), remember),
       ),
-    ]], { x: -130, y: -30 });
+    ]], { x: -130, y: -30, sounds: sounds(p, 'chime', 'uhoh') });
     p.showVariable('AI score', { x: 5, y: 5 });
     p.showVariable('limit', { x: 5, y: 32 });
     p.showList('they disagreed', { x: 300, y: 62, width: 175, height: 200 });
@@ -1476,7 +1703,7 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
     kicker: 'Game 8 · Sessions 16–17 · AI Level 1: Use + reflect',
     title: 'Kindness Checker',
     objective: 'I can use string handling and conditionals, and test an AI moderation tool to understand fairness and responsible use.',
-    coding: ['ask & answer', 'strings: contains, join, length', 'lists', 'loop with a counter', 'if / else', 'and / not'],
+    coding: ['ask & answer', 'strings: contains, join, length, letter of', 'lists: add, insert, delete, replace, item #, contains, show / hide', 'loop with a counter', 'if / else', 'and / not', 'current hour, username, days since 2000', 'sounds'],
     ai: ['moderation AI (the kindness check)', 'a score and a limit', 'false alarms and misses', 'fairness: an AI learns what its examples show'],
     extraButtons: '<a class="btn light" href="phrases.html" target="_blank" rel="noopener">🖨 Print test phrases</a>',
     materials: ['Laptop', 'Printed test phrases (button above), including tricky ones'],
@@ -1488,7 +1715,9 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
           '<b>Lists</b>: find the <i>unkind words</i> list on the stage and the <code>add … to unkind words</code> blocks.',
           '<b>Loop with a counter</b>: <code>set i to 1</code>, then <code>repeat (length of unkind words)</code>: check <code>item i</code>, then <code>change i by 1</code>. That visits every word in the list, one by one.',
           '<b>Strings</b>: <code>message contains (item i of unkind words)</code> looks for the word anywhere in the message. <code>join</code> builds the robot\'s reply; <code>length of</code> counts the letters.',
-          'Add two words to each list and test them.',
+          'Add two words to each list and test them. Or type <b>add</b> or <b>remove</b> while it runs: <code>if unkind words contains (answer)</code>, <code>insert (answer) at 1</code>, <code>delete (item # of answer) of unkind words</code>.',
+          'Type <b>stats</b>: the <i>times found</i> list shows how often each word was caught. When a word is found, <code>replace item n of times found with (item n + 1)</code>.',
+          'The greeting uses <code>current hour</code> (morning, afternoon or evening), <code>username</code> (BlockML Studio makes up a name like player1234; in Scratch it is empty when nobody is signed in, so we say “friend”) and <code>days since 2000</code>. End a message with “!”: <code>letter (length of message) of message</code> is the last letter.',
           'Print the <b>test phrases</b> and type each one. Fill in the “Word list says” column. Can more words fix the mistakes? Try, and discuss why a list of words can never be enough.',
         ],
       },

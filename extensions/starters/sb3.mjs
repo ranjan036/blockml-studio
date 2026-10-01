@@ -13,7 +13,7 @@ import { zipSync, strToU8 } from 'fflate';
 const md5 = (data) => createHash('md5').update(data).digest('hex');
 
 // Inputs whose empty placeholder should be a number slot (round) rather than text.
-const NUMERIC_INPUTS = new Set(['X', 'Y', 'NUM1', 'NUM2', 'NUM', 'SIZE', 'DURATION', 'SECS', 'DIRECTION', 'INDEX', 'FROM', 'TO', 'VALUE', 'STEPS', 'TIMES']);
+const NUMERIC_INPUTS = new Set(['X', 'Y', 'NUM1', 'NUM2', 'NUM', 'SIZE', 'DURATION', 'SECS', 'DIRECTION', 'INDEX', 'FROM', 'TO', 'VALUE', 'STEPS', 'TIMES', 'CHANGE', 'VOLUME', 'DEGREES', 'LETTER']);
 
 export class Project {
   constructor() {
@@ -60,6 +60,13 @@ export class Project {
     return this.variables[name].id;
   }
 
+  /** A sound for a sprite or the stage: {bytes, rate, sampleCount} from sounds.mjs. */
+  sound(name, { bytes, rate, sampleCount }) {
+    const assetId = md5(bytes);
+    this.assets[`${assetId}.wav`] = bytes;
+    return { name, assetId, md5ext: `${assetId}.wav`, dataFormat: 'wav', format: '', rate, sampleCount };
+  }
+
   costume(name, svg, rotationCenter = [0, 0]) {
     const data = strToU8(svg);
     const assetId = md5(data);
@@ -67,14 +74,14 @@ export class Project {
     return { name, assetId, md5ext: `${assetId}.svg`, dataFormat: 'svg', bitmapResolution: 1, rotationCenterX: rotationCenter[0], rotationCenterY: rotationCenter[1] };
   }
 
-  addStage(backdrops, scripts = []) {
-    this.stage = { isStage: true, name: 'Stage', costumes: backdrops, scripts };
+  addStage(backdrops, scripts = [], { sounds = [] } = {}) {
+    this.stage = { isStage: true, name: 'Stage', costumes: backdrops, scripts, sounds };
   }
 
-  addSprite(name, costumes, scripts, { x = 0, y = 0, size = 100, visible = true, direction = 90, rotationStyle = 'all around', variables = [] } = {}) {
+  addSprite(name, costumes, scripts, { x = 0, y = 0, size = 100, visible = true, direction = 90, rotationStyle = 'all around', variables = [], sounds = [] } = {}) {
     // variables: names that are "for this sprite only" (sprite-local).
     const local = Object.fromEntries(variables.map((v) => [v, `var-${name.replace(/\W/g, '_')}-${v.replace(/\W/g, '_')}`]));
-    this.targets.push({ isStage: false, name, costumes, scripts, x, y, size, visible, direction, rotationStyle, local });
+    this.targets.push({ isStage: false, name, costumes, scripts, x, y, size, visible, direction, rotationStyle, local, sounds });
   }
 
   toSb3(agent = 'BlockML Studio starter builder') {
@@ -183,7 +190,7 @@ export class Project {
 
       const base = {
         isStage: t.isStage, name: t.name, variables: {}, lists: {}, broadcasts: {}, blocks, comments: {},
-        currentCostume: 0, costumes: t.costumes, sounds: [], volume: 100, layerOrder,
+        currentCostume: 0, costumes: t.costumes, sounds: t.sounds || [], volume: 100, layerOrder,
       };
       if (t.isStage) {
         return { ...base, tempo: 60, videoTransparency: 50, videoState: 'off', textToSpeechLanguage: null };
