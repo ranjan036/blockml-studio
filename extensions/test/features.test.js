@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { handFeatures, HAND_POINT_NAMES } from '../src/features/hand.js';
+import { handFeatures, handSignFeatures, HAND_POINT_NAMES } from '../src/features/hand.js';
 import { faceFeatures, faceIs, facePoints, FACE_POINTS } from '../src/features/face.js';
 
 // Builds a hand pointing "up" (fingers towards +y) from a wrist at (0, 0).
@@ -121,5 +121,28 @@ describe('faceFeatures', () => {
   it('head tilt sign follows the person (mirrored view)', () => {
     expect(faceFeatures(makeFace({ tiltDeg: 20 }))['head tilt']).toBe(20);
     expect(faceIs(faceFeatures(makeFace({ tiltDeg: -20 })), 'tilted left')).toBe(true);
+  });
+});
+
+describe('handSignFeatures', () => {
+  const hand = makeHand({ index: 1, middle: 1 });
+  const moved = (kp, dx, dy, s) => kp.map((p) => ({ x: p.x * s + dx, y: p.y * s + dy }));
+  const close = (a, b) => a.every((x, i) => Math.abs(x - b[i]) < 1e-5);
+
+  it('does not depend on where the hand is or how big it looks', () => {
+    expect(close(handSignFeatures(hand, 'right'), handSignFeatures(moved(hand, 120, -40, 1.7), 'right'))).toBe(true);
+  });
+
+  it('a left hand gives the same numbers as the mirrored right hand', () => {
+    const mirrored = hand.map((p) => ({ x: -p.x, y: p.y }));
+    expect(close(handSignFeatures(mirrored, 'left'), handSignFeatures(hand, 'right'))).toBe(true);
+  });
+
+  it('different signs give different numbers, of length 1', () => {
+    const a = handSignFeatures(hand, 'right');
+    const b = handSignFeatures(makeHand({}), 'right');
+    expect(a).toHaveLength(42);
+    expect(Math.hypot(...a)).toBeCloseTo(1);
+    expect(close(a, b)).toBe(false);
   });
 });

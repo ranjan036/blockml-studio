@@ -77,3 +77,25 @@ export function handFeatures(kp) {
 
   return { fingersUp: up, fingers, gesture };
 }
+
+/**
+ * The numbers a hand-sign classifier learns from: the 21 points relative to the wrist,
+ * scaled so the hand's size and place on the stage don't matter, and with left hands
+ * flipped so a sign taught with one hand works with the other. Length 1 (42 numbers).
+ * @param {{x:number,y:number}[]} kp  21 keypoints in stage coordinates
+ * @param {string} side  'left' or 'right' (the person's own hand)
+ */
+export function handSignFeatures(kp, side) {
+  const wrist = kp[I.wrist];
+  const flip = side === 'left' ? -1 : 1;
+  const v = new Float32Array(kp.length * 2);
+  kp.forEach((p, i) => {
+    v[2 * i] = (p.x - wrist.x) * flip;
+    v[2 * i + 1] = p.y - wrist.y;
+  });
+  let sum = 0;
+  for (let i = 0; i < v.length; i++) sum += v[i] * v[i];
+  const k = 1 / Math.sqrt(sum || 1);
+  for (let i = 0; i < v.length; i++) v[i] *= k;
+  return v;
+}

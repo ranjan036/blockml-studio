@@ -1,6 +1,8 @@
 // BlockML Studio – Image Model extension (MIT).
 // Students train their own image classifier from webcam photos in the trainer
-// window, then use it with Scratch's own if/else, comparisons and loops.
+// window, then use it with Scratch's own if/else, comparisons and loops. It can
+// also learn from what is drawn on the stage (AI 10: teach it your drawings), with
+// blocks that add the camera image or the stage drawing to a class.
 // Only the photos' MobileNet features (numbers) are saved in the project, never
 // the photos. Runs unsandboxed (trusted by BlockML Studio) and uses the shared
 // vision runtime in the same folder.
@@ -19,6 +21,8 @@
   const MAX_NAME = 30;
   const EPOCHS = 40;
   const GOOD_PHOTO_COUNT = 10;
+  const MAX_CLASSES = 10;
+  const STARTING_CLASS = /^Class \d+$/;
   const COLORS = ['#2563eb', '#ec4899', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2', '#dc2626', '#65a30d'];
 
   let vision = null;
@@ -109,6 +113,39 @@
     }));
     if (canTrain()) trainNow(); // under a second, from the saved features
     refreshBlocks();
+  }
+
+  /**
+   * The stage as a picture (pen drawings, sprites and backdrop), on white, as a canvas.
+   * The renderer hands over a snapshot after its next drawing.
+   */
+  function stageSnapshot() {
+    return new Promise((resolve, reject) => {
+      const renderer = runtime.renderer;
+      if (!renderer || !renderer.requestSnapshot) return reject(new Error('No stage to look at'));
+      renderer.requestSnapshot((dataURL) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 480;
+          canvas.height = 360;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, 480, 360);
+          ctx.drawImage(img, 0, 0, 480, 360);
+          resolve(canvas);
+        };
+        img.onerror = () => reject(new Error('Could not read the stage'));
+        img.src = dataURL;
+      });
+      runtime.requestRedraw();
+    });
+  }
+
+  /** MobileNet features of the camera image or the stage drawing. */
+  async function featuresOf(source) {
+    const v = await loadVision();
+    return source === 'stage drawing' ? v.embedCanvas(await stageSnapshot()) : v.embedNow();
   }
 
   function refreshBlocks() {
@@ -478,6 +515,11 @@
             text: 'classify camera image',
           },
           {
+            opcode: 'classifyStage',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'classify stage drawing',
+          },
+          {
             opcode: 'imageLabel',
             blockType: Scratch.BlockType.REPORTER,
             text: 'image label',
@@ -505,6 +547,20 @@
             blockType: Scratch.BlockType.BOOLEAN,
             text: 'image model is trained?',
           },
+          {
+            opcode: 'addExample',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'add [SOURCE] to class [CLASS]',
+            arguments: {
+              SOURCE: { type: Scratch.ArgumentType.STRING, menu: 'source', defaultValue: 'stage drawing' },
+              CLASS: { type: Scratch.ArgumentType.STRING, menu: 'classes', defaultValue: firstClass() },
+            },
+          },
+          {
+            opcode: 'train',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'train the image model',
+          },
           '---',
           {
             opcode: 'setCamera',
@@ -522,6 +578,7 @@
         menus: {
           classes: { acceptReporters: true, items: 'classMenu' },
           camera: { acceptReporters: false, items: ['on', 'off', 'on flipped'] },
+          source: { acceptReporters: false, items: ['stage drawing', 'camera image'] },
         },
       };
     }
@@ -557,6 +614,49 @@
       }
       const features = await v.embedNow();
       if (features) classify(features);
+    }
+
+    async classifyStage() {
+      await loadVision();
+      if (!model) {
+        last = { label: '', confidences: {} };
+        return;
+      }
+      try {
+        classify(await featuresOf('stage drawing'));
+      } catch (err) {
+        console.error('BlockML Studio: could not classify the stage', err);
+      }
+    }
+
+    async addExample({ SOURCE, CLASS }) {
+      const name = String(CLASS).trim().slice(0, MAX_NAME);
+      if (!name) return;
+      let features;
+      try {
+        features = await featuresOf(SOURCE);
+      } catch (err) {
+        console.error('BlockML Studio: could not add the example', err);
+        return;
+      }
+      if (!features) return;
+      let c = findClass(name);
+      if (!c) {
+        // Use up an empty starting class ("Class 1") before making a new one.
+        const spare = classes.find((k) => !k.samples.length && STARTING_CLASS.test(k.name));
+        if (spare) spare.name = name;
+        else if (classes.length < MAX_CLASSES) classes.push({ name, samples: [] });
+        else return;
+        c = findClass(name);
+        refreshBlocks();
+      }
+      c.samples.push(features);
+      saveToProject();
+    }
+
+    async train() {
+      await loadVision();
+      if (canTrain()) trainNow();
     }
 
     imageLabel() {

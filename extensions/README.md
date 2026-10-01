@@ -8,8 +8,8 @@ models are served by the studio site itself.
 | Extension | Blocks |
 |---|---|
 | **Face** (`src/face.js`, id `blockmlFace`) | when a face appears · number of faces · [x/y/size/smile/mouth open/head tilt/left eye open/right eye open] of face (n) · face (n) is [smiling/mouth open/eyes closed/tilted left/tilted right]? · [x/y] of [nose tip/eyes/mouth/ears/forehead/chin] of face (n) · face AI is ready? |
-| **Hand & Pose** (`src/hands.js`, id `blockmlHands`) | when a hand shows [gesture] · number of hands · [x/y] of [wrist/fingertips] of hand (n) · fingers up on hand (n) · hand (n) shows [open/fist/thumbs up/thumbs down/pointing/victory]? · gesture of hand (n) · which hand is hand (n) · [x/y] of [17 body points] of body · body is visible? · hand AI is ready? |
-| **Image Model** (`src/image.js`, id `blockmlImage`) | open the trainer · when camera sees [class] with confidence > (80) · classify camera image · image label · confidence of [class] · label is [class]? · number of photos of [class] · image model is trained? |
+| **Hand & Pose** (`src/hands.js`, id `blockmlHands`) | when a hand shows [gesture] · number of hands · [x/y] of [wrist/fingertips] of hand (n) · fingers up on hand (n) · hand (n) shows [open/fist/thumbs up/thumbs down/pointing/victory]? · gesture of hand (n) · which hand is hand (n) · add hand (n) as an example of sign [ ] · train hand signs · hand sign of hand (n) · confidence that hand (n) shows sign [ ] · number of examples of sign [ ] · forget all hand signs · [x/y] of [17 body points] of body · body is visible? · hand AI is ready? |
+| **Image Model** (`src/image.js`, id `blockmlImage`) | open the trainer · when camera sees [class] with confidence > (80) · classify camera image · image label · confidence of [class] · label is [class]? · number of photos of [class] · image model is trained? · classify stage drawing · add [stage drawing/camera image] to class [ ] · train the image model |
 | **Object Detection** (`src/objects.js`, id `blockmlObjects`) | when camera sees a [object] · detect objects · number of objects · [name/x/y/size/confidence] of object (n) · number of [object] seen · [object] detected? · set minimum confidence to (50) % · object AI is ready? — 80 COCO objects |
 | **Voice** (`src/voice.js`, id `blockmlVoice`) | when I hear [word] · start / stop listening · listen only for words (up down …) · listen for any words · what I heard · I heard [word]? · confidence of what I heard · forget what I heard · voice AI is ready? · speak [text] (and wait) — offline speech-to-text (Vosk, `vosk.js` + `models/vosk-small-en/`, fetched with `npm run fetch-voice-models`) and the computer's own voices |
 | **Text AI** (`src/text.js`, id `blockmlText`) | open the text trainer · label of text [ ] · confidence that [ ] is [class] · text [ ] is [class]? · number of examples of [class] · text model is trained? · add example [ ] to [class] · train the text model · unkind score of [ ] · [ ] seems unkind? · what the AI reads in [ ] · text AI is ready? — a trainable text classifier and a ready-made kindness check (`text-runtime.js` + `models/text-potion/`, 7.8 MB, no camera or microphone) |
@@ -32,6 +32,18 @@ classifier (`src/features/classifier.js`) learns from them in well under a
 second. Only those numbers are saved in the project (TurboWarp's
 `extensionStorage`, 1 byte per number), never the photos; opening a project
 retrains the model from them. Thumbnails exist only while the window is open.
+
+### Teaching with blocks: drawings and hand signs
+
+The Image Model can learn from the **stage** (pen drawings, sprites, backdrop:
+the renderer's snapshot on white) as well as the camera, with `add [stage
+drawing/camera image] to class [ ]`, `train the image model` and `classify
+stage drawing`. Hand & Pose learns **hand signs** from the 21 hand points
+(`handSignFeatures` in `src/features/hand.js`: relative to the wrist, scaled,
+left hands mirrored, so a sign taught with one hand works with the other and
+anywhere on the stage); the signs' numbers are saved in the project and the
+model is trained again when it opens. Starters: `digit-drawer.sb3`,
+`hand-signs.sb3`.
 
 ### Text AI
 

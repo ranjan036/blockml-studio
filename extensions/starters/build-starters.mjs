@@ -455,3 +455,89 @@ const robot = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" hei
   ], { x: 150, y: -100 });
   write('lens-explorer.sb3', p);
 }
+
+// ---- 10. Digit drawer (Image Model + Pen): teach the AI your own drawings (AI 10) ----
+// Draw with the mouse. Keys 0, 1, 2 add the drawing to that class, T trains, space
+// asks the AI, C clears. A clear stage between drawings matters: try without!
+
+{
+  const p = new Project();
+  p.useExtension('pen');
+  p.useExtension('blockmlImage', BASE + 'image.js');
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const whenKey = (key) => ({ op: 'event_whenkeypressed', fields: { KEY_OPTION: key } });
+  const sayFor = (message, secs) => ({ op: 'looks_sayforsecs', inputs: { MESSAGE: message, SECS: secs } });
+  const classMenu = (name) => ({ menu: 'blockmlImage_menu_classes', field: 'classes', value: name });
+  const addDrawing = (name) => ({ op: 'blockmlImage_addExample', inputs: { CLASS: classMenu(name) }, fields: { SOURCE: 'stage drawing' } });
+  const examples = (name) => op('blockmlImage_photosOf', { CLASS: classMenu(name) });
+  const pencil = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#1d4ed8" opacity=".5"/></svg>';
+  const teach = (digit) => [whenKey(digit), { op: 'looks_hide' }, addDrawing(digit), { op: 'looks_show' }, { op: 'pen_clear' },
+    say(join('Thanks! Drawings of ', join(digit, join(': ', examples(digit)))))];
+  p.addSprite('Pencil', [p.costume('dot', pencil, [12, 12])], [
+    [
+      flag,
+      { op: 'pen_clear' },
+      { op: 'pen_setPenColorToColor', inputs: { COLOR: { color: '#1d4ed8' } } },
+      { op: 'pen_setPenSizeTo', inputs: { SIZE: 14 } },
+      say('Draw a 0, 1 or 2, then press that key. T = train, space = guess, C = clear.'),
+      forever(
+        { op: 'motion_goto', inputs: { TO: { menu: 'motion_goto_menu', field: 'TO', value: '_mouse_' } } },
+        ifElse(bool('sensing_mousedown'), [{ op: 'pen_penDown' }], [{ op: 'pen_penUp' }]),
+      ),
+    ],
+    teach('0'),
+    teach('1'),
+    teach('2'),
+    [whenKey('t'), { op: 'blockmlImage_train' }, sayFor('Trained! Draw one and press space.', 2)],
+    [
+      whenKey('space'),
+      { op: 'looks_hide' }, // the pencil is not part of the drawing
+      { op: 'blockmlImage_classifyStage' },
+      { op: 'looks_show' },
+      say(join('I think that is a ', op('blockmlImage_imageLabel'))),
+    ],
+    [whenKey('c'), { op: 'pen_clear' }, say('')],
+  ], { x: 0, y: 0 });
+  write('digit-drawer.sb3', p);
+}
+
+// ---- 11. Hand signs (Hand & Pose): teach the AI your own signs from hand points (AI 11) ----
+// Show a sign and press A, B or C to add it as an example; T trains. The AI learns
+// from the 21 points of your hand, not from the picture.
+
+{
+  const p = new Project();
+  p.useExtension('blockmlHands', BASE + 'hands.js');
+  p.variable('sign', '');
+  p.showVariable('sign', { x: 5, y: 5 });
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const whenKey = (key) => ({ op: 'event_whenkeypressed', fields: { KEY_OPTION: key } });
+  const signMenu = (name) => ({ menu: 'blockmlHands_menu_signs', field: 'signs', value: name });
+  const teach = (key) => [whenKey(key.toLowerCase()),
+    { op: 'blockmlHands_addSign', inputs: { INDEX: 1, SIGN: signMenu(key) } },
+    say(join(join('Examples of ', key), join(': ', op('blockmlHands_signExamples', { SIGN: signMenu(key) }))))];
+  p.addSprite('Helper', [p.costume('robot', robot('<path d="M36 52 Q50 64 64 52" fill="none" stroke="#5eead4" stroke-width="5" stroke-linecap="round"/>'), [50, 55])], [
+    [
+      flag,
+      hands.camera('on'),
+      hands.transparency(20),
+      { op: 'blockmlHands_setOverlay', fields: { MODE: 'points' } },
+      say('Show a sign, press A, B or C (5 times each, moving a little). Then T.'),
+    ],
+    teach('A'),
+    teach('B'),
+    teach('C'),
+    [
+      whenKey('t'),
+      { op: 'blockmlHands_trainSigns' },
+      forever(
+        set('sign', op('blockmlHands_signOf', { INDEX: 1 })),
+        // Only believe it when it is sure.
+        ifElse(gt(op('blockmlHands_signConfidence', { INDEX: 1, SIGN: { reporter: v('sign'), shadow: signMenu('A') } }), 80),
+          [say(join('Sign ', v('sign')))],
+          [say('?')]),
+      ),
+    ],
+  ], { x: 150, y: -100 });
+  write('hand-signs.sb3', p);
+}

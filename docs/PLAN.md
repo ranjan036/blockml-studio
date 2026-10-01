@@ -572,7 +572,7 @@ speech recognition (sends audio to Google; not in Android WebView).
 | S5b | Hosting on Cloudflare Pages, model cache + pre-load button, one app template | heavy home use, offline centres |
 | S7 | Voice: offline speech-to-text + text-to-speech (laptop and app) | Game 1, AI 8 |
 | S8 | Text AI: trainable text classifier, kindness check | Game 8, AI 12, AI 18 (part) |
-| S9 | Vision+: QR, AprilTag, cards (done, §15.9), OCR and "what is this?" (done, §15.10), drawing and hand-sign trainers | AI 2–6, 10, 11 |
+| S9 | Vision+: QR, AprilTag, cards (done, §15.9), OCR and "what is this?" (done, §15.10), drawing and hand-sign trainers (done, §15.11) | AI 2–6, 10, 11 |
 | S10 | Chat AI (after a laptop + phone benchmark) and weather | Game 7, AI 7, AI 13–16, AI 18 |
 | S11 | Arduino (Web Serial + Firmata) | Robotics 42–50 |
 
@@ -731,3 +731,22 @@ recognition cards, for AI 4–6 and later the robotics sessions.
   Lens explorer app read the sign and recognised in phone emulation.
 - **Not yet:** a real webcam with real objects and printed pages, and a phone.
 - Still open in S9: the drawing and hand-sign trainers (AI 10–11).
+
+### 15.11 S9, part 3: drawing and hand-sign trainers (2026-10-01)
+
+- **AI 10, teach it your drawings**: the Image Model learns from the stage —
+  `add stage drawing to class [ ]`, `train the image model`, `classify stage
+  drawing` (MobileNet features of the renderer's snapshot). With 4 example
+  drawings each of 0, 1 and 7 (different size, place, slant), all 6 unseen
+  drawings were right (89–98%); the Digit drawer starter, drawn with a simulated
+  mouse, recognised 0, 1 and 2. Examples survive saving and reopening.
+- **AI 11, hand signs from hand points**: Hand & Pose learns signs from the 21
+  hand points, not the picture, so a few examples are enough and lighting or
+  background don't matter. Taught 5 examples each of 4 signs (synthetic hands),
+  it got 8 of 8 unseen hands right, left and right hands, any place and size.
+- Both teach with blocks inside the project (so a game can learn from its
+  player); the exporter no longer warns "untrained" when a game has its own
+  "add example" blocks.
+- **Not yet:** real children's drawings and real hands on a webcam.
+- **S9 is complete.** Next: S10 Chat AI (benchmark an on-device model on a CODE
+  AI laptop and a phone first) and weather.

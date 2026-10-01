@@ -25,6 +25,7 @@ import { normalize } from '../features/classifier.js';
 export { faceIs } from '../features/face.js';
 export { createTrainer, predict, encodeSample, decodeSample } from '../features/classifier.js';
 import { handFeatures, HAND_POINT_NAMES } from '../features/hand.js';
+export { handSignFeatures } from '../features/hand.js';
 import jsQR from 'jsqr';
 // js-aruco2 is written as browser scripts; vite.config.js wraps each file in a function.
 import runCv from 'js-aruco2/src/cv.js';
