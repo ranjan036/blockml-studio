@@ -48,7 +48,7 @@ const HEAD = (title) => `<!doctype html>
 const OPEN_SCRIPT = `<script>
 document.querySelectorAll('a[data-project]').forEach(function (a) {
   var project = new URL(a.dataset.project, location.href).href;
-  a.href = new URL('../../editor.html?project_url=' + encodeURIComponent(project), location.href).href;
+  a.href = new URL('../../editor?project_url=' + encodeURIComponent(project), location.href).href;
 });
 </script>`;
 
@@ -99,8 +99,8 @@ export function indexPage(cards) {
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
 <section><div class="kicker" style="color:var(--navy)">Sessions 18–37</div><h2><a href="ai/" style="color:inherit">AI sessions (AI 1–20)</a></h2><p class="small">One project and a lesson card for each pure-AI session.</p></section>
-<section><h2>Printables</h2><p class="small">For the Codes &amp; Cards blocks: <a href="printables/cards.html">recognition cards</a> · <a href="printables/tags.html">AprilTags</a> · <a href="printables/qr.html">QR codes</a></p></section>
-<p class="small"><a href="../editor.html">Open BlockML Studio</a></p></main></body></html>`;
+<section><h2>Printables</h2><p class="small">For the Codes &amp; Cards blocks: <a href="printables/cards">recognition cards</a> · <a href="printables/tags">AprilTags</a> · <a href="printables/qr">QR codes</a></p></section>
+<p class="small"><a href="../editor">Open BlockML Studio</a></p></main></body></html>`;
 }
 
 /** A printable sheet of test phrases: [phrase, note] rows, with columns to fill in. */
@@ -175,7 +175,7 @@ ${section('Challenges', card.challenges && card.challenges.length && list(card.c
 ${section('📱 Make it an Android app', card.app && card.app.length && steps(card.app))}
 ${section('No internet, no camera?', card.offline && card.offline.length && list(card.offline))}
 <p class="small">Part of the CODE AI Core Curriculum, built with BlockML Studio. <a href="../">AI sessions</a> · <a href="../../">All lessons</a></p>
-</main>${OPEN_SCRIPT.replace("'../../editor.html", "'../../../editor.html")}</body></html>`;
+</main>${OPEN_SCRIPT.replace("'../../editor", "'../../../editor")}</body></html>`;
 }
 
 /** The AI sessions index. */
@@ -185,5 +185,5 @@ export function aiIndexPage(cards) {
 <p class="objective">Twenty pure-AI sessions: one project and a lesson card each (AI 19 and 20 are discussions).</p></div></header>
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">AI ${c.number}: ${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
-<p class="small"><a href="../">All lessons</a> · <a href="../../editor.html">Open BlockML Studio</a></p></main></body></html>`;
+<p class="small"><a href="../">All lessons</a> · <a href="../../editor">Open BlockML Studio</a></p></main></body></html>`;
 }

@@ -46,7 +46,7 @@ const isInvalidEmbed = window.parent !== window;
 
 const handleClickAddonSettings = addonId => {
     // addonId might be a string of the addon to focus on, undefined, or an event (treat like undefined)
-    const path = process.env.ROUTING_STYLE === 'wildcard' ? 'addons' : 'addons.html';
+    const path = process.env.ROUTING_STYLE === 'wildcard' || process.env.CLEAN_URLS ? 'addons' : 'addons.html';
     const url = `${process.env.ROOT}${path}${typeof addonId === 'string' ? `#${addonId}` : ''}`;
     window.open(url);
 };
@@ -116,7 +116,7 @@ const Footer = () => (
 
             <div className={styles.footerColumns}>
                 <div className={styles.footerSection}>
-                    <a href="credits.html">
+                    <a href={process.env.CLEAN_URLS ? 'credits' : 'credits.html'}>
                         <FormattedMessage
                             defaultMessage="Credits"
                             description="Credits link in footer"
@@ -143,7 +143,7 @@ const Footer = () => (
                             id="tw.code"
                         />
                     </a>
-                    <a href="privacy.html">
+                    <a href={process.env.CLEAN_URLS ? 'privacy' : 'privacy.html'}>
                         <FormattedMessage
                             defaultMessage="Privacy Policy"
                             description="Link to privacy policy"

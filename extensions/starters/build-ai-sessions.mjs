@@ -305,7 +305,7 @@ card({
   ai: ['recognition cards', 'a model trained on exactly these images', 'instant recognition'],
   coding: ['lists', 'random', 'timer', 'repeat 10', 'wait until', 'or'],
   projects: PROJECT('🎮 Open the game'),
-  extraButtons: '<a class="btn light" href="../../printables/cards.html" target="_blank" rel="noopener">🖨 Print the cards</a>',
+  extraButtons: '<a class="btn light" href="../../printables/cards" target="_blank" rel="noopener">🖨 Print the cards</a>',
   materials: ['Laptop with a webcam', 'Printed recognition cards (button above): go, stop, left, right, jump, apple, cat, star'],
   say: '“These cards work almost instantly because the computer only needs to tell apart a few patterns it was built for in advance — unlike a photo AI that must handle anything.”',
   steps: [
@@ -364,7 +364,7 @@ card({
   ai: ['QR codes store text', 'error correction', 'instant reading'],
   coding: ['variables as counters', 'repeat until', 'wait until', 'lists: add, contains', 'join'],
   projects: PROJECT('🗺 Open the treasure hunt'),
-  extraButtons: '<a class="btn light" href="clues.html" target="_blank" rel="noopener">🖨 Print the treasure codes</a>',
+  extraButtons: '<a class="btn light" href="clues" target="_blank" rel="noopener">🖨 Print the treasure codes</a>',
   materials: ['Laptop with a webcam (or the app on a phone — best for walking around)', 'The five printed treasure codes, hidden around the room'],
   say: '“A QR code hides text in a pattern of squares. Part of each code repeats the information, so it still works when a corner is damaged.”',
   steps: [
@@ -419,7 +419,7 @@ card({
   ai: ['AprilTags', 'position (x, y)', 'angle (direction)', 'tracking'],
   coding: ['coordinates', 'direction', 'pen', 'forever', 'and'],
   projects: PROJECT(),
-  extraButtons: '<a class="btn light" href="../../printables/tags.html" target="_blank" rel="noopener">🖨 Print AprilTags</a>',
+  extraButtons: '<a class="btn light" href="../../printables/tags" target="_blank" rel="noopener">🖨 Print AprilTags</a>',
   materials: ['Laptop with a webcam', 'Printed AprilTags (button above) — tag 100 is the "robot"'],
   say: '“Warehouse robots read tags like these on the floor and shelves. A tag tells the robot not just where it is, but the exact angle it is facing — like a super compass.”',
   steps: [

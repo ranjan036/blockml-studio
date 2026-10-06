@@ -99,20 +99,24 @@ class FileHashRouter extends HashRouter {
     constructor (callbacks) {
         super(callbacks);
         this.playerPath = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-        this.editorPath = `${this.playerPath}editor.html`;
-        this.fullscreenPath = `${this.playerPath}fullscreen.html`;
+        // blockml: the live site hides .html (Vercel cleanUrls)
+        const ext = process.env.CLEAN_URLS ? '' : '.html';
+        this.editorPath = `${this.playerPath}editor${ext}`;
+        this.fullscreenPath = `${this.playerPath}fullscreen${ext}`;
     }
 
     onpathchange () {
-        const pathName = location.pathname;
+        // Match with or without .html, so old links keep working
+        const strip = path => path.replace(/\.html$/, '').replace(/\/index$/, '/');
+        const pathName = strip(location.pathname);
 
         if (pathName === this.playerPath) {
             this.onSetIsPlayerOnly(true);
             this.onSetIsFullScreen(false);
-        } else if (pathName === this.editorPath) {
+        } else if (pathName === strip(this.editorPath)) {
             this.onSetIsPlayerOnly(false);
             this.onSetIsFullScreen(false);
-        } else if (pathName === this.fullscreenPath) {
+        } else if (pathName === strip(this.fullscreenPath)) {
             this.onSetIsFullScreen(true);
         }
     }

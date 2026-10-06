@@ -355,7 +355,7 @@ Checked in headless Chrome against the production build:
 
 **Deployed (2026-09-25):** Vercel project `blockml-studio` (team
 `ranjan036s-projects`), auto-deploys `main`. Live at
-https://blockml-studio.vercel.app — `/` redirects to `/editor.html`.
+https://blockml-studio.vercel.app — `/` redirects to `/editor` (clean URLs: `.html` is hidden, old `.html` links redirect).
 Checked live: default project loads, all block categories, service worker
 registers, and the editor contacts only its own site.
 
