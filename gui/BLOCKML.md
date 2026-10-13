@@ -23,10 +23,12 @@ with a `blockml:` comment so it's easy to find when merging TurboWarp updates.
 | `src/containers/tw-security-manager.jsx` (S2) | Trust this site's `/extensions/` (and the production site's) instead of extensions.turbowarp.org; projects that use TurboWarp's Face Sensing load ours instead (`rewriteExtensionURL`, S6) | Our AI extensions run unsandboxed; outside extensions ask first; Scratch Face Sensing projects work offline |
 | `src/lib/libraries/extensions/index.jsx`, `blockml/*.svg`, `src/lib/libraries/tw-extension-tags.js` (S2) | Image Model, Object Detection, Face, Hand & Pose, Voice (S7), Text AI (S8), Codes & Cards and Lens (S9), Chat AI and Weather (S10) at the top of the extension library, with an "AI" filter | Our AI extensions |
 | `.gitignore` (S2) | `static/extensions/`, `static/starters/` are build output from `../extensions` | Build |
+| `src/playground/service-worker.js`, `scripts/build-sw.mjs` (offline, part 1) | TurboWarp's service worker only deleted old caches. Ours keeps the editor, lessons, starter projects and small AI extension files (about 28 MB) on the computer after the first visit, so they open without internet; `build-sw.mjs` runs after webpack and writes the file list with a hash per file into `build/sw.js`, so an update downloads only changed files. AI models, `chat-engine.js` and `vosk.js` are left out (their own download comes later) | Students asked for offline use at home |
 | `vercel.json` (here and at the repo root) | Build and hosting settings for studio.blockml.codeai.ltd. The root copy builds `gui/` when the Vercel project's Root Directory is the repo root; this copy is used when it is `gui`. Keep them in sync. `/extensions/*` is served with `Access-Control-Allow-Origin: *` so BlockML's app exporter can copy the AI files into Android apps. | Deployment |
 
 Still contacted by the editor: Scratch's asset server (`cdn.assets.scratch.mit.edu`)
-for the sprite/costume/backdrop/sound libraries, and TurboWarp's server for
+for the sprite/costume/backdrop/sound libraries (so these libraries need internet
+even when the rest works offline), and TurboWarp's server for
 contributor pictures on the Credits page. Everything else, including the AI extensions and their models (`/extensions/`), is served from our site.
 
 ## Build
@@ -36,7 +38,7 @@ Node 22 or 24. From this folder:
 ```
 npm ci
 npm start                                                   # dev server on http://localhost:8601/
-NODE_ENV=production ENABLE_SERVICE_WORKER=1 npm run build   # -> build/
+NODE_ENV=production ENABLE_SERVICE_WORKER=1 CLEAN_URLS=1 npm run build   # -> build/ (as on Vercel)
 ```
 
 ## Pulling in TurboWarp updates

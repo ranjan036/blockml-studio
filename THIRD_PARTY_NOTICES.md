@@ -40,3 +40,6 @@
 - The default sprite is TurboWarp's "dango", based on Twemoji — CC BY 4.0.
 
 Scratch is a project of the Scratch Foundation, which does not endorse BlockML Studio.
+- **Nunito** font (latin subset, from Google Fonts) — SIL Open Font License 1.1,
+  Copyright 2014 The Nunito Project Authors, https://github.com/googlefonts/nunito.
+  Served as `gui/static/fonts/nunito-latin.woff2` for the lesson pages.

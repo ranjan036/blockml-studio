@@ -912,3 +912,31 @@ were checked in play. Not tested: the voice assistant's commands (no real
 microphone headless) and real classroom photos. All 13 projects pass the app
 exporter's checks; its Chat AI note now says 840 MB when a project uses the big
 model.
+
+### 15.17 Offline, part 1: the editor and lessons (2026-10-13)
+
+Students asked for Studio to work without internet. All AI already runs on the
+computer, so "offline" means keeping the site's files there. Plan: (1) the editor,
+lessons and starter projects; (2) BlockML (data science) the same way; (3) a
+"Use offline" panel that downloads chosen AI models (they are 25–840 MB each, too
+big to download for everyone). The Weather blocks always need internet.
+
+Part 1 (done): a real service worker. TurboWarp's only deleted caches.
+`gui/scripts/build-sw.mjs` runs after webpack and lists every file in `build/`
+with a hash, except the AI models (`extensions/models/`, `extensions/ocr/`),
+`chat-engine.js` and `vosk.js`: 499 files, 27.8 MB. On the first visit the
+browser saves them in the background; after that every page, lesson project and
+"Open in Studio" link works without internet. Pages are listed by their clean URL
+(`editor`, `lessons/ai/`), and `/`, `editor.html` etc. find the same page. An
+update downloads only files whose hash changed and keeps the previous version's
+files for tabs that are still open. The lesson pages register the worker too and
+use our own copy of the Nunito font (no Google Fonts). Chrome now offers
+"Install app" for the site (`manifest.webmanifest` + a worker that serves pages).
+
+Tested in headless Chrome against a local copy of the site with clean URLs: one
+visit online, then the server returning 503 and every other host blocked: `/`,
+`/editor`, `/editor.html`, lesson and AI-session pages (font included) and a
+lesson game opened with "Open in Studio" all load with no failed requests. An
+update test changed one file: only that file (and the page itself) was
+downloaded. Still needs internet: the Scratch sprite/sound libraries (pictures
+come from Scratch's server), Weather, and AI models until part 3.

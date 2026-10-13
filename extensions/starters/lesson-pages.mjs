@@ -6,7 +6,9 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const list = (items) => `<ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
 const steps = (items) => `<ol>${items.map((i) => `<li>${i}</li>`).join('')}</ol>`;
 
+// Nunito is served from our own site (gui/static/fonts) so the lessons work offline.
 const STYLE = `
+@font-face { font-family: 'Nunito'; font-weight: 400 800; font-display: swap; src: url(/fonts/nunito-latin.woff2) format('woff2'); }
 :root { --navy: #0b3d6d; --navy-dark: #082c50; --ink: #0b2c5f; --yellow: #ffcc00; --page: #eef3fb; --line: #dce6f5; --muted: #5b6b82; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Nunito', system-ui, sans-serif; background: var(--page); color: #1a2233; line-height: 1.55; }
@@ -40,9 +42,8 @@ summary { cursor: pointer; font-weight: 700; color: var(--navy); }
 const HEAD = (title) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)} — BlockML Studio lessons</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
-<style>${STYLE}</style></head>`;
+<style>${STYLE}</style>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function () {});</script></head>`;
 
 // "Open in Studio" needs an absolute project URL; build it from wherever the page is served.
 const OPEN_SCRIPT = `<script>
