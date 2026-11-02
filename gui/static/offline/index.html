@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Use offline — BlockML Studio</title>
+<style>
+@font-face { font-family: 'Nunito'; font-weight: 400 800; font-display: swap; src: url(/fonts/nunito-latin.woff2) format('woff2'); }
+:root { --navy: #0b3d6d; --navy-dark: #082c50; --ink: #0b2c5f; --yellow: #ffcc00; --page: #eef3fb; --line: #dce6f5; --muted: #5b6b82; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Nunito', system-ui, sans-serif; background: var(--page); color: #1a2233; line-height: 1.55; }
+header { background: linear-gradient(120deg, var(--navy-dark), var(--navy) 60%, #13528f); color: #fff; border-bottom: 4px solid var(--yellow); padding: 22px 24px; }
+header .wrap, main { max-width: 900px; margin: 0 auto; }
+.kicker { color: var(--yellow); font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+h1 { margin: 4px 0 6px; font-size: 30px; font-weight: 800; line-height: 1.15; }
+.objective { margin: 0; color: rgba(255,255,255,.85); font-style: italic; }
+main { padding: 18px 16px 40px; display: grid; gap: 16px; }
+section { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; box-shadow: 0 1px 2px rgba(11,61,109,.06), 0 6px 18px rgba(11,61,109,.06); }
+.pack { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.pack:first-child { border-top: 0; }
+.name { font-weight: 800; color: var(--ink); }
+.note { color: var(--muted); font-size: 14px; grid-column: 1; }
+.error { color: #b3261e; }
+button { padding: 8px 16px; border: 0; border-radius: 999px; background: var(--yellow); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; grid-column: 2; grid-row: 1 / span 2; }
+button.remove { background: #fff; color: var(--navy); border: 1px solid var(--navy); }
+button:disabled { opacity: .5; cursor: default; }
+progress { width: 100%; grid-column: 1 / -1; height: 8px; }
+a { color: var(--navy); font-weight: 700; }
+</style>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function () {});</script></head><body>
+<header><div class="wrap"><div class="kicker">BlockML Studio</div><h1>Use offline</h1>
+<p class="objective">Download the AI you need, and its blocks work without internet on this computer, in this browser.</p></div></header>
+<main>
+<section><p style="margin:0">The editor, lessons and starter projects already work offline after your first visit. AI models are big, so you choose which to keep. Weather blocks and the Scratch sprite library always need internet. <a href="/editor">Open the editor</a></p>
+<p id="space" class="note" style="margin:8px 0 0"></p></section>
+<section id="packs"></section>
+</main>
+<script type="module">
+const MODEL_CACHE = 'studio-models';
+const WEBLLM_CACHES = ['webllm/model', 'webllm/config', 'webllm/wasm'];
+const list = document.getElementById('packs');
+const packs = await (await fetch('/offline/packs.json')).json();
+const models = await caches.open(MODEL_CACHE);
+let busy = false;
+
+const mb = bytes => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1e6))} MB`);
+const keyFor = (path, rev) => new URL(`/${path}?rev=${rev}`, location.href).href;
+const chatLib = () => import('/extensions/chat-runtime.js');
+// Saved once the whole chat model has loaded, because WebLLM saves it piece by piece.
+// In the cache, not localStorage, which can lose a recent write if the computer crashes.
+const chatFlag = pack => new URL(`/offline/ready-${pack.id}`, location.href).href;
+
+const hasFiles = async pack => {
+  for (const [path, rev] of Object.entries(pack.files)) {
+    if (!await models.match(keyFor(path, rev))) return false;
+  }
+  return true;
+};
+const isReady = async pack => await hasFiles(pack) && (!pack.chat || !!await models.match(chatFlag(pack)));
+
+// Reads the whole file before saving it, so a lost connection never leaves half a file.
+const saveFile = async (path, rev, onBytes) => {
+  const key = keyFor(path, rev);
+  if (await models.match(key)) return;
+  const res = await fetch(`/${path}`, {cache: 'no-cache'});
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  const reader = res.body.getReader();
+  const chunks = [];
+  for (;;) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    onBytes(value.length);
+  }
+  // Only the type: the chunks are already decompressed, so Content-Encoding would be wrong.
+  const type = res.headers.get('content-type') || 'application/octet-stream';
+  await models.put(key, new Response(new Blob(chunks), {headers: {'content-type': type}}));
+};
+
+const download = async (pack, show) => {
+  // Keep our files when the browser runs short of space, if it agrees.
+  if (navigator.storage && navigator.storage.persist) await navigator.storage.persist();
+  let done = 0;
+  for (const [path, rev] of Object.entries(pack.files)) {
+    await saveFile(path, rev, bytes => {
+      done += bytes;
+      show((pack.chat ? 0.05 : 1) * done / pack.size);
+    });
+  }
+  if (pack.chat) {
+    const lib = await chatLib();
+    const chat = await lib.loadChat(pack.chat, fraction => show(0.05 + (0.95 * fraction)));
+    await chat.unload();
+    await models.put(chatFlag(pack), new Response('1'));
+  }
+};
+
+const remove = async pack => {
+  // Files another downloaded pack still needs stay (Chat AI shares the Text AI model).
+  const kept = new Set();
+  for (const other of packs) {
+    if (other !== pack && await isReady(other)) Object.keys(other.files).forEach(p => kept.add(p));
+  }
+  for (const [path, rev] of Object.entries(pack.files)) {
+    if (!kept.has(path)) await models.delete(keyFor(path, rev));
+  }
+  if (pack.chat) {
+    const {MODELS} = await chatLib();
+    const {model_id: id, model_lib: lib} = MODELS[pack.chat];
+    for (const name of WEBLLM_CACHES) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        // Hugging Face's answers say "Vary", which would make a plain delete miss them.
+        if (request.url.includes(id) || request.url === lib) await cache.delete(request, {ignoreVary: true});
+      }
+    }
+    await models.delete(chatFlag(pack));
+  }
+};
+
+const render = async () => {
+  list.textContent = '';
+  const gpu = packs.some(p => p.chat) && !!navigator.gpu && !!await navigator.gpu.requestAdapter().catch(() => null);
+  const {MODELS} = await chatLib();
+  for (const pack of packs) {
+    const row = document.createElement('div');
+    row.className = 'pack';
+    const size = pack.chat ? (MODELS[pack.chat].sizeMB * 1e6) + pack.size : pack.size;
+    const ready = await isReady(pack);
+    const blocked = pack.chat && !gpu;
+    row.innerHTML = '<div class="name"></div><div class="note"></div><button></button>';
+    row.children[0].textContent = pack.title;
+    row.children[1].textContent = blocked ?
+      'This computer or browser cannot run Chat AI (it needs WebGPU).' :
+      `${mb(size)}${ready ? ' · ready offline' : ''}`;
+    const button = row.children[2];
+    button.textContent = ready ? 'Remove' : 'Download';
+    button.className = ready ? 'remove' : '';
+    button.disabled = busy || blocked;
+    button.onclick = async () => {
+      busy = true;
+      list.querySelectorAll('button').forEach(b => {
+        b.disabled = true;
+      });
+      let failed = '';
+      try {
+        if (ready) {
+          await remove(pack);
+        } else {
+          const bar = document.createElement('progress');
+          row.append(bar);
+          row.children[1].textContent = 'Downloading… keep this page open.';
+          await download(pack, fraction => {
+            bar.value = fraction;
+          });
+        }
+      } catch (err) {
+        failed = `Could not finish (${err.message}). What was saved is kept: try again to continue.`;
+        console.error(err);
+      }
+      busy = false;
+      await render();
+      if (failed) {
+        const note = [...list.children].find(r => r.dataset.id === pack.id).children[1];
+        note.textContent = failed;
+        note.classList.add('error');
+      }
+    };
+    row.dataset.id = pack.id;
+    list.append(row);
+  }
+  if (navigator.storage && navigator.storage.estimate) {
+    const {usage, quota} = await navigator.storage.estimate();
+    document.getElementById('space').textContent = `Studio uses ${mb(usage)} here; the browser allows ${mb(quota)}.`;
+  }
+};
+await render();
+</script>
+</body></html>

@@ -224,6 +224,7 @@ class MenuBar extends React.Component {
             'handleClickRemix',
             'handleClickSave',
             'handleClickMakeApp',
+            'handleClickUseOffline',
             'handleClickSaveAsCopy',
             'handleClickPackager',
             'handleClickDesktopSettings',
@@ -281,6 +282,11 @@ class MenuBar extends React.Component {
     handleClickDesktopSettings () {
         this.props.onClickDesktopSettings();
         this.props.onRequestCloseSettings();
+    }
+    // blockml: File > Use offline… — the page for downloading AI models (static/offline/).
+    handleClickUseOffline () {
+        this.props.onRequestCloseFile();
+        window.open('/offline/', '_blank');
     }
     // blockml: File > Make an Android app… — opens BlockML's app exporter in a new tab
     // and hands it this project (only that tab, only once it says it is ready).
@@ -730,6 +736,14 @@ class MenuBar extends React.Component {
                                                 // eslint-disable-next-line max-len
                                                 description="Menu bar item that opens BlockML's Android app exporter with this project"
                                                 id="blockml.menuBar.makeApp"
+                                            />
+                                        </MenuItem>
+                                        <MenuItem onClick={this.handleClickUseOffline}>
+                                            <FormattedMessage
+                                                defaultMessage="Use offline…"
+                                                // eslint-disable-next-line max-len
+                                                description="Menu bar item that opens the page for downloading AI models for offline use"
+                                                id="blockml.menuBar.useOffline"
                                             />
                                         </MenuItem>
                                     </MenuSection>

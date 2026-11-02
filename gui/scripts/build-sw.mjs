@@ -39,6 +39,43 @@ const hash = data => crypto.createHash('sha256')
     .digest('hex')
     .slice(0, 16);
 
+// The "Use offline" page (static/offline/) lets students download these. "chat" packs
+// also need their model from Hugging Face, which WebLLM keeps in its own cache.
+const m = name => `extensions/models/${name}/`;
+const CHAT_FILES = ['extensions/chat-engine.js', m('text-potion')];
+const PACKS = [
+    {id: 'image', title: 'Image Model and Lens "what is this?"', files: [m('mobilenet-v2')]},
+    {id: 'objects', title: 'Object Detection', files: [m('coco-ssd-lite')]},
+    {id: 'face', title: 'Face', files: [m('face-detector'), m('face-mesh')]},
+    {id: 'hands', title: 'Hands', files: [m('hand-detector-lite'), m('hand-landmarks-lite')]},
+    {id: 'pose', title: 'Pose', files: [m('movenet-lightning')]},
+    {id: 'ocr', title: 'Lens: reading printed text', files: ['extensions/ocr/', m('ocr-eng')]},
+    {id: 'text', title: 'Text AI', files: [m('text-potion')]},
+    {id: 'voice', title: 'Voice', files: ['extensions/vosk.js', m('vosk-small-en')]},
+    {id: 'chat-small', title: 'Chat AI (small model)', chat: 'small', files: CHAT_FILES},
+    {id: 'chat-big', title: 'Chat AI (big model, for a strong computer)', chat: 'big', files: CHAT_FILES}
+];
+
+const modelFiles = {};
+const packs = PACKS.map(({files: prefixes, ...pack}) => {
+    const files = {};
+    let size = 0;
+    for (const prefix of prefixes) {
+        const full = path.join(BUILD, prefix);
+        for (const file of fs.statSync(full).isDirectory() ? walk(full) : [full]) {
+            const rel = path.relative(BUILD, file).split(path.sep)
+                .join('/');
+            const data = fs.readFileSync(file);
+            files[rel] = hash(data);
+            size += data.length;
+        }
+    }
+    Object.assign(modelFiles, files);
+    return {...pack, files, size};
+});
+fs.mkdirSync(path.join(BUILD, 'offline'), {recursive: true});
+fs.writeFileSync(path.join(BUILD, 'offline/packs.json'), JSON.stringify(packs));
+
 const files = {};
 let bytes = 0;
 for (const full of walk(BUILD)) {
@@ -52,9 +89,11 @@ for (const full of walk(BUILD)) {
 const sorted = Object.fromEntries(Object.keys(files).sort()
     .map(k => [k, files[k]]));
 const json = JSON.stringify(sorted);
-const version = hash(json);
+const modelsJson = JSON.stringify(modelFiles);
+const version = hash(json + modelsJson);
 
 fs.writeFileSync(path.join(BUILD, 'sw.js'),
-    `const VERSION = '${version}';\nconst PRECACHE = ${json};\n${fs.readFileSync(TEMPLATE, 'utf8')}`);
+    `const VERSION = '${version}';\nconst PRECACHE = ${json};\nconst MODEL_FILES = ${modelsJson};\n${
+        fs.readFileSync(TEMPLATE, 'utf8')}`);
 const count = Object.keys(sorted).length;
 console.log(`sw.js: ${count} files, ${(bytes / 1e6).toFixed(1)} MB kept offline, version ${version}`);

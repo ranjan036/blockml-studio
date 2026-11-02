@@ -1,10 +1,13 @@
 // BlockML Studio service worker: keeps the editor, lessons and starter projects on
 // this computer so they open without internet. scripts/build-sw.mjs puts PRECACHE
 // (site path -> content hash) and VERSION in front of this file in build/sw.js.
-// AI models are not in this list; they are big and get their own offline download.
-/* global PRECACHE, VERSION */
+// AI models are not in this list; they are big and students choose which to download on
+// the "Use offline" page (static/offline/), which saves them in MODEL_CACHE.
+/* global PRECACHE, VERSION, MODEL_FILES */
 
 const FILES = typeof PRECACHE === 'undefined' ? {} : PRECACHE;
+const MODELS = typeof MODEL_FILES === 'undefined' ? {} : MODEL_FILES;
+const MODEL_CACHE = 'studio-models';
 const CACHE_PREFIX = 'studio-shell-';
 const CACHE = CACHE_PREFIX + (typeof VERSION === 'undefined' ? 'dev' : VERSION);
 // sw.js is at the site root, so every path in FILES is relative to it.
@@ -71,6 +74,11 @@ self.addEventListener('fetch', event => {
     if (listed) {
         event.respondWith(caches.open(CACHE)
             .then(cache => cache.match(keyFor(listed)))
+            .then(res => res || fetch(request)));
+    } else if (MODELS[path]) {
+        const key = new URL(`${path}?rev=${MODELS[path]}`, BASE).href;
+        event.respondWith(caches.open(MODEL_CACHE)
+            .then(cache => cache.match(key))
             .then(res => res || fetch(request)));
     } else if (path.startsWith('js/')) {
         // Script files have a hash in their name, so an old tab's copy is still right.

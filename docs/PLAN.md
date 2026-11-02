@@ -959,3 +959,24 @@ part 3) and exporting AI games (extension files come from Studio).
 
 `scipy` is 47 MB, over Cloudflare Pages' 25 MiB file limit, so the planned hosting
 move (§15.4) needs a way to serve that file.
+
+### 15.19 Offline, part 3: choosing AI models (2026-11-02)
+
+File > "Use offline…" opens `/offline/` (`gui/static/offline/index.html`), which has
+a Download or Remove button for each AI, with its size: Image Model, Objects, Face,
+Hands, Pose, reading text, Text AI, Voice, Chat AI small (290 MB) and big (854 MB).
+`gui/scripts/build-sw.mjs` lists each pack's files in `offline/packs.json` and gives
+the service worker their hashes, and the worker answers from the `studio-models`
+cache when a file was downloaded. Chat AI also keeps WebLLM's own cache (the model
+comes from Hugging Face, not our site), so the page starts the model once to download
+it, and Remove clears those entries too. Files shared between packs stay until the
+last pack using them is removed. BlockML keeps Image folders' MobileNet after its
+first online use.
+
+Tested in headless Chrome against a local copy, clicking the real buttons, then with
+the server returning 503 and every other host blocked: the page opens, every pack's
+files load, the Text AI model loads, reading text read a test word, the small chat
+model answered a question, and Remove freed the chat cache (also after a restart).
+BlockML served all of MobileNet from its cache with the internet blocked. Not tested
+offline: the vision and voice models actually running (only their files were
+loaded), and the big chat model.
