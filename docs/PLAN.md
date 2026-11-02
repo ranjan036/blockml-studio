@@ -940,3 +940,22 @@ lesson game opened with "Open in Studio" all load with no failed requests. An
 update test changed one file: only that file (and the page itself) was
 downloaded. Still needs internet: the Scratch sprite/sound libraries (pictures
 come from Scratch's server), Weather, and AI models until part 3.
+
+### 15.18 Offline, part 2: BlockML (2026-11-01)
+
+BlockML now serves its own copy of Python instead of loading it from jsDelivr, with
+a service worker built the same way as Studio's (`scripts/build-sw.mjs` in the
+BlockML repo): 57 files, 142 MB, saved in the background on the first visit. Pyodide
+comes from the `pyodide` npm package; the 12 Python packages are downloaded at build
+time and checked against the hashes in `pyodide-lock.json`. Nunito and Blockly's
+media are local too.
+
+Tested in headless Chrome against a local copy: one visit online, then the server
+returning 503 and every other host blocked. The page and block canvas load, the real
+Python worker trains 6 scikit-learn models on iris, and nothing fails or leaves the
+computer. An update test changed one file: only that file and `sw.js` were
+downloaded. Still needs internet: Image folders (MobileNet comes from Studio, until
+part 3) and exporting AI games (extension files come from Studio).
+
+`scipy` is 47 MB, over Cloudflare Pages' 25 MiB file limit, so the planned hosting
+move (§15.4) needs a way to serve that file.
