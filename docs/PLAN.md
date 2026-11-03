@@ -980,3 +980,10 @@ model answered a question, and Remove freed the chat cache (also after a restart
 BlockML served all of MobileNet from its cache with the internet blocked. Not tested
 offline: the vision and voice models actually running (only their files were
 loaded), and the big chat model.
+
+On the live site, downloads of the Voice model (already gzip, served as
+`application/octet-stream`) sometimes stalled in Chrome and with curl when Vercel
+compressed them with Brotli: 2 of 8 in one sample, 0 of 8 uncompressed. The cause is
+not proven. So `vercel.json` now serves those files as `application/gzip`, and the
+page starts a file again after 15 s without data, up to 5 times. Tested against a
+server that stalls on purpose.

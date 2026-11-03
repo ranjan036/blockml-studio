@@ -38,6 +38,8 @@ const WEBLLM_CACHES = ['webllm/model', 'webllm/config', 'webllm/wasm'];
 const list = document.getElementById('packs');
 const packs = await (await fetch('/offline/packs.json')).json();
 const models = await caches.open(MODEL_CACHE);
+const STALL_MS = 15000;
+const MAX_ATTEMPTS = 5;
 let busy = false;
 
 const mb = bytes => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1e6))} MB`);
@@ -59,19 +61,40 @@ const isReady = async pack => await hasFiles(pack) && (!pack.chat || !!await mod
 const saveFile = async (path, rev, onBytes) => {
   const key = keyFor(path, rev);
   if (await models.match(key)) return;
-  const res = await fetch(`/${path}`, {cache: 'no-cache'});
-  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
-  const reader = res.body.getReader();
-  const chunks = [];
-  for (;;) {
-    const {done, value} = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    onBytes(value.length);
+  // Downloads sometimes stall for good, so start the file again when no data arrives.
+  for (let attempt = 1; ; attempt++) {
+    const stop = new AbortController();
+    let timer;
+    const watch = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => stop.abort(), STALL_MS);
+    };
+    let got = 0;
+    try {
+      watch();
+      const res = await fetch(`/${path}`, {cache: 'no-cache', signal: stop.signal});
+      if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+      const reader = res.body.getReader();
+      const chunks = [];
+      for (;;) {
+        watch();
+        const {done, value} = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        got += value.length;
+        onBytes(value.length);
+      }
+      // Only the type: the chunks are already decompressed, so Content-Encoding would be wrong.
+      const type = res.headers.get('content-type') || 'application/octet-stream';
+      await models.put(key, new Response(new Blob(chunks), {headers: {'content-type': type}}));
+      return;
+    } catch (err) {
+      onBytes(-got);
+      if (attempt >= MAX_ATTEMPTS) throw stop.signal.aborted ? new Error('the download stopped') : err;
+    } finally {
+      clearTimeout(timer);
+    }
   }
-  // Only the type: the chunks are already decompressed, so Content-Encoding would be wrong.
-  const type = res.headers.get('content-type') || 'application/octet-stream';
-  await models.put(key, new Response(new Blob(chunks), {headers: {'content-type': type}}));
 };
 
 const download = async (pack, show) => {

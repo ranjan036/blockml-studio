@@ -31,6 +31,15 @@
       ]
     },
     {
+      "source": "/extensions/models/vosk-small-en/model.tar.gz.(.*)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/gzip"
+        }
+      ]
+    },
+    {
       "source": "/extensions/(.*)",
       "headers": [
         {
