@@ -984,6 +984,11 @@ loaded), and the big chat model.
 On the live site, downloads of the Voice model (already gzip, served as
 `application/octet-stream`) sometimes stalled in Chrome and with curl when Vercel
 compressed them with Brotli: 2 of 8 in one sample, 0 of 8 uncompressed. The cause is
-not proven. So `vercel.json` now serves those files as `application/gzip`, and the
-page starts a file again after 15 s without data, up to 5 times. Tested against a
-server that stalls on purpose.
+not proven. The page starts a file again after 15 s without data, up to 5 times.
+(Serving them as `application/gzip` from `vercel.json` changed nothing; removed.)
+
+The same stalls hit the service worker: in one live test Chrome saved 121 of 501
+files, then all six downloads stopped and Chrome dropped the install after 5 minutes,
+while fetching all 501 from Node right after found none slow. Both service workers
+(Studio and BlockML) now start a file again after 20 s without data, up to 4 times.
+Tested against a server that stalls on purpose.
