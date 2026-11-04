@@ -40,6 +40,7 @@ import TWInvalidProjectModal from '../../containers/tw-invalid-project-modal.jsx
 
 import {STAGE_SIZE_MODES, FIXED_WIDTH, UNCONSTRAINED_NON_STAGE_WIDTH} from '../../lib/layout-constants';
 import {resolveStageSize} from '../../lib/screen-utils';
+import {PHONE_QUERY} from '../../lib/blockml-phone';
 import {Theme} from '../../lib/themes';
 
 import {isRendererSupported, isBrowserSupported} from '../../lib/tw-environment-support-prober';
@@ -179,8 +180,9 @@ const GUIComponent = props => {
         FIXED_WIDTH +
         Math.max(0, customStageSize.width - FIXED_WIDTH)
     );
-    return (<MediaQuery minWidth={unconstrainedWidth}>{isUnconstrained => {
-        const stageSize = resolveStageSize(stageSizeMode, isUnconstrained);
+    // blockml: on a phone the stage is always small, so the blocks get the room.
+    return (<MediaQuery query={PHONE_QUERY}>{isPhone => (<MediaQuery minWidth={unconstrainedWidth}>{isUnconstrained => {
+        const stageSize = isPhone ? STAGE_SIZE_MODES.small : resolveStageSize(stageSizeMode, isUnconstrained);
 
         const alwaysEnabledModals = (
             <React.Fragment>
@@ -227,12 +229,21 @@ const GUIComponent = props => {
             <Box
                 className={styles.pageWrapper}
                 dir={isRtl ? 'rtl' : 'ltr'}
-                style={{
+                style={isPhone ? null : {
                     minWidth: 1024 + Math.max(0, customStageSize.width - 480),
                     minHeight: 640 + Math.max(0, customStageSize.height - 360)
                 }}
                 {...componentProps}
             >
+                {/* blockml: shown by CSS only on a phone held upright */}
+                <div className={styles.rotateNotice}>
+                    <div className={styles.rotateIcon}>{'📱↻'}</div>
+                    <FormattedMessage
+                        defaultMessage="Turn your phone sideways to code."
+                        description="Shown on a phone held upright: the editor needs landscape"
+                        id="blockml.gui.rotatePhone"
+                    />
+                </div>
                 {alwaysEnabledModals}
                 {telemetryModalVisible ? (
                     <TelemetryModal
@@ -452,7 +463,7 @@ const GUIComponent = props => {
                 <DragLayer />
             </Box>
         );
-    }}</MediaQuery>);
+    }}</MediaQuery>)}</MediaQuery>);
 };
 
 GUIComponent.propTypes = {

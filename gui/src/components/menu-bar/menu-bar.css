@@ -242,3 +242,18 @@
     padding: 0 0.75rem 0 0.5rem;
     cursor: default;
 }
+
+/* blockml: phone (see lib/blockml-phone.js): keep the menus and the project name, drop the rest. */
+@media (pointer: coarse) and (max-height: 500px), (pointer: coarse) and (max-width: 500px) {
+    .blockml-brand,
+    .divider,
+    .feedback-link {
+        display: none;
+    }
+    .menu-bar {
+        gap: 0.25rem;
+    }
+    .title-field-growable {
+        min-width: 6rem;
+    }
+}

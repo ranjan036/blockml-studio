@@ -992,3 +992,41 @@ files, then all six downloads stopped and Chrome dropped the install after 5 min
 while fetching all 501 from Node right after found none slow. Both service workers
 (Studio and BlockML) now start a file again after 20 s without data, up to 4 times.
 Tested against a server that stalls on purpose.
+
+### 15.20 Squat counter starter (2026-11-04)
+
+Starter 8 of §3.6, the last one: `starters/squat-counter.sb3` (Hand & Pose), linked
+from the Game 4 lesson card with a challenge. It uses Game 4's calibration (stand
+still, remember your nose height, C measures again) plus a `state` variable: `up`
+becomes `down` when the nose is `how low` (60) below standing, and a squat counts
+only when you come back above a third of that. With two heights, wobbling at the
+bottom can't count twice. Every 10 squats the coach cheers and the goal goes up.
+The cheer uses "say", not "say for 2 seconds", so the loop keeps counting.
+
+Tested in the real editor (local build) with the pose model's answer scripted and
+everything else real: it waits until it sees you, measures, counts full squats but
+not half squats, a wobble at the bottom counts once, out of view nothing counts,
+cheers at 10, keeps counting, and C re-measures. Not tested with a real person on
+camera: `how low` = 60 is a guess to tune in class, and it depends on how far the
+student stands from the camera.
+
+### 15.21 Studio on a phone (2026-11-04)
+
+Many students have no laptop, but CODE AI wants little phone use, so phones get a
+practice layout, not a phone-first design. Before: the editor kept its 1024 x 640
+minimum, so a phone showed a slice of it and the stage was off screen. Now a "phone"
+(`lib/blockml-phone.js`: a touch screen with a short side under 500 px):
+
+- Upright: a "Turn your phone sideways to code" screen.
+- Sideways: no minimum size; the stage is always small (240 px) and its size buttons
+  are hidden; the menu bar drops the product name, divider and BlockML button; shorter
+  tabs; no backpack; the stage column scrolls down to the sprite list.
+- scratch-blocks' number pad (5 rows of 48 px keys) ran off the screen, so 0 and delete
+  could not be reached. On a phone it is two rows: 1–7, then 8 9 0 . − delete.
+
+The laptop layout is unchanged (same 1366 x 768 screenshot measurements as the live
+site). Tested in headless Chrome as a phone (873 x 393 and 873 x 340, the height with
+Chrome's address bar) with real touch events: drag a block in, tap it to run it, change
+a number with the number pad, tap a category, the green flag, the File menu (fits), and
+scroll to the sprite list. The Costumes tab and the full-screen stage fit. Not yet tried
+on a real phone; the paint editor is cramped. Next: a break timer on phones.

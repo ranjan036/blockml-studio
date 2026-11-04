@@ -324,6 +324,103 @@ $fade-out-distance: 15px;
     overflow: hidden;
 }
 
+/* blockml: phone (see lib/blockml-phone.js). Upright: ask to turn sideways. */
+.rotate-notice {
+    display: none;
+}
+
+@media (pointer: coarse) and (max-width: 500px) and (orientation: portrait) {
+    .rotate-notice {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        padding: 2rem;
+        background: $ui-primary;
+        color: $text-primary;
+        font-size: 1.25rem;
+        font-weight: bold;
+        text-align: center;
+    }
+    .rotate-icon {
+        font-size: 3rem;
+    }
+}
+
+/* blockml: phone held sideways: let the editor shrink, and use shorter tabs. */
+@media (pointer: coarse) and (max-height: 500px), (pointer: coarse) and (max-width: 500px) {
+    .editor-wrapper {
+        flex-basis: 0;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+    .tab-list {
+        height: 2rem;
+    }
+    .tab {
+        padding: 0 0.5rem;
+    }
+    /* The sprite list keeps its normal height; the stage column scrolls to it. */
+    .body-wrapper {
+        min-height: 0;
+    }
+    .stage-and-target-wrapper {
+        overflow-y: auto;
+        min-height: 0;
+        /* A scrolling box no longer takes its width from its content, so give it one. */
+        flex-basis: auto;
+        flex-shrink: 0;
+    }
+    .target-wrapper {
+        flex-basis: auto;
+        flex-shrink: 0;
+        min-height: 17rem;
+    }
+    /*
+        scratch-blocks' number pad (5 rows of 48px keys) ran off the bottom of a phone held
+        sideways. Two wide rows instead, like a keyboard's number row:
+        1 2 3 4 5 6 7 / 8 9 0 . - delete. Keys are placed by their label, because a field
+        that allows no minus sign leaves that key out.
+    */
+    :global(.blocklyDropDownContent:has(> .blocklyNumPadButton)) {
+        display: grid;
+        grid-template-columns: repeat(7, 42px);
+        width: auto !important;
+    }
+    :global(.blocklyNumPadButton) {
+        float: none;
+        width: 38px;
+        height: 38px;
+        margin: 2px;
+        order: 20;
+    }
+    :global(.blocklyNumPadButton[title="1"]) { order: 1; }
+    :global(.blocklyNumPadButton[title="2"]) { order: 2; }
+    :global(.blocklyNumPadButton[title="3"]) { order: 3; }
+    :global(.blocklyNumPadButton[title="4"]) { order: 4; }
+    :global(.blocklyNumPadButton[title="5"]) { order: 5; }
+    :global(.blocklyNumPadButton[title="6"]) { order: 6; }
+    :global(.blocklyNumPadButton[title="7"]) { order: 7; }
+    :global(.blocklyNumPadButton[title="8"]) { order: 8; }
+    :global(.blocklyNumPadButton[title="9"]) { order: 9; }
+    :global(.blocklyNumPadButton[title="0"]) { order: 10; }
+    :global(.blocklyNumPadButton[title="."]) { order: 11; }
+    :global(.blocklyNumPadButton[title="-"]) { order: 12; }
+    /* the empty spacer key that sits next to delete */
+    :global(.blocklyNumPadButton[title=" "]) {
+        display: none;
+    }
+    /* delete: always the last key */
+    :global(.blocklyNumPadButton:last-child) {
+        grid-column: 7;
+        grid-row: 2;
+    }
+}
+
 /* when in the browser's fullscreen mode, we need to put our own background to avoid just having black */
 .fullscreen-background {
     position: absolute;

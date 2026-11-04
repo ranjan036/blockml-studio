@@ -1,6 +1,13 @@
 @import "../../css/units.css";
 @import "../../css/colors.css";
 
+/* blockml: phone (see lib/blockml-phone.js): no room for the backpack. */
+@media (pointer: coarse) and (max-height: 500px), (pointer: coarse) and (max-width: 500px) {
+    .backpack-container {
+        display: none;
+    }
+}
+
 .backpack-container {
     flex-shrink: 1;
     position: relative;

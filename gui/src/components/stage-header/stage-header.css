@@ -91,3 +91,10 @@
     /* relied on by addons */
     display: flex;
 }
+
+/* blockml: phone (see lib/blockml-phone.js): the stage is always small, so no size buttons. */
+@media (pointer: coarse) and (max-height: 500px), (pointer: coarse) and (max-width: 500px) {
+    .stage-size-toggle-group {
+        display: none;
+    }
+}
