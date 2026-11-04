@@ -550,6 +550,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     objective: 'I can use gravity and conditions, and use pose detection to control my character with my own body.',
     coding: ['gravity (a speed variable)', 'if', 'and / or', 'repeat until', 'coordinates', 'costume number', 'sound effects'],
     ai: ['pose detection', 'key points on the body', 'calibration'],
+    extraButtons: '<a class="btn light" data-project="../../starters/squat-counter.sb3" target="_blank" rel="noopener">🏋 Squat counter</a>',
     materials: ['Laptop with a webcam', 'Clear, safe space to jump; the whole upper body in the camera'],
     sessions: [
       {
@@ -593,6 +594,7 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
       'Add a flying bird that you must NOT jump over (duck with the down arrow).',
       'Show the best score of the day in a second variable.',
       'AI version: a double-high jump when both wrists are above your nose.',
+      'Open the <b>Squat counter</b> (button above): it uses the same nose-height calibration, plus a <code>state</code> variable so one squat counts once. Why does standing up use a different height than going down?',
     ],
     app: [
       'Save, then open blockml.codeai.ltd → <b>Export Scratch Games to App</b> and add the project.',

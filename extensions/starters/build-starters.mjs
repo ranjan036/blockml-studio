@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Project, op, bool, v } from './sb3.mjs';
+import { pose, sounds, startSound, waitUntil, sayFor, whenKey, sub, lt } from './blocks.mjs';
 
 const BASE = process.env.STARTER_BASE || 'https://studio.blockml.codeai.ltd/extensions/';
 const OUT = path.join('..', 'gui', 'static', 'starters');
@@ -605,4 +606,76 @@ const robot = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" hei
     ),
   ]], { x: 0, y: -60 });
   write('weather-helper.sb3', p);
+}
+
+// ---- 14. Squat counter (Pose): a state machine with variables ------------------------
+// Stand still to measure your nose height, then squat. The AI only reports where your
+// nose is; the "state" variable remembers whether you are up or down, so one squat
+// counts once. Two different heights (down, then back up) stop a wobble counting twice.
+
+{
+  const p = new Project();
+  p.useExtension('blockmlHands', BASE + 'hands.js');
+  p.variable('squats', 0);
+  p.variable('state', 'up');
+  p.variable('standing', 0);
+  p.variable('drop', 0);
+  p.variable('how low', 60);
+  p.variable('goal', 10);
+  ['squats', 'state', 'drop', 'how low'].forEach((name, i) => p.showVariable(name, { x: 5, y: 5 + i * 27 }));
+  p.addStage([p.costume('white', WHITE, [240, 180])]);
+  const coach = (face) => `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="110" viewBox="0 0 100 110">
+<rect x="46" y="2" width="8" height="16" fill="#475569"/><circle cx="50" cy="6" r="6" fill="#22c55e"/>
+<rect x="10" y="18" width="80" height="70" rx="16" fill="#dcfce7" stroke="#15803d" stroke-width="4"/>
+<rect x="22" y="34" width="56" height="30" rx="10" fill="#14532d"/>${face}
+<rect x="30" y="92" width="40" height="14" rx="5" fill="#86efac"/></svg>`;
+  const eyes = '<circle cx="38" cy="49" r="7" fill="#4ade80"/><circle cx="62" cy="49" r="7" fill="#4ade80"/>';
+  const happy = '<path d="M34 46 Q38 40 42 46 M58 46 Q62 40 66 46" fill="none" stroke="#4ade80" stroke-width="4" stroke-linecap="round"/><path d="M38 54 Q50 62 62 54" fill="none" stroke="#4ade80" stroke-width="4" stroke-linecap="round"/>';
+  const measure = [
+    sayFor('Stand still where the camera can see you…', 2),
+    set('standing', pose.point('y', 'nose')),
+    set('state', 'up'),
+    say('Ready! Squat down.'),
+  ];
+  p.addSprite('Coach', [p.costume('counting', coach(eyes), [50, 55]), p.costume('cheering', coach(happy), [50, 55])], [
+    [
+      flag,
+      pose.camera('on'),
+      pose.transparency(30),
+      { op: 'blockmlHands_setOverlay', fields: { MODE: 'points' } },
+      costume('counting'),
+      set('squats', 0),
+      say('Step back until the camera sees you…'),
+      waitUntil(pose.visible()),
+      ...measure,
+      forever(
+        ifElse(pose.visible(),
+          [
+            // How far your nose is below where it was when you stood still.
+            set('drop', sub(v('standing'), pose.point('y', 'nose'))),
+            // up → down: you went low enough.
+            ifThen(and(eq(v('state'), 'up'), gt(v('drop'), v('how low'))),
+              set('state', 'down'),
+              say('Down! Now stand up.')),
+            // down → up: you came most of the way back. Only now does it count.
+            ifThen(and(eq(v('state'), 'down'), lt(v('drop'), div(v('how low'), 3))),
+              set('state', 'up'),
+              change('squats', 1),
+              costume('counting'),
+              startSound('pop'),
+              say(join('Squats: ', v('squats')))),
+            // "say", not "say for 2 seconds": the loop must keep watching while it cheers.
+            ifThen(eq(v('squats'), v('goal')),
+              costume('cheering'),
+              startSound('win'),
+              say(join(v('goal'), ' squats! Great work!')),
+              change('goal', 10)),
+          ],
+          [say("I can't see you. Step back a little.")]),
+      ),
+    ],
+    // Moved the laptop, or a different student? Measure again.
+    [whenKey('c'), costume('counting'), ...measure],
+  ], { x: 150, y: -100, sounds: sounds(p, 'pop', 'win') });
+  write('squat-counter.sb3', p);
 }
