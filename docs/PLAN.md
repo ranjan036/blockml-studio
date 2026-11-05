@@ -1043,3 +1043,9 @@ headless Chrome as a phone (873 x 340) with real touch events: a whole pipeline
 dragging blocks, Run gave "Accuracy: 0.9667", and the export dialog fits. The laptop
 layout measures the same as the live site. Known gap: Image folders picks a folder with
 `<input webkitdirectory>`, which Android Chrome does not support.
+
+BlockML can be installed as an app like Studio (Chrome or Edge: Install app; on a phone:
+Add to home screen): `public/manifest.webmanifest` (standalone, starts at `/`) and our
+own icons (`public/icons/`, the header's BlockML mark on navy, PNGs rendered from
+`icon.svg`). Chrome's installability check passes, and the manifest and icons are in
+the offline list, so the installed app opens without internet.
