@@ -1029,4 +1029,17 @@ site). Tested in headless Chrome as a phone (873 x 393 and 873 x 340, the height
 Chrome's address bar) with real touch events: drag a block in, tap it to run it, change
 a number with the number pad, tap a category, the green flag, the File menu (fits), and
 scroll to the sprite list. The Costumes tab and the full-screen stage fit. Not yet tried
-on a real phone; the paint editor is cramped. Next: a break timer on phones.
+on a real phone; the paint editor is cramped. (A break timer on phones was discussed;
+not wanted for now.)
+
+### 15.22 BlockML (data science) on a phone (2026-11-05)
+
+Same rule as Studio (`src/utils/phone.js` in the BlockML repo): upright shows "Turn
+your phone sideways to build"; sideways the header is one short row (no logo or
+tagline), the block area is the screen height minus the header and the Run row, and
+the category list is smaller. Tapping Run scrolls down to the output. Tested in
+headless Chrome as a phone (873 x 340) with real touch events: a whole pipeline
+(Choose Dataset → Select Input/Output → Split → Select Model → Fit → Score) built by
+dragging blocks, Run gave "Accuracy: 0.9667", and the export dialog fits. The laptop
+layout measures the same as the live site. Known gap: Image folders picks a folder with
+`<input webkitdirectory>`, which Android Chrome does not support.
