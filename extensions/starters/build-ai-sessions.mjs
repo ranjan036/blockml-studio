@@ -898,7 +898,8 @@ card({
   objective: 'I can explain the five core AI words — Example, Label, Train, Predict, Confidence — using projects I built.',
   ai: ['Example', 'Label', 'Train', 'Predict', 'Confidence'],
   projects: [],
-  materials: ['Students\' own saved projects from Games 2, 5 and AI 9–12', 'AI Vocabulary Cards'],
+  extraButtons: '<a class="btn ai" href="../../printables/vocabulary" target="_blank" rel="noopener">🖨 Print AI vocabulary cards</a>',
+  materials: ['Students\' own saved projects from Games 2, 5 and AI 9–12', 'AI Vocabulary Cards (button above): one page per pair'],
   steps: [
     'In pairs, each student opens one project they built and explains it using all five words.',
     '“Where are the examples? Who gave the labels? When did it train? What does it predict? How sure was it?”',

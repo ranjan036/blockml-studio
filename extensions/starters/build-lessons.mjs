@@ -201,11 +201,11 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     objective: "I can give an AI examples with labels so it learns to sort things the way I want — and I can test it to see when it works and when it doesn't.",
     coding: ['variables', 'scoring', 'random positions', 'if', 'coordinates', 'and', 'comparing text', 'mouse x / y', 'glide', 'sounds', 'backdrops'],
     ai: ['Example', 'Label', 'Train', 'Predict', 'confidence', 'image classifier'],
-    extraButtons: '<a class="btn light" href="cards" target="_blank" rel="noopener">🖨 Print apple cards</a>',
+    extraButtons: '<a class="btn light" href="cards" target="_blank" rel="noopener">🖨 Print apple cards</a> <a class="btn light" href="../printables/vocabulary" target="_blank" rel="noopener">🖨 Print AI vocabulary cards</a>',
     materials: [
       'Laptop with a webcam (one per pair is fine)',
       'Printed apple cards (button above), or real good and bruised apples',
-      'AI Vocabulary Card: Example, Label, Train, Predict',
+      'AI Vocabulary Cards (button above): Example, Label, Train, Predict, Confidence',
     ],
     sessions: [
       {
@@ -767,8 +767,8 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
     objective: 'I can customize an AI model to sort friend vs. foe ships — a harder version of what I did in Game 2.',
     coding: ['multiple sprites', 'bullets (clones)', 'lives', 'broadcast (and wait)', '"for this sprite only" variables', 'if / else chains', 'point towards / distance to', 'direction', 'lists (insert, delete, show)', 'sounds'],
     ai: ['multi-class classifier', 'Example', 'Label', 'Train', 'Predict', 'confidence'],
-    extraButtons: '<a class="btn light" href="cards" target="_blank" rel="noopener">🖨 Print ship cards</a>',
-    materials: ['Laptop with a webcam', 'Printed Friend / Foe cards (button above), including the mystery ship', 'AI Vocabulary Card — reinforce, don\'t reteach'],
+    extraButtons: '<a class="btn light" href="cards" target="_blank" rel="noopener">🖨 Print ship cards</a> <a class="btn light" href="../printables/vocabulary" target="_blank" rel="noopener">🖨 Print AI vocabulary cards</a>',
+    materials: ['Laptop with a webcam', 'Printed Friend / Foe cards (button above), including the mystery ship', 'AI Vocabulary Cards (button above) — reinforce, don\'t reteach'],
     sessions: [
       {
         title: 'Session 10: build the shooter',

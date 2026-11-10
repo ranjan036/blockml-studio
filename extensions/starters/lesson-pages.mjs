@@ -100,7 +100,7 @@ export function indexPage(cards) {
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
 <section><div class="kicker" style="color:var(--navy)">Sessions 18–37</div><h2><a href="ai/" style="color:inherit">AI sessions (AI 1–20)</a></h2><p class="small">One project and a lesson card for each pure-AI session.</p></section>
-<section><h2>Printables</h2><p class="small">For the Codes &amp; Cards blocks: <a href="printables/cards">recognition cards</a> · <a href="printables/tags">AprilTags</a> · <a href="printables/qr">QR codes</a></p></section>
+<section><h2>Printables</h2><p class="small"><a href="printables/vocabulary">AI Vocabulary Cards</a> (Example, Label, Train, Predict, Confidence) · For the Codes &amp; Cards blocks: <a href="printables/cards">recognition cards</a> · <a href="printables/tags">AprilTags</a> · <a href="printables/qr">QR codes</a></p></section>
 <p class="small"><a href="../editor">Open BlockML Studio</a></p></main></body></html>`;
 }
 
