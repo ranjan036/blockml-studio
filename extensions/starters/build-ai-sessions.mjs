@@ -490,7 +490,8 @@ card({
               reply(joinAll('In ', v('city'), ' it is ', weather.now('temperature (°C)'), ' degrees, ', weather.words(), '.')),
               reply('Sorry, I can\'t get the weather without the internet.'))],
             [ifElse(heard('joke'),
-              reply(listItem('jokes', random(1, listLength('jokes')))),
+              // Pick once, then say and speak the same joke.
+              [set('joke', listItem('jokes', random(1, listLength('jokes')))), ...reply(v('joke'))],
               [ifElse(heard('timer'),
                 [...reply('Timer started: 10 seconds.'), wait(10), startSound('win'), ...reply('Time is up!')],
                 reply('Sorry, I don\'t know that yet. You can teach me: add an if block!'))])])])]),
