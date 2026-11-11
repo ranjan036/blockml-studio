@@ -16,9 +16,9 @@ describe('CODE AI board firmware', () => {
   beforeAll(() => { uno = boot(); });
 
   it('says hello when it starts, and which firmware it is', () => {
-    expect(uno.serialOut).toContain('CODEAI 1 ready');
+    expect(uno.serialOut).toContain('CODEAI 2 ready');
     uno.serialOut = '';
-    expect(uno.ask('1 V')).toBe('1 CODEAI 1');
+    expect(uno.ask('1 V')).toBe('1 CODEAI 2');
   });
 
   it('turns an LED on and off (Robotics 1: Blink)', () => {
@@ -71,6 +71,17 @@ describe('CODE AI board firmware', () => {
     }
   });
 
+  it('PWM works again on pin 9 after a servo used it (a motor speed pin after a servo)', () => {
+    expect(uno.ask('40 W 9 200')).toBe('40 ok'); // the servo test left a servo on pin 9
+    uno.history[9] = [];
+    uno.run(60);
+    const h = uno.history[9].slice(-41);
+    let high = 0, total = 0;
+    for (let i = 1; i < h.length; i++) { const d = h[i].t - h[i - 1].t; total += d; if (h[i - 1].high) high += d; }
+    expect(Math.abs(high / total - 200 / 255)).toBeLessThan(0.03);
+    uno.ask('41 W 9 0');
+  });
+
   it('measures distance with an HC-SR04 (Robotics 5)', () => {
     let cm = 25;
     uno.addUltrasonic(7, 6, () => cm);
@@ -87,6 +98,20 @@ describe('CODE AI board firmware', () => {
     expect(Math.abs(Number(uno.ask('20 A 14').split(' ')[1]) - 300)).toBeLessThanOrEqual(2);
     uno.setAnalog(14, 900);
     expect(Math.abs(Number(uno.ask('21 A 14').split(' ')[1]) - 900)).toBeLessThanOrEqual(2);
+  });
+
+  it('plays a tone on a buzzer and stops it (tone / noTone)', () => {
+    expect(uno.ask('30 T 8 1000')).toBe('30 ok');
+    const start = uno.history[8].length;
+    uno.run(50);
+    const h = uno.history[8].slice(start);
+    const rises = h.filter((e) => e.high).length;
+    expect(rises).toBeGreaterThan(45); // 1000 Hz for 50 ms ≈ 50 cycles
+    expect(rises).toBeLessThan(55);
+    expect(uno.ask('31 T 8 0')).toBe('31 ok');
+    const after = uno.history[8].length;
+    uno.run(20);
+    expect(uno.history[8].length - after).toBeLessThanOrEqual(1);
   });
 
   it('turns every output off when the project stops', () => {

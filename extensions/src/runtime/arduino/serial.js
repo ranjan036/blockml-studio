@@ -100,18 +100,23 @@ export class BoardClient {
     p.resolve(m[2]);
   }
 
-  /** Waits for the firmware to say it is ready, or asks it. True if it is ours. */
+  /**
+   * Waits for the firmware to say it is ready, or asks it. Returns the CODE AI firmware's
+   * version (1, 2, …), or 0 if the board runs something else (or nothing).
+   */
   async hello() {
+    const version = (text) => { const m = /^CODEAI (\d+)/.exec(text || ''); return m ? Number(m[1]) : 0; };
     const ready = new Promise((resolve) => {
-      const check = (line) => (/^CODEAI 1 ready/.test(line) ? resolve(true) : this.lineWaiters.push(check));
+      const check = (line) => (/^CODEAI \d+ ready/.test(line) ? resolve(version(line)) : this.lineWaiters.push(check));
       this.lineWaiters.push(check);
-      setTimeout(() => resolve(false), 3000);
+      setTimeout(() => resolve(0), 3000);
     });
-    if (await ready) return true;
+    const v = await ready;
+    if (v) return v;
     try {
-      return (await this.send('V', 600)) === 'CODEAI 1';
+      return version(await this.send('V', 600));
     } catch {
-      return false;
+      return 0;
     }
   }
 

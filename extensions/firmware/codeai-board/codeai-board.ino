@@ -4,7 +4,7 @@
 //
 // Protocol: 115200 baud, one line per command, one line per answer.
 //   request  "<id> <cmd> <args...>\n"     answer "<id> <value>\n"
-//   V                  -> "CODEAI 1"            (which firmware is this?)
+//   V                  -> "CODEAI 2"            (which firmware is this?)
 //   P pin mode         -> "ok"   pinMode: 0 INPUT, 1 OUTPUT, 2 INPUT_PULLUP
 //   D pin value        -> "ok"   digitalWrite (0 or 1)
 //   W pin value        -> "ok"   analogWrite (0-255, PWM pins 3 5 6 9 10 11)
@@ -12,9 +12,10 @@
 //   R pin              -> "0"/"1" digitalRead
 //   A pin              -> 0-1023 analogRead (pin 14-19 = A0-A5)
 //   U trig echo        -> cm     HC-SR04 distance, one decimal; 0 = no echo
+//   T pin hz           -> "ok"   tone() on a buzzer (31-20000 Hz); 0 = noTone() (one pin at a time)
 //   Z                  -> "ok"   all outputs LOW (the project stopped)
 // Pins 0 and 1 carry the USB serial, so they are refused ("err pin").
-// When it starts, the board says "CODEAI 1 ready".
+// When it starts, the board says "CODEAI 2 ready".
 #include <Servo.h>
 
 const int SERVO_SLOTS = 4;
@@ -37,10 +38,19 @@ int servoFor(int pin) {
   return -1;
 }
 
+// The Servo library takes over Timer1, which also makes PWM on pins 9 and 10. When the
+// last servo is gone, give Timer1 back its Arduino settings so analogWrite(9/10) works again.
 void stopServo(int pin) {
+  bool stopped = false;
   for (int i = 0; i < SERVO_SLOTS; i++) {
-    if (servoPin[i] == pin) { servos[i].detach(); servoPin[i] = -1; }
+    if (servoPin[i] == pin) { servos[i].detach(); servoPin[i] = -1; stopped = true; }
   }
+  if (!stopped) return;
+  for (int i = 0; i < SERVO_SLOTS; i++) if (servoPin[i] >= 0) return;
+  TIMSK1 &= ~_BV(OCIE1A);           // the Servo library leaves its interrupt on after detach()
+  TCCR1A = _BV(WGM10);              // 8-bit phase-correct PWM, as init() sets it
+  TCCR1B = _BV(CS11) | _BV(CS10);   // prescaler 64 (490 Hz)
+  TCNT1 = 0;                        // the servo left it above 255: it would count to 65535 first
 }
 
 void makeOutput(int pin) {
@@ -73,10 +83,10 @@ void handle(char *s) {
   Serial.print(' ');
   switch (cmd) {
     case 'V':
-      Serial.println(F("CODEAI 1"));
+      Serial.println(F("CODEAI 2"));
       return;
     case 'Z':
-      for (int p = 2; p < 20; p++) if (isOutput[p]) digitalWrite(p, LOW);
+      for (int p = 2; p < 20; p++) if (isOutput[p]) { noTone(p); digitalWrite(p, LOW); }
       Serial.println(F("ok"));
       return;
   }
@@ -115,6 +125,12 @@ void handle(char *s) {
       if (pin < 14) { Serial.println(F("err pin")); break; }
       Serial.println(analogRead(pin - 14));
       break;
+    case 'T':
+      makeOutput(pin);
+      if (b <= 0) noTone(pin);
+      else tone(pin, (unsigned int)constrain(b, 31, 20000));
+      Serial.println(F("ok"));
+      break;
     case 'U':
       if (!validPin(b)) { Serial.println(F("err pin")); break; }
       Serial.println(distanceCm(pin, (int)b), 1);
@@ -126,7 +142,7 @@ void handle(char *s) {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println(F("CODEAI 1 ready"));
+  Serial.println(F("CODEAI 2 ready"));
 }
 
 void loop() {

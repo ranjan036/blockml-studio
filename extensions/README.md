@@ -17,7 +17,7 @@ models are served by the studio site itself.
 | **Lens** (`src/lens.js`, id `blockmlLens`) | recognise what the camera sees · what the camera sees · confidence of what the camera sees · [name/confidence] of guess (n) · read text in camera image · text read · number of words read · word (n) of text read · confidence of text read — "what is this?" (MobileNet's 1,000 ImageNet things, the Image Model's model) and printed English text (Tesseract.js, `ocr/` + `models/ocr-eng/`) |
 | **Chat AI** (`src/chat.js`, id `blockmlChat`) | ask chat AI [ ] and wait · chat AI's answer · answer was blocked by the safety check? · set chat AI's role to [ ] · forget the conversation · start the chat AI · chat AI is ready? · chat AI download % · use the [small/big] chat model — a chatbot on the graphics chip (WebLLM + WebGPU; Qwen2.5 0.5B by default, 1.5B on request), with our safety check |
 | **Weather** (`src/weather.js`, id `blockmlWeather`) | get the weather for [place] · weather place · [temperature/humidity/wind speed/cloud cover/rain] now · weather now · [measure] in (n) hours · weather in (n) hours · rain in the next (n) hours? · weather is ready? · weather problem — real forecasts (MET Norway via `/api/weather`), places from an offline city list |
-| **Arduino** (`src/arduino.js`, id `blockmlArduino`) | buttons: Connect Arduino board · Show board · Show Arduino C++ · set up pin (8) as [LED/red/yellow/green/white LED/buzzer/output/flame sensor/button/light sensor (LDR)/input/input pull-up] · digital write pin (8) to [HIGH/LOW] · analog write (PWM) pin (9) value (128) · servo on pin (9) to (90) degrees · digital read pin (2) · analog read pin (A0) · distance in cm: Trig (7) Echo (6) · Serial print [ ] · real board connected? — an Arduino Uno over USB (Web Serial, Chrome or Edge) running the CODE AI firmware, or a virtual board; see below |
+| **Arduino** (`src/arduino.js`, id `blockmlArduino`) | buttons: Connect Arduino board · Show board · Show Arduino C++ · set up pin (8) as [LEDs/buzzer/vibration motor/pump-relay/output/button/flame/PIR/tilt/input/input pull-up/LDR/potentiometer/soil/thermistor/gas/water-level/line sensor] · digital write pin to [HIGH/LOW] · analog write (PWM) · servo on pin to (90) degrees · play tone (440) Hz on pin · stop tone · set up motor [A/B]: speed pin, direction pins · motor [A/B] [forward/backward/stop] at speed (200) · digital read · analog read · distance in cm: Trig Echo · millis · map (v) from (0)–(1023) to (0)–(255) · Serial print · real board connected? — an Arduino Uno over USB (Web Serial, Chrome or Edge) running the CODE AI firmware, or a virtual board; see below |
 | All vision | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
 
 Design rule: the AI blocks are the **senses** (numbers, names, yes/no); the
@@ -206,3 +206,10 @@ helper. Every lesson program is compiled with arduino-cli in the tests.
   plus a JS bootloader (`test/sim/fake-serial.mjs`); `scripts/board-test.mjs COM5`
   installs and checks the firmware on a real Uno with nothing wired.
 - Phone apps can't use USB, so the app exporter refuses Arduino projects with that reason.
+- C++ also covers My Blocks (→ `void` functions with `int`/`bool` parameters), `millis()`
+  (variables that hold it become `unsigned long`), `map()`, `tone()`/`noTone()`, motor
+  drivers (named `MOTOR_A_EN/IN1/IN2` pins, three lines per direction), `randomSeed()` on a
+  free analog pin when "pick random" is used, and "stop this script" → `return;`.
+- Firmware 2 adds `T pin hz` (tone; 0 = noTone); Studio asks to update older boards. After the
+  last servo is detached it gives Timer1 back to `analogWrite` (pins 9/10), switching off the
+  Servo library's leftover interrupt and resetting the counter.

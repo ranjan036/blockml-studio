@@ -4,9 +4,12 @@
 import { BoardModel, Panel } from './board.js';
 import { BoardClient, webLink } from './serial.js';
 import { parseHex, upload } from './stk500.js';
-import { generate, pinNumber } from './cpp.js';
+import { generate, pinNumber, isInputPart } from './cpp.js';
 
 export { generate, pinNumber, parseHex };
+
+// The CODE AI firmware this Studio needs (firmware/codeai-board: 2 added tone()).
+const FIRMWARE_VERSION = 2;
 
 export function createArduino(vm, { base }) {
   const model = new BoardModel();
@@ -55,8 +58,8 @@ export function createArduino(vm, { base }) {
       },
     });
     await c.open();
-    const ours = await c.hello();
-    return { c, ours };
+    const version = await c.hello();
+    return { c, version };
   }
 
   async function connect(p = null, quiet = false) {
@@ -73,10 +76,14 @@ export function createArduino(vm, { base }) {
       if (client) await client.close();
       client = null;
       if (!quiet) { panel.show(); panel.setMode('virtual', 'Connecting… the board restarts.'); }
-      const { c, ours } = await openClient(p);
-      if (!ours) {
+      const { c, version } = await openClient(p);
+      if (version < FIRMWARE_VERSION) {
         await c.close();
-        if (!quiet) panel.setMode('problem', 'This board does not have the CODE AI program yet (or the Arduino IDE replaced it). Press "Prepare board" once.');
+        if (!quiet) {
+          panel.setMode('problem', version
+            ? 'This board has an older CODE AI program. Press "Prepare board" to update it (3 seconds).'
+            : 'This board does not have the CODE AI program yet (or the Arduino IDE replaced it). Press "Prepare board" once.');
+        }
         return;
       }
       client = c;
@@ -142,7 +149,7 @@ export function createArduino(vm, { base }) {
     panel.codeWindow(code, unsupported);
   }
 
-  const modeFor = (part) => (part === 'input pull-up' ? 2 : ['flame sensor', 'button', 'input', 'light sensor (LDR)'].includes(part) ? 0 : 1);
+  const modeFor = (part) => (part === 'input pull-up' ? 2 : isInputPart(part) ? 0 : 1);
 
   // Writes do not wait for the board unless many are waiting (so loops stay fast).
   function send(command) {
@@ -163,7 +170,8 @@ export function createArduino(vm, { base }) {
     }
   }
 
-  vm.runtime.on('PROJECT_START', () => { hiddenByUser = false; });
+  let startTime = performance.now();
+  vm.runtime.on('PROJECT_START', () => { hiddenByUser = false; startTime = performance.now(); });
   vm.runtime.on('PROJECT_STOP_ALL', () => {
     model.reset(false);
     boardSpriteL(false);
@@ -229,6 +237,36 @@ export function createArduino(vm, { base }) {
     print(text) {
       model.print(text);
       touch();
+    },
+    /** Milliseconds since the green flag (like millis() since the board started). */
+    millis: () => Math.floor(performance.now() - startTime),
+    tone(pin, hz) {
+      model.tone(pin, hz);
+      touch();
+      return send(`T ${pin} ${hz > 0 ? Math.round(hz) : 0}`);
+    },
+    setupMotor(name, en, in1, in2) {
+      model.setupMotor(name, en, in1, in2);
+      touch();
+      for (const p of [en, in1, in2]) send(`P ${p} 1`);
+      return undefined;
+    },
+    /** dir 1 forward, -1 backward, 0 stop; speed 0-255 on the driver's enable pin. */
+    runMotor(name, dir, speed) {
+      const m = model.motors.get(name);
+      if (!m) {
+        if (!model.serial.includes(`Set up motor ${name} first.`)) model.print(`Set up motor ${name} first.`);
+        touch();
+        return undefined;
+      }
+      const sp = dir ? Math.max(0, Math.min(255, Math.round(speed))) : 0;
+      model.write(m.in1, dir > 0);
+      model.write(m.in2, dir < 0);
+      model.pwm(m.en, sp);
+      touch();
+      send(`D ${m.in1} ${dir > 0 ? 1 : 0}`);
+      send(`D ${m.in2} ${dir < 0 ? 1 : 0}`);
+      return send(`W ${m.en} ${sp}`);
     },
   };
 }

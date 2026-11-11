@@ -73,10 +73,10 @@ const ask = async (id, cmd) => {
   const m = await waitFor(new RegExp(`${id} ([^\\r\\n]*)\\r?\\n`), 1000);
   return [m[1], performance.now() - t];
 };
-await waitFor(/CODEAI 1 ready/);
+await waitFor(/CODEAI [0-9]+ ready/);
 console.log('firmware started');
 const results = [];
-results.push(['version', ...(await ask(1, 'V')), 'CODEAI 1']);
+results.push(['version', ...(await ask(1, 'V')), 'CODEAI 2']);
 results.push(['LED 13 on', ...(await ask(2, 'D 13 1')), 'ok']);
 await new Promise((r) => setTimeout(r, 1500));
 results.push(['LED 13 off', ...(await ask(3, 'D 13 0')), 'ok']);

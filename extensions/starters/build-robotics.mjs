@@ -8,58 +8,25 @@
 // against a local build.
 import fs from 'node:fs';
 import path from 'node:path';
-import { unzipSync, strFromU8 } from 'fflate';
-import { Project, op, bool, v } from './sb3.mjs';
+import { v } from './sb3.mjs';
 import { roboticsPage, roboticsIndexPage, teacherPage } from './lesson-pages.mjs';
 import { saveAnswers } from './teacher-answers.mjs';
 import { flag, forever, ifThen, ifElse, set, change, say, wait, whenKey, eq, lt, gt, and, join2, repeatUntil } from './blocks.mjs';
-import { generate, blocksFromSb3 } from '../src/runtime/arduino/cpp.js';
-import { BOARD_COSTUMES, boardSvg, arduinoSprite3 } from './arduino-sprite.mjs';
+import { boardSvg, arduinoSprite3 } from './arduino-sprite.mjs';
+import { ard, repeat, arduinoProject, cppFor as cppForProject } from './arduino-blocks.mjs';
 
 const BASE = process.env.STARTER_BASE || 'https://studio.blockml.codeai.ltd/extensions/';
 const OUT = path.join('..', 'gui', 'static', 'lessons', 'robotics');
 
-// ---- Arduino blocks -----------------------------------------------------------------
-const menu = (name, value) => ({ menu: `blockmlArduino_menu_${name}`, field: name, value: String(value) });
-const ard = {
-  setup: (pin, part) => ({ op: 'blockmlArduino_setupPin', inputs: { PIN: menu('pins', pin), PART: menu('parts', part) } }),
-  write: (pin, level) => ({ op: 'blockmlArduino_digitalWrite', inputs: { PIN: menu('pins', pin), LEVEL: menu('levels', level) } }),
-  pwm: (pin, value) => ({ op: 'blockmlArduino_analogWrite', inputs: { PIN: menu('pwmPins', pin), VALUE: value } }),
-  servo: (pin, angle) => ({ op: 'blockmlArduino_servo', inputs: { PIN: menu('pins', pin), ANGLE: angle } }),
-  print: (text) => ({ op: 'blockmlArduino_print', inputs: { TEXT: text } }),
-  digitalRead: (pin) => op('blockmlArduino_digitalRead', { PIN: menu('pins', pin) }),
-  analogRead: (pin) => op('blockmlArduino_analogRead', { PIN: menu('analogPins', pin) }),
-  distance: (trig, echo) => op('blockmlArduino_distance', { TRIG: menu('pins', trig), ECHO: menu('pins', echo) }),
-};
-const repeat = (times, ...body) => ({ op: 'control_repeat', inputs: { TIMES: times }, substack: body });
-
-// ---- Pictures -----------------------------------------------------------------------
-const BACKDROP = '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="480" height="360" fill="#ecfdf5"/>' +
-  '<g stroke="#ccfbf1" stroke-width="2">' + Array.from({ length: 12 }, (_, i) => `<path d="M${i * 40} 0 V360"/>`).join('') + Array.from({ length: 9 }, (_, i) => `<path d="M0 ${i * 40} H480"/>`).join('') + '</g></svg>';
-// The board sprite (arduino-sprite.mjs): costumes "uno" and "uno L on" (pin 13's LED).
-
-function project(scripts, { variables = [] } = {}) {
-  const p = new Project();
-  p.useExtension('blockmlArduino', BASE + 'arduino.js');
-  for (const name of variables) p.variable(name);
-  p.addStage([p.costume('grid', BACKDROP, [240, 180])]);
-  p.addSprite('Arduino', BOARD_COSTUMES.map(([name, svg]) => p.costume(name, svg, [100, 70])), scripts, { y: 20 });
-  for (const name of variables) p.showVariable(name);
-  return p;
-}
+// Arduino blocks and the robotics project shape: arduino-blocks.mjs.
+const project = (scripts, opts) => arduinoProject(BASE, scripts, opts);
+const cppFor = (p) => cppForProject(p).code;
 
 function write(slug, file, content) {
   const dir = path.join(OUT, slug);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, file), typeof content === 'string' ? content : content.toSb3('BlockML Studio robotics builder'));
   console.log('robotics:', `${slug}/${file}`);
-}
-
-/** The C++ Studio shows for a project (the sprite's blocks). */
-function cppFor(p) {
-  const json = JSON.parse(strFromU8(unzipSync(p.toSb3())['project.json']));
-  const sprite = json.targets.find((t) => !t.isStage);
-  return generate(blocksFromSb3(sprite.blocks)).code;
 }
 
 const common = {

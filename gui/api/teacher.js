@@ -2,7 +2,10 @@
 // The fix-the-bug answers are not on the lesson pages, which students read; this function
 // gives them to the teacher page (/lessons/teacher/) after checking the password, which
 // is set in the Vercel project's settings as the environment variable TEACHER_PASSWORD
-// (never in the code). The answers are written by the lesson builders into _teacher/*.json.
+// (never in the code). The answers are written by the lesson builders into _teacher/*.json;
+// teacher-only material that must not be readable in the public repository (the Teacher
+// Guide's reference code) is in _teacher/*.enc, encrypted (AES-256-GCM) with the key in the
+// TEACHER_DATA_KEY environment variable (extensions/starters/teacher-secret.mjs).
 //
 // Keep this file the same as gui/api/teacher.js (one of the two is used, depending
 // on the Vercel project's root folder; tests check they match).
@@ -13,6 +16,28 @@ const path = require('path');
 
 const DIR = path.join(__dirname, '_teacher');
 const GROUPS = ['games', 'robotics'];
+
+// The encrypted groups (_teacher/*.enc), or a note when the key is missing or wrong.
+function secretGroups() {
+  const files = fs.existsSync(DIR) ? fs.readdirSync(DIR).filter((f) => f.endsWith('.enc')).sort() : [];
+  if (!files.length) return { groups: [], notes: [] };
+  const key = process.env.TEACHER_DATA_KEY ? Buffer.from(process.env.TEACHER_DATA_KEY.trim(), 'base64') : null;
+  if (!key || key.length !== 32) return { groups: [], notes: ['The reference code is locked: TEACHER_DATA_KEY is not set up in Vercel.'] };
+  const groups = [];
+  const notes = [];
+  for (const f of files) {
+    try {
+      const sealed = JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8'));
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(sealed.iv, 'base64'));
+      decipher.setAuthTag(Buffer.from(sealed.tag, 'base64'));
+      const plain = Buffer.concat([decipher.update(Buffer.from(sealed.data, 'base64')), decipher.final()]).toString('utf8');
+      groups.push(JSON.parse(plain));
+    } catch {
+      notes.push(`Could not unlock ${f}: TEACHER_DATA_KEY does not match.`);
+    }
+  }
+  return { groups, notes };
+}
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -52,9 +77,11 @@ module.exports = async function handler(req, res) {
     await new Promise((r) => setTimeout(r, 800)); // slows down guessing
     return send(res, 401, { error: 'Wrong password.' });
   }
+  const sealed = secretGroups();
   const groups = GROUPS
     .map((g) => JSON.parse(fs.readFileSync(path.join(DIR, `${g}.json`), 'utf8')))
+    .concat(sealed.groups)
     .sort((a, b) => a.order - b.order)
     .map(({ name, items }) => ({ name, items }));
-  return send(res, 200, { groups });
+  return send(res, 200, { groups, notes: sealed.notes });
 };

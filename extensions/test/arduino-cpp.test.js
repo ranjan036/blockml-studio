@@ -56,6 +56,26 @@ function program(build) {
     set: (name, v) => add({ opcode: 'data_setvariableto', fields: { VARIABLE: { id: 'v_' + name, value: name } }, inputs: { VALUE: { block: v, shadow: v } } }),
     change: (name, v) => add({ opcode: 'data_changevariableby', fields: { VARIABLE: { id: 'v_' + name, value: name } }, inputs: { VALUE: inp(num(v)) } }),
     move: () => add({ opcode: 'motion_movesteps', inputs: { STEPS: inp(num(10)) } }),
+    tone: (pin, hz) => add({ opcode: 'blockmlArduino_playTone', inputs: { PIN: inp(menu('pins', pin)), HZ: inp(num(hz)) } }),
+    noTone: (pin) => add({ opcode: 'blockmlArduino_stopTone', inputs: { PIN: inp(menu('pins', pin)) } }),
+    motorSetup: (m, en, a, c) => add({ opcode: 'blockmlArduino_setupMotor', fields: { MOTOR: { value: m } }, inputs: { EN: inp(menu('pwmPins', en)), IN1: inp(menu('pins', a)), IN2: inp(menu('pins', c)) } }),
+    motor: (m, dir, speed) => add({ opcode: 'blockmlArduino_runMotor', fields: { MOTOR: { value: m } }, inputs: { DIR: inp(menu('directions', dir)), SPEED: inp(typeof speed === 'string' ? speed : num(speed)) } }),
+    millis: () => add({ opcode: 'blockmlArduino_millis' }),
+    map: (v, a, b2, c, d) => add({ opcode: 'blockmlArduino_map', inputs: { VALUE: { block: v, shadow: v }, FROMLOW: inp(num(a)), FROMHIGH: inp(num(b2)), TOLOW: inp(num(c)), TOHIGH: inp(num(d)) } }),
+    random: (a, b2) => add({ opcode: 'operator_random', inputs: { FROM: inp(num(a)), TO: inp(num(b2)) } }),
+    sub: (a, b2) => add({ opcode: 'operator_subtract', inputs: { NUM1: { block: a, shadow: a }, NUM2: { block: b2, shadow: b2 } } }),
+    stop: (option) => add({ opcode: 'control_stop', fields: { STOP_OPTION: { value: option } } }),
+    repeatUntil: (cond, body) => add({ opcode: 'control_repeat_until', inputs: { CONDITION: { block: cond }, SUBSTACK: { block: seq(body) } } }),
+    // My Blocks: define(proccode, [names], body) adds a definition; call(proccode, [names], [values]).
+    define: (proccode, names, body) => {
+      const proto = add({ opcode: 'procedures_prototype', shadow: true, mutation: { proccode, argumentnames: JSON.stringify(names), argumentids: JSON.stringify(names.map((n) => 'arg_' + n)) } });
+      const def = add({ opcode: 'procedures_definition', topLevel: true, inputs: { custom_block: { block: proto, shadow: proto } } });
+      blocks[def].next = seq(body);
+      return def;
+    },
+    arg: (name) => add({ opcode: 'argument_reporter_string_number', fields: { VALUE: { value: name } } }),
+    call: (proccode, names, values) => add({ opcode: 'procedures_call', mutation: { proccode, argumentids: JSON.stringify(names.map((n) => 'arg_' + n)) },
+      inputs: Object.fromEntries(names.map((n, i) => [`arg_${n}`, typeof values[i] === 'string' && values[i].startsWith('b') ? { block: values[i], shadow: values[i] } : inp(num(values[i]))])) }),
   };
   const body = build(h);
   const flag = add({ opcode: 'event_whenflagclicked', topLevel: true });
@@ -144,7 +164,7 @@ describe('blocks to Arduino C++', () => {
     expect(code).toContain('const int LDR = A0;');
     expect(code).toContain('light = analogRead(LDR);');
     expect(code).toContain('int light = 0;');
-    expect(code).toContain('// LDR: light sensor (analog pins need no pinMode)');
+    expect(code).toContain('// LDR: light sensor (LDR), an analog sensor (no pinMode needed)');
   });
 
   it('PWM fade, a run-once program, and blocks with no Arduino version', () => {
@@ -156,26 +176,102 @@ describe('blocks to Arduino C++', () => {
   });
 });
 
+describe('advanced curriculum blocks to C++', () => {
+  it('My Blocks become functions with parameters (Week 2: custom void functions)', () => {
+    const { code, unsupported } = generate(program((b) => {
+      b.define('blink pin %s times %s', ['pin', 'times'], [b.repeat(3, [b.write('13', 'HIGH'), b.wait(0.2), b.write('13', 'LOW'), b.wait(0.2)])]);
+      return [b.setup('8', 'LED'), b.forever([b.call('blink pin %s times %s', ['pin', 'times'], [8, 3]), b.wait(1)])];
+    }));
+    expect(unsupported).toEqual([]);
+    expect(code).toContain('void blinkPinTimes(int pin, int times) {');
+    expect(code).toContain('blinkPinTimes(8, 3);');
+  });
+
+  it('a My Block input used inside the block', () => {
+    const { code } = generate(program((b) => {
+      b.define('flash %s', ['led'], [b.write('8', 'HIGH'), b.wait(0.5), b.write('8', 'LOW')]);
+      return [b.forever([b.call('flash %s', ['led'], [8]), b.wait(1)])];
+    }));
+    expect(code).toContain('void flash(int led) {');
+  });
+
+  it('tones, millis timing (unsigned long), map and random with randomSeed (Week 4 reaction game)', () => {
+    const { code, unsupported } = generate(program((b) => [
+      b.setup('2', 'button'), b.setup('8', 'LED'),
+      b.forever([
+        b.set('waitTime', b.random(2000, 6000)),
+        b.set('start', b.millis()),
+        b.repeatUntil(b.op('operator_gt', b.sub(b.millis(), b.variable('start')), b.variable('waitTime')), []),
+        b.write('8', 'HIGH'), b.tone('9', 880),
+        b.set('start', b.millis()),
+        b.repeatUntil(b.op('operator_equals', b.dread('2'), b.num(1)), []),
+        b.noTone('9'),
+        b.set('reaction', b.sub(b.millis(), b.variable('start'))),
+        b.set('level', b.map(b.aread('A0'), 0, 1023, 0, 255)),
+        b.print(b.variable('reaction')), b.write('8', 'LOW'), b.wait(1.5),
+      ]),
+    ]));
+    expect(unsupported).toEqual([]);
+    expect(code).toContain('unsigned long start = 0;');
+    expect(code).toContain('unsigned long reaction = 0;');
+    expect(code).toContain('waitTime = random(2000, 6001);');
+    expect(code).toMatch(/randomSeed\(analogRead\(A\d\)\);/);
+    expect(code).not.toContain('randomSeed(analogRead(A0))'); // A0 is in use
+    expect(code).toContain('tone(9, 880);');
+    expect(code).toContain('noTone(9);');
+    expect(code).toContain('level = map(analogRead(A0), 0, 1023, 0, 255);');
+    expect(code).toContain('while (!((millis() - start) > waitTime)) {');
+  });
+
+  it('motors through an L298N driver (Week 15): named pins, forward / backward / stop', () => {
+    const { code, unsupported } = generate(program((b) => [
+      b.motorSetup('A', '9', '5', '6'),
+      b.forever([b.motor('A', 'forward', 200), b.wait(2), b.motor('A', 'stop', 0), b.wait(1), b.motor('A', 'backward', 150), b.wait(2)]),
+    ]));
+    expect(unsupported).toEqual([]);
+    expect(code).toContain('const int MOTOR_A_IN1 = 5;');
+    expect(code).toContain('const int MOTOR_A_EN = 9;');
+    expect(squash(code)).toContain('digitalWrite(MOTOR_A_IN1, HIGH); // motor A forward digitalWrite(MOTOR_A_IN2, LOW); analogWrite(MOTOR_A_EN, 200);');
+    expect(squash(code)).toContain('analogWrite(MOTOR_A_EN, 0);');
+    expect(code).toContain('pinMode(MOTOR_A_EN, OUTPUT);');
+  });
+
+  it('"stop this script" leaves loop() early; new sensor parts get names', () => {
+    const { code } = generate(program((b) => [
+      b.setup('2', 'PIR motion sensor'), b.setup('A1', 'thermistor'), b.setup('7', 'pump / relay'),
+      b.forever([b.if(b.op('operator_equals', b.dread('2'), b.num(0)), [b.stop('this script')]), b.write('7', 'HIGH')]),
+    ]));
+    expect(code).toContain('const int PIR = 2;');
+    expect(code).toContain('const int THERMISTOR = A1;');
+    expect(code).toContain('const int PUMP = 7;');
+    expect(code).toContain('return;');
+    expect(code).toContain('// THERMISTOR: thermistor, an analog sensor (no pinMode needed)');
+  });
+});
+
 // The robotics lesson projects (built by starters/build-robotics.mjs): their C++ is
 // generated from the saved project, and with ARDUINO_CLI set it must compile.
 describe('robotics lesson projects', async () => {
   const { unzipSync, strFromU8 } = await import('fflate');
   const { blocksFromSb3 } = await import('../src/runtime/arduino/cpp.js');
-  const dir = new URL('../../gui/static/lessons/robotics/', import.meta.url);
-  const slugs = fs.existsSync(dir) ? fs.readdirSync(dir).filter((d) => /^(r\d|s51)/.test(d)) : [];
-  it('are built', () => expect(slugs.length).toBe(8));
-  for (const slug of slugs) {
-    for (const file of ['project.sb3', 'fix-the-bug.sb3']) {
-      const url = new URL(`${slug}/${file}`, dir);
-      if (!fs.existsSync(url)) continue;
-      it(`${slug}/${file} becomes Arduino C++ with no Studio-only blocks`, () => {
-        const json = JSON.parse(strFromU8(unzipSync(fs.readFileSync(url))['project.json']));
-        const sprite = json.targets.find((t) => !t.isStage);
-        const { code, unsupported } = generate(blocksFromSb3(sprite.blocks));
-        expect(unsupported).toEqual([]);
-        expect(code).toContain('void setup()');
-        expect(code).toMatch(/void loop\(\) \{\n  \S/); // the loop has code
-      });
+  // Fundamental Robotics (sessions 42–51) and Intermediate Robotics (the 36-week course).
+  for (const [course, pattern, count] of [['robotics', /^(r\d|s51)/, 8], ['advanced', /^(bridge|week)-/, 39]]) {
+    const dir = new URL(`../../gui/static/lessons/${course}/`, import.meta.url);
+    const slugs = fs.existsSync(dir) ? fs.readdirSync(dir).filter((d) => pattern.test(d)) : [];
+    it(`${course}: all lesson pages are built`, () => expect(slugs.length).toBe(count));
+    for (const slug of slugs) {
+      for (const file of ['project.sb3', 'fix-the-bug.sb3']) {
+        const url = new URL(`${slug}/${file}`, dir);
+        if (!fs.existsSync(url)) continue;
+        it(`${course}/${slug}/${file} becomes Arduino C++ with no Studio-only blocks`, () => {
+          const json = JSON.parse(strFromU8(unzipSync(fs.readFileSync(url))['project.json']));
+          const sprite = json.targets.find((t) => !t.isStage);
+          const { code, unsupported } = generate(blocksFromSb3(sprite.blocks));
+          expect(unsupported).toEqual([]);
+          expect(code).toContain('void setup()');
+          expect(code).toMatch(/void loop\(\) \{\n  \S/); // the loop has code
+        });
+      }
     }
   }
 });

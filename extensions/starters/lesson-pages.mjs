@@ -105,6 +105,7 @@ export function indexPage(cards) {
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
 <section><div class="kicker" style="color:var(--navy)">Sessions 18–37</div><h2><a href="ai/" style="color:inherit">AI sessions (AI 1–20)</a></h2><p class="small">One project and a lesson card for each pure-AI session.</p></section>
 <section><div class="kicker" style="color:var(--navy)">Sessions 42–51</div><h2><a href="robotics/" style="color:inherit">Fundamental Robotics (Arduino)</a></h2><p class="small">Seven Arduino projects and the showcase, with a virtual board for home practice and the C++ behind every program.</p></section>
+<section><div class="kicker" style="color:var(--navy)">9 months · after the Foundation course</div><h2><a href="advanced/" style="color:inherit">Intermediate Robotics</a></h2><p class="small">The CODE AI Robotics Curriculum: ten real-world robots and your own invention, 36 weekly sessions plus the Bridge Module, in blocks and real Arduino C++.</p></section>
 <section><h2>Printables</h2><p class="small"><a href="printables/vocabulary">AI Vocabulary Cards</a> (Example, Label, Train, Predict, Confidence) · For the Codes &amp; Cards blocks: <a href="printables/cards">recognition cards</a> · <a href="printables/tags">AprilTags</a> · <a href="printables/qr">QR codes</a></p></section>
 <p class="small"><a href="../editor">Open BlockML Studio</a></p></main></body></html>`;
 }
@@ -252,7 +253,7 @@ export function roboticsIndexPage(cards, extra = '') {
 export function teacherPage() {
   return `${HEAD('Teacher answers').replace('<meta charset="utf-8">', '<meta charset="utf-8"><meta name="robots" content="noindex">')}<body>
 <header><div class="wrap"><div class="kicker">BlockML Studio · for CODE AI teachers</div><h1>Teacher answers</h1>
-<p class="objective">The fix-the-bug answers for every game and robotics lesson.</p></div></header>
+<p class="objective">The fix-the-bug answers for every game and robotics lesson, and the Intermediate Robotics reference code.</p></div></header>
 <main>
 <section id="login"><h2>Teacher password</h2>
 <form id="form" style="display:flex;gap:8px;flex-wrap:wrap"><input id="pw" type="password" autocomplete="current-password" required
@@ -273,12 +274,23 @@ function show(data) {
     g.items.forEach(function (it) {
       var d = document.createElement('div'); d.id = it.slug; d.style.margin = '10px 0 14px';
       var t = document.createElement('h3'); var a = document.createElement('a'); a.href = it.url; a.textContent = it.title; t.appendChild(a); d.appendChild(t);
-      var sy = document.createElement('p'); sy.className = 'small'; sy.innerHTML = 'Bug: ' + it.symptom; d.appendChild(sy);
-      var an = document.createElement('p'); an.innerHTML = it.answer; d.appendChild(an);
+      if (it.symptom) { var sy = document.createElement('p'); sy.className = 'small'; sy.innerHTML = 'Bug: ' + it.symptom; d.appendChild(sy); }
+      if (it.answer) { var an = document.createElement('p'); an.innerHTML = it.answer; d.appendChild(an); }
+      (it.code || []).forEach(function (c) {
+        var ch = document.createElement('h3'); ch.textContent = 'Reference code: ' + c.title; d.appendChild(ch);
+        var pre = document.createElement('pre'); pre.textContent = c.code;
+        pre.style.cssText = 'background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;overflow:auto;font-size:13px;line-height:1.45';
+        d.appendChild(pre);
+      });
+      (it.sections || []).forEach(function (sec) {
+        var det = document.createElement('details'); var sum = document.createElement('summary'); sum.textContent = sec.title; det.appendChild(sum);
+        var tp = document.createElement('p'); tp.textContent = sec.text; det.appendChild(tp); d.appendChild(det);
+      });
       sec.appendChild(d);
     });
     out.appendChild(sec);
   });
+  (data.notes || []).forEach(function (n) { var p = document.createElement('p'); p.className = 'say'; p.textContent = n; out.insertBefore(p, out.firstChild); });
   if (location.hash) { var el = document.getElementById(location.hash.slice(1)); if (el) { el.scrollIntoView(); el.style.background = '#fff8db'; } }
 }
 function ask(password, quiet) {
@@ -295,4 +307,87 @@ function ask(password, quiet) {
 form.addEventListener('submit', function (e) { e.preventDefault(); ask(pw.value); });
 try { var saved = sessionStorage.getItem('teacherPw'); if (saved) ask(saved, true); } catch (e) {}
 </script></body></html>`;
+}
+
+// ---- Intermediate Robotics (CODE AI Robotics Curriculum v2.1, 36 weeks + Bridge Module) ----
+
+// The curriculum names mBlock for the Bridge Module; BlockML Studio does that job here.
+export function studioText(s) {
+  return String(s || '')
+    .replace(/mBlock's 'Upload Mode' code view/g, 'Show Arduino C++ in BlockML Studio')
+    .replace(/Upload directly to the Arduino from mBlock and watch/g, 'Connect the Arduino in BlockML Studio (Connect Arduino board) and watch')
+    .replace(/a computer with mBlock installed \(free software, Arduino extension enabled\)/g, 'a computer with Chrome or Edge (BlockML Studio, Arduino blocks)')
+    .replace(/mBlock's generated code/g, "BlockML Studio's generated code")
+    .replace(/Upload and test/g, 'Run it and test')
+    .replace(/mBlock/g, 'BlockML Studio');
+}
+
+const ADV_FIELDS = [
+  ['experiment', 'Hands-on experiment (do this before any explanation)'],
+  ['activity', 'Build activity'],
+  ['stage1', 'Stage 1: build it in blocks'],
+  ['stage2', 'Stage 2: flip it — see the real code behind your blocks'],
+  ['stage3', 'Stage 3: rebuild it in the Arduino IDE (real C++)'],
+];
+const ADV_CONCEPTS = [['robotics', 'Robotics'], ['engineering', 'Engineering'], ['electronics', 'Electronics']];
+const ADV_CODE = [
+  ['codeIt', 'Code it'], ['codeConcept', 'The code behind it (Arduino C/C++)'], ['codeReading', 'Code reading / tracing'],
+  ['writeIt', 'Now write it yourself'], ['miniChallenge', 'Mini challenge'],
+];
+
+/**
+ * One session page (a Bridge session or a week).
+ * s: a session from curriculum.json; project: its project (or null for the Bridge Module);
+ * starter: {cpp} when there is a Studio project, else null; nav: {prev, next} [{id, label}].
+ */
+export function advancedSessionPage(s, project, starter, nav) {
+  const f = s.fields;
+  const t = (x) => esc(studioText(x));
+  const box = (title, text) => (text ? `<h3>${title}</h3><p>${t(text)}</p>` : '');
+  const kicker = project ? `Project ${project.number}: ${project.title} · ${project.sector} · Week ${s.number}` : `Bridge Module · Session ${s.number} (before Week 1)`;
+  const open = starter
+    ? `<div class="buttons"><a class="btn ai" data-project="project.sb3" target="_blank" rel="noopener">▶ Open in BlockML Studio</a></div>
+<p class="small">Runs on the <b>virtual board</b> without a board, or on your Arduino Uno: press <b>Connect Arduino board</b> (Chrome or Edge). Download: <a href="project.sb3" download="${s.id}.sb3">${s.id}.sb3</a></p>
+<details><summary>The Arduino C++ behind these blocks</summary><pre style="background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;overflow:auto;font-size:13px">${esc(starter.cpp)}</pre></details>`
+    : '<p class="small">No starter project for this session: build your own with the Arduino blocks (Add Extension → Arduino), or write the C++ in the Arduino IDE.</p>';
+  const navLinks = [nav.prev ? `<a href="../${nav.prev.id}/">← ${esc(nav.prev.label)}</a>` : '', nav.next ? `<a href="../${nav.next.id}/">${esc(nav.next.label)} →</a>` : ''].filter(Boolean).join(' · ');
+  return `${HEAD(`${s.key}: ${s.title}`)}<body>
+<header><div class="wrap">
+<div class="kicker">${esc(kicker)}</div>
+<h1>${esc(s.key)}: ${t(s.title)}</h1>
+<p class="objective">${t(f.build)}</p>
+</div></header>
+<main>
+<section><h2>Studio project</h2>${open}</section>
+<section class="grid2">
+<div><h2>Components</h2><p>${t(f.components)}</p></div>
+<div><h2>Circuit (wire it first)</h2><p>${t(f.circuit)}</p><p class="small">Unplug USB before changing wires. Every LED gets a 220 Ω resistor.</p></div>
+</section>
+<section>${ADV_FIELDS.map(([k, title]) => box(title, f[k])).join('')}</section>
+${ADV_CONCEPTS.some(([k]) => f[k]) ? `<section><h2>What you just discovered</h2>${ADV_CONCEPTS.map(([k, title]) => box(title, f[k])).join('')}</section>` : ''}
+<section><h2>Coding</h2>${ADV_CODE.map(([k, title]) => box(title, f[k])).join('')}</section>
+${f.debugging ? `<section><h2>If it doesn't work…</h2><p>${t(f.debugging)}</p></section>` : ''}
+<section>${box('Skills you just levelled up', f.skills)}${box('Take-home challenge (optional)', f.takeHome)}${box('Build log entry (never graded)', f.buildLog)}<p class="say"><b>Show your family:</b> ${t(f.showFamily)}</p></section>
+<p class="small">${navLinks}${navLinks ? ' · ' : ''}<a href="../">All weeks</a> · Teachers: reference code and teaching notes on the <a href="/lessons/teacher/#project-${project ? project.number : 0}">teacher page</a> (password).</p>
+</main>${OPEN_SCRIPT.replace("'../../editor", "'../../../editor")}</body></html>`;
+}
+
+/** The course index: the Bridge Module, then the projects with their weeks. */
+export function advancedIndexPage(curriculum, hasStarter) {
+  const link = (s) => `<li><a href="${s.id}/">${esc(s.key)}: ${esc(studioText(s.title))}</a>${hasStarter(s.id) ? ' <span class="tag">Studio project</span>' : ''}</li>`;
+  const bridge = curriculum.sessions.filter((s) => s.project === 0);
+  return `${HEAD('Intermediate Robotics')}<body>
+<header><div class="wrap"><div class="kicker">BlockML Studio · CODE AI Robotics Curriculum v2.1 · 9 months, 36 weekly sessions</div><h1>Intermediate Robotics</h1>
+<p class="objective">Ten real-world robots and your own invention, on an Arduino Uno. Every week: build it, then code it — in blocks first, then real Arduino C++.</p></div></header>
+<main>
+<section><h2>Before you start</h2><ul>
+<li><b>No board at home?</b> Studio projects run on the virtual board in the Arduino panel.</li>
+<li><b>With a board:</b> Arduino Uno on USB, Chrome or Edge, press <b>Connect Arduino board</b> (the first time: <b>Prepare board</b>).</li>
+<li>Every Studio project shows its <b>Arduino C++</b> — the code you will learn to write yourself, from a blank sketch.</li></ul></section>
+<section id="project-0"><div class="kicker" style="color:var(--navy)">Optional, before Week 1</div><h2>Bridge Module: from blocks to real code</h2>
+<p class="small">For students new to coding: three builds in blocks, then the real C++ behind them.</p><ul>${bridge.map(link).join('')}</ul></section>
+${curriculum.projects.map((p) => `<section id="project-${p.number}"><div class="kicker" style="color:var(--navy)">Project ${p.number} · ${esc(p.sector)}</div>
+<h2>${esc(p.title)}</h2><p>${esc(p.goal)}</p><p class="small">${esc(p.about)}</p>
+<ul>${curriculum.sessions.filter((s) => s.project === p.number).map(link).join('')}</ul></section>`).join('\n')}
+<p class="small"><a href="../">All lessons</a> · <a href="../../editor">Open BlockML Studio</a></p></main></body></html>`;
 }

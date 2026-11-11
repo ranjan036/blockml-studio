@@ -5,6 +5,24 @@ import { isInputPart } from './cpp.js';
 
 const LED_COLORS = { 'LED': '#ef4444', 'red LED': '#ef4444', 'yellow LED': '#facc15', 'green LED': '#22c55e', 'white LED': '#f8fafc', 'output': '#f97316' };
 const pinLabel = (n) => (n >= 14 ? `A${n - 14}` : `pin ${n}`);
+// Analog sensors on the virtual board: [name, what a low number means, what a high number means, start value].
+const ANALOG = {
+  'light sensor (LDR)': ['light sensor', 'dark', 'bright', 600],
+  'potentiometer': ['potentiometer', 'turned left', 'turned right', 512],
+  'soil moisture sensor': ['soil moisture', 'dry', 'wet', 300],
+  'thermistor': ['thermistor', 'cold', 'hot', 450],
+  'gas sensor (MQ)': ['gas sensor', 'clean air', 'smoke / fumes', 150],
+  'water-level probe': ['water level', 'dry', 'flooded', 0],
+  'line sensor (IR)': ['line sensor', 'black line', 'white floor', 800],
+};
+// Digital sensors: [shown when it reads HIGH, shown when LOW, the reading that lights the switch up].
+const DIGITAL = {
+  'flame sensor': ['no flame', 'FLAME!', 0],
+  'PIR motion sensor': ['MOTION!', 'no motion', 1],
+  'tilt switch': ['TILTED!', 'upright', 1],
+  'button': ['pressed', 'not pressed', 1],
+  'input pull-up': ['not pressed', 'pressed', 0],
+};
 
 /** What the board's pins are doing. The virtual board is this model; the real one mirrors it. */
 export class BoardModel {
@@ -18,10 +36,13 @@ export class BoardModel {
       this.inputs = new Map(); // pin → 0/1 (virtual switches)
       this.analog = new Map(); // pin → 0-1023
       this.sonars = new Map(); // "trig,echo" → cm (0 = nothing in front)
+      this.tones = new Map(); // pin → Hz
+      this.motors = new Map(); // "A"/"B" → {en, in1, in2}
       this.reads = new Map(); // what the real board said last: key → value
       this.serial = [];
     } else {
       for (const o of this.outputs.values()) { o.level = 0; o.pwm = 0; }
+      this.tones.clear();
     }
   }
 
@@ -29,7 +50,7 @@ export class BoardModel {
     this.parts.set(pin, part);
     if (isInputPart(part)) {
       this.outputs.delete(pin);
-      if (part === 'light sensor (LDR)') { if (!this.analog.has(pin)) this.analog.set(pin, 600); }
+      if (ANALOG[part]) { if (!this.analog.has(pin)) this.analog.set(pin, ANALOG[part][3]); }
       else if (!this.inputs.has(pin)) this.inputs.set(pin, part === 'flame sensor' || part === 'input pull-up' ? 1 : 0);
     } else {
       this.inputs.delete(pin);
@@ -46,6 +67,27 @@ export class BoardModel {
     this.servos.delete(pin);
     const v = Math.max(0, Math.min(255, Math.round(value)));
     this.outputs.set(pin, { level: v > 0 ? 1 : 0, pwm: v });
+  }
+
+  tone(pin, hz) {
+    if (hz > 0) { this.tones.set(pin, Math.round(hz)); this.outputs.set(pin, { level: 1, pwm: 128 }); }
+    else { this.tones.delete(pin); this.outputs.set(pin, { level: 0, pwm: 0 }); }
+  }
+
+  setupMotor(name, en, in1, in2) {
+    this.motors.set(name, { en, in1, in2 });
+    for (const p of [en, in1, in2]) if (!this.outputs.has(p)) this.outputs.set(p, { level: 0, pwm: 0 });
+  }
+
+  /** A motor's state from its driver pins: dir 1 forward, -1 backward, 0 stopped; speed 0-255. */
+  motorState(name) {
+    const m = this.motors.get(name);
+    if (!m) return null;
+    const lv = (p) => (this.outputs.get(p) || { level: 0 }).level;
+    const en = this.outputs.get(m.en) || { pwm: 0 };
+    const a = lv(m.in1), b = lv(m.in2);
+    const dir = a && !b ? 1 : b && !a ? -1 : 0;
+    return { dir, speed: dir ? en.pwm : 0, brake: !!(a && b) };
   }
 
   servo(pin, angle) {
@@ -107,6 +149,7 @@ const CSS = `
 .bml-ard-part label{display:flex;align-items:center;gap:4px;font-size:11px;color:#cffafe}
 .bml-ard-switch{border:0;border-radius:6px;padding:3px 8px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:#e2e8f0;color:#0f172a}
 .bml-ard-switch.on{background:#f97316;color:#fff}
+@keyframes bml-ard-shake{0%{transform:translateX(-1px)}50%{transform:translateX(1px)}100%{transform:translateX(-1px)}}
 .bml-ard-empty{font-size:12px;color:#a5f3fc;padding:4px}
 .bml-ard-serial{border:1px solid #cbd5e1;border-radius:8px;overflow:hidden}
 .bml-ard-serial h4{margin:0;padding:4px 8px;background:#f1f5f9;font-size:12px;display:flex;justify-content:space-between;align-items:center}
@@ -249,20 +292,26 @@ export class Panel {
 
     const cards = [];
     const pins = new Set([...m.parts.keys(), ...m.outputs.keys(), ...m.servos.keys(), ...m.inputs.keys(), ...m.analog.keys()]);
-    let buzzing = false;
+    let buzzing = 0;
+    const motorPins = new Set([...m.motors.values()].flatMap((mo) => [mo.en, mo.in1, mo.in2]));
+    for (const name of [...m.motors.keys()].sort()) cards.push(this.motorCard(name));
     for (const pin of [...pins].sort((a, b) => a - b)) {
+      if (motorPins.has(pin) && !m.parts.has(pin)) continue;
       const part = m.parts.get(pin);
       if (m.servos.has(pin)) { cards.push(this.servoCard(pin, m.servos.get(pin))); continue; }
-      if (m.analog.has(pin) || part === 'light sensor (LDR)') { cards.push(this.analogCard(pin, part)); continue; }
+      if (m.analog.has(pin) || ANALOG[part]) { cards.push(this.analogCard(pin, part)); continue; }
       if (m.inputs.has(pin) || (part && isInputPart(part))) { cards.push(this.inputCard(pin, part)); continue; }
       const o = m.outputs.get(pin) || { level: 0, pwm: 0 };
-      if (part === 'buzzer') { if (o.level) buzzing = true; cards.push(this.buzzerCard(pin, o)); continue; }
+      if (m.tones.has(pin)) buzzing = m.tones.get(pin);
+      if (part === 'buzzer' || m.tones.has(pin)) { if (o.level && !buzzing) buzzing = 2300; cards.push(this.buzzerCard(pin, o, m.tones.get(pin))); continue; }
+      if (part === 'vibration motor') { cards.push(this.vibrationCard(pin, o)); continue; }
+      if (part === 'pump / relay') { cards.push(this.pumpCard(pin, o)); continue; }
       cards.push(this.ledCard(pin, part || (pin === 13 ? 'LED' : 'output'), o));
     }
     for (const [key, cm] of m.sonars) cards.push(this.sonarCard(key, cm));
     if (!cards.length) cards.push(el('div', { class: 'bml-ard-empty', text: 'Parts appear here when your blocks use a pin.' }));
     this.parts.replaceChildren(...cards);
-    this.sound(buzzing && !real && !this.muted && this.visible);
+    this.sound(!real && !this.muted && this.visible ? buzzing : 0);
 
     const atBottom = this.serial.scrollTop + this.serial.clientHeight >= this.serial.scrollHeight - 4;
     this.serial.textContent = m.serial.join('\n');
@@ -282,11 +331,42 @@ export class Panel {
     return el('div', { class: 'bml-ard-part' }, el('div', { class: 'name', text: `${pinLabel(pin)} · ${part}` }), led, el('div', { class: 'val', text: val }));
   }
 
-  buzzerCard(pin, o) {
+  buzzerCard(pin, o, hz) {
     const svg = `<svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/><circle cx="15" cy="15" r="3" fill="#94a3b8"/>${o.level ? '<path d="M3 5 Q0 15 3 25 M27 5 Q30 15 27 25" stroke="#fbbf24" stroke-width="2" fill="none"/>' : ''}</svg>`;
     const icon = el('div');
     icon.innerHTML = svg;
-    return el('div', { class: 'bml-ard-part' }, el('div', { class: 'name', text: `${pinLabel(pin)} · buzzer` }), icon, el('div', { class: 'val', text: o.level ? 'BEEP' : 'quiet' }));
+    return el('div', { class: 'bml-ard-part' }, el('div', { class: 'name', text: `${pinLabel(pin)} · buzzer` }), icon, el('div', { class: 'val', text: hz ? `♪ ${hz} Hz` : o.level ? 'BEEP' : 'quiet' }));
+  }
+
+  vibrationCard(pin, o) {
+    const on = o.pwm > 0;
+    const icon = el('div');
+    icon.innerHTML = `<svg width="34" height="30" viewBox="0 0 34 30"><rect x="9" y="6" width="16" height="18" rx="8" fill="#94a3b8" stroke="#e2e8f0" stroke-width="2"/>${on ? '<path d="M4 8 L2 15 L4 22 M30 8 L32 15 L30 22" stroke="#fbbf24" stroke-width="2" fill="none"/>' : ''}</svg>`;
+    if (on) icon.style.animation = 'bml-ard-shake .12s linear infinite';
+    return el('div', { class: 'bml-ard-part' }, el('div', { class: 'name', text: `${pinLabel(pin)} · vibration motor` }), icon,
+      el('div', { class: 'val', text: on ? (o.pwm < 255 ? `buzz ${o.pwm}` : 'BUZZ') : 'still' }));
+  }
+
+  pumpCard(pin, o) {
+    const on = o.level > 0;
+    const icon = el('div');
+    icon.innerHTML = `<svg width="30" height="30" viewBox="0 0 30 30"><path d="M15 3 C10 11 7 15 7 19 A8 8 0 0 0 23 19 C23 15 20 11 15 3 Z" fill="${on ? '#38bdf8' : '#334155'}" stroke="#e0f2fe" stroke-width="2"/></svg>`;
+    return el('div', { class: 'bml-ard-part' }, el('div', { class: 'name', text: `${pinLabel(pin)} · pump / relay` }), icon, el('div', { class: 'val', text: on ? 'PUMPING' : 'off' }));
+  }
+
+  motorCard(name) {
+    const st = this.model.motorState(name);
+    const mo = this.model.motors.get(name);
+    const turn = st.dir ? (st.dir > 0 ? 'forward' : 'backward') : st.brake ? 'brake' : 'stopped';
+    const icon = el('div');
+    const arrow = st.dir > 0 ? '<path d="M15 4 L24 14 H18 V26 H12 V14 H6 Z" fill="#4ade80"/>'
+      : st.dir < 0 ? '<path d="M15 26 L24 16 H18 V4 H12 V16 H6 Z" fill="#fbbf24"/>'
+        : '<rect x="7" y="7" width="16" height="16" rx="2" fill="#94a3b8"/>';
+    icon.innerHTML = `<svg width="30" height="30" viewBox="0 0 30 30">${arrow}</svg>`;
+    const bar = el('div', { style: 'width:100%;height:6px;background:#0f172a;border-radius:3px;overflow:hidden' },
+      el('div', { style: `height:100%;width:${Math.round((st.speed / 255) * 100)}%;background:#4ade80` }));
+    return el('div', { class: 'bml-ard-part' }, el('div', { class: 'name', text: `motor ${name} · EN ${mo.en} · IN ${mo.in1}/${mo.in2}` }), icon, bar,
+      el('div', { class: 'val', text: st.dir ? `${turn} ${st.speed}` : turn }));
   }
 
   servoCard(pin, angle) {
@@ -305,11 +385,9 @@ export class Panel {
       return el('div', { class: 'bml-ard-part' }, name, el('div', { class: 'val', text: v === undefined ? '–' : v ? 'HIGH (1)' : 'LOW (0)' }));
     }
     const level = m.inputs.get(pin) ?? 0;
-    let label, on;
-    if (part === 'flame sensor') { on = level === 0; label = on ? 'FLAME!' : 'no flame'; } // most modules: LOW = flame
-    else if (part === 'input pull-up') { on = level === 0; label = on ? 'pressed' : 'not pressed'; }
-    else if (part === 'button') { on = level === 1; label = on ? 'pressed' : 'not pressed'; }
-    else { on = level === 1; label = on ? 'HIGH' : 'LOW'; }
+    const words = DIGITAL[part] || ['HIGH', 'LOW', 1];
+    const label = level ? words[0] : words[1];
+    const on = level === words[2];
     const btn = el('button', {
       class: 'bml-ard-switch' + (on ? ' on' : ''), text: label, title: 'Click to change what the sensor says',
       onclick: () => { m.inputs.set(pin, level ? 0 : 1); this.actions.inputChanged?.(); this.render(); },
@@ -319,16 +397,17 @@ export class Panel {
 
   analogCard(pin, part) {
     const m = this.model;
-    const title = part === 'light sensor (LDR)' ? `${pinLabel(pin)} · light sensor` : `${pinLabel(pin)} · analog`;
+    const info = ANALOG[part];
+    const title = `${pinLabel(pin)} · ${info ? info[0] : 'analog'}`;
     if (this.mode === 'real') {
       const v = m.reads.get(`a${pin}`);
       return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: title }), el('div', { class: 'val', text: v === undefined ? '–' : String(v) }));
     }
     const v = m.analogRead(pin);
     const out = el('div', { class: 'val', style: 'min-width:36px;text-align:right', text: String(v) });
-    const range = el('input', { type: 'range', min: '0', max: '1023', value: String(v), title: part === 'light sensor (LDR)' ? 'dark ← → bright' : '0 – 1023' });
+    const range = el('input', { type: 'range', min: '0', max: '1023', value: String(v), title: info ? `${info[1]} ← → ${info[2]}` : '0 – 1023' });
     range.addEventListener('input', () => { m.analog.set(pin, Number(range.value)); out.textContent = range.value; this.actions.inputChanged?.(); });
-    return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: part === 'light sensor (LDR)' ? `${title} (dark ↔ bright)` : title }), range, out);
+    return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: info ? `${title} (${info[1]} ↔ ${info[2]})` : title }), range, out);
   }
 
   sonarCard(key, cm) {
@@ -351,15 +430,16 @@ export class Panel {
       el('div', { class: 'name', text: title }), range, out, el('label', {}, box, 'nothing in front (no echo)'));
   }
 
-  sound(on) {
-    if (!on) { if (this.osc) { this.osc.stop(); this.osc = null; } return; }
-    if (this.osc) return;
+  /** The virtual buzzer: `hz` 0 = silent. */
+  sound(hz) {
+    if (!hz) { if (this.osc) { this.osc.stop(); this.osc = null; } return; }
+    if (this.osc) { this.osc.frequency.value = hz; return; }
     try {
       this.audio ||= new AudioContext();
       const osc = this.audio.createOscillator();
       const gain = this.audio.createGain();
       osc.type = 'square';
-      osc.frequency.value = 2300; // about what an active buzzer plays
+      osc.frequency.value = hz;
       gain.gain.value = 0.04;
       osc.connect(gain).connect(this.audio.destination);
       osc.start();

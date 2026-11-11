@@ -28,7 +28,10 @@
   const PINS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
   const PWM_PINS = ['3', '5', '6', '9', '10', '11'];
   const ANALOG_PINS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
-  const PARTS = ['LED', 'red LED', 'yellow LED', 'green LED', 'white LED', 'buzzer', 'output', 'flame sensor', 'button', 'light sensor (LDR)', 'input', 'input pull-up'];
+  // Keep in step with PARTS in runtime/arduino/cpp.js.
+  const PARTS = ['LED', 'red LED', 'yellow LED', 'green LED', 'white LED', 'buzzer', 'vibration motor', 'pump / relay', 'output',
+    'button', 'flame sensor', 'PIR motion sensor', 'tilt switch', 'input', 'input pull-up',
+    'light sensor (LDR)', 'potentiometer', 'soil moisture sensor', 'thermistor', 'gas sensor (MQ)', 'water-level probe', 'line sensor (IR)'];
 
   /** "8", 8, "A0" → pin number 2–19, or null (pins 0 and 1 are the USB cable's). */
   function pin(value) {
@@ -97,6 +100,40 @@
             text: 'servo on pin [PIN] to [ANGLE] degrees',
             arguments: { PIN: PIN('9'), ANGLE: { type: Scratch.ArgumentType.ANGLE, defaultValue: 90 } },
           },
+          {
+            opcode: 'playTone',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'play tone [HZ] Hz on pin [PIN]',
+            arguments: { HZ: { type: Scratch.ArgumentType.NUMBER, defaultValue: 440 }, PIN: PIN('8') },
+          },
+          {
+            opcode: 'stopTone',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'stop tone on pin [PIN]',
+            arguments: { PIN: PIN('8') },
+          },
+          { blockType: Scratch.BlockType.LABEL, text: 'Motors (L298N / L293D driver)' },
+          {
+            opcode: 'setupMotor',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'set up motor [MOTOR] : speed pin [EN] direction pins [IN1] [IN2]',
+            arguments: {
+              MOTOR: { type: Scratch.ArgumentType.STRING, menu: 'motors', defaultValue: 'A' },
+              EN: { type: Scratch.ArgumentType.STRING, menu: 'pwmPins', defaultValue: '9' },
+              IN1: PIN('5'),
+              IN2: PIN('6'),
+            },
+          },
+          {
+            opcode: 'runMotor',
+            blockType: Scratch.BlockType.COMMAND,
+            text: 'motor [MOTOR] [DIR] at speed [SPEED]',
+            arguments: {
+              MOTOR: { type: Scratch.ArgumentType.STRING, menu: 'motors', defaultValue: 'A' },
+              DIR: { type: Scratch.ArgumentType.STRING, menu: 'directions', defaultValue: 'forward' },
+              SPEED: { type: Scratch.ArgumentType.NUMBER, defaultValue: 200 },
+            },
+          },
           { blockType: Scratch.BlockType.LABEL, text: 'Inputs (sensors)' },
           {
             opcode: 'digitalRead',
@@ -115,6 +152,24 @@
             blockType: Scratch.BlockType.REPORTER,
             text: 'distance in cm: Trig [TRIG] Echo [ECHO]',
             arguments: { TRIG: PIN('7'), ECHO: PIN('6') },
+          },
+          { blockType: Scratch.BlockType.LABEL, text: 'Time and numbers' },
+          {
+            opcode: 'millis',
+            blockType: Scratch.BlockType.REPORTER,
+            text: 'millis (ms since start)',
+          },
+          {
+            opcode: 'map',
+            blockType: Scratch.BlockType.REPORTER,
+            text: 'map [VALUE] from [FROMLOW] – [FROMHIGH] to [TOLOW] – [TOHIGH]',
+            arguments: {
+              VALUE: { type: Scratch.ArgumentType.NUMBER, defaultValue: 512 },
+              FROMLOW: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+              FROMHIGH: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1023 },
+              TOLOW: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+              TOHIGH: { type: Scratch.ArgumentType.NUMBER, defaultValue: 255 },
+            },
           },
           { blockType: Scratch.BlockType.LABEL, text: 'Serial Monitor' },
           {
@@ -135,6 +190,8 @@
           analogPins: { acceptReporters: true, items: ANALOG_PINS },
           levels: { acceptReporters: true, items: ['HIGH', 'LOW'] },
           parts: { acceptReporters: true, items: PARTS },
+          motors: { acceptReporters: false, items: ['A', 'B'] },
+          directions: { acceptReporters: true, items: ['forward', 'backward', 'stop'] },
         },
       };
     }
@@ -186,6 +243,43 @@
       if (t === null || e === null) return 0;
       if (board && !board.connected()) return board.distance(t, e);
       return withBoard((b) => b.distance(t, e));
+    }
+
+    playTone({ HZ, PIN }) {
+      const p = pin(PIN);
+      if (p === null) return undefined;
+      return withBoard((b) => b.tone(p, Scratch.Cast.toNumber(HZ)));
+    }
+
+    stopTone({ PIN }) {
+      const p = pin(PIN);
+      if (p === null) return undefined;
+      return withBoard((b) => b.tone(p, 0));
+    }
+
+    setupMotor({ MOTOR, EN, IN1, IN2 }) {
+      const en = pin(EN), a = pin(IN1), c = pin(IN2);
+      if (en === null || a === null || c === null) return undefined;
+      return withBoard((b) => b.setupMotor(String(MOTOR) === 'B' ? 'B' : 'A', en, a, c));
+    }
+
+    runMotor({ MOTOR, DIR, SPEED }) {
+      const dir = String(DIR).toLowerCase();
+      const d = dir.startsWith('f') ? 1 : dir.startsWith('b') ? -1 : 0;
+      return withBoard((b) => b.runMotor(String(MOTOR) === 'B' ? 'B' : 'A', d, Scratch.Cast.toNumber(SPEED)));
+    }
+
+    millis() {
+      return board ? board.millis() : 0;
+    }
+
+    map({ VALUE, FROMLOW, FROMHIGH, TOLOW, TOHIGH }) {
+      // Arduino's map(): whole numbers, the fraction cut off (not rounded).
+      const n = Scratch.Cast.toNumber;
+      const x = Math.trunc(n(VALUE)), a = Math.trunc(n(FROMLOW)), b = Math.trunc(n(FROMHIGH));
+      const c = Math.trunc(n(TOLOW)), d = Math.trunc(n(TOHIGH));
+      if (a === b) return c;
+      return Math.trunc(((x - a) * (d - c)) / (b - a)) + c;
     }
 
     print({ TEXT }) {

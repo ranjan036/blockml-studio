@@ -1111,3 +1111,38 @@ password, no caching). The builders write the answers to `api/_teacher/*.json` (
 same in `gui/api/`), never into the published lesson files; a test checks that no lesson
 page contains an answer. Limit: the answers are still in this public repository's source
 (and history), so a student who reads the GitHub code could find them.
+
+### 15.25 Intermediate Robotics, phase 1: blocks, Bridge Module, Projects 1–4 (2026-11-11)
+
+Source: the founder's **CODE AI Robotics Curriculum v2.1** (9 months, 36 weekly 2-hour
+sessions, 10 sector projects + Capstone, optional 3-session Bridge Module) and the
+**CODE AI Teacher Guide** (`C:\CODE AI\Robotics Curiculum advance\`). Arduino Uno only;
+Raspberry Pi is not in the curriculum (decided: Arduino only for now). Decisions: lesson
+pages public; the Teacher Guide's notes and reference code only on the teacher page;
+a simulated driving car on the stage for Projects 5 and 10.
+
+- **Blocks** (Arduino extension): parts for every curriculum sensor/actuator (potentiometer,
+  soil, tilt, thermistor, PIR, gas, water-level, IR line sensor, vibration motor, pump/relay),
+  play/stop tone, L298N motor driver (set up motor A/B, run forward/backward/stop at a speed),
+  millis, map. The virtual board labels each sensor's slider (dry↔wet, cold↔hot…), plays
+  tones at their pitch, and shows motors (direction from the IN pins, speed from EN), so
+  a truth-table program with plain digital writes shows the same.
+- **C++**: My Blocks → functions (Week 2), millis → `unsigned long`, map, tone, motors,
+  randomSeed, stop this script → `return;`.
+- **Firmware 2**: tone; Timer1 restored after servos (found by the browser test: a motor's
+  PWM on pin 9 after a servo stayed dead for 0.26 s on a real chip).
+- **Lessons** `/lessons/advanced/` (`extensions/starters/build-advanced.mjs`): all 39 session
+  pages from `extensions/starters/advanced/curriculum.json` (made by `scripts/parse-curriculum.py`
+  from the PDF's text); "mBlock" in the curriculum reads "BlockML Studio" (Studio replaces it).
+  Starter projects (the "Observe" program of each session's "Code it") for Bridge 1–3 and
+  Weeks 1–13; every one's C++ compiles with arduino-cli.
+- **Teacher Guide** → `api/_teacher/advanced.enc`, AES-256-GCM. The plain JSON
+  (`studio-teacher-guide.json`, from `scripts/parse-teacher-guide.py`) stays next to the PDF,
+  never in this public repo; the key is `.teacher-data-key` (git-ignored) and must be set in
+  Vercel as **TEACHER_DATA_KEY**; `/api/teacher` decrypts it after the teacher password.
+- Tests: 106 unit tests (C++ compiled), browser test 39/39 (tones and motor PWM on the
+  simulated board, Bridge 3, Weeks 2/5/7/9/13 on the virtual board, Week 13 hysteresis),
+  firmware 2 on the real clone Uno (installed in 3.3 s).
+
+Next: phase 2 = Projects 5–7 (Weeks 14–23) with the simulated car (Park Assist); phase 3 =
+Projects 8–10 + Capstone (Weeks 24–36) with the line-following rover and lists → arrays.

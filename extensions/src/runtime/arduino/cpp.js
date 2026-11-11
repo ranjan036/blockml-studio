@@ -5,13 +5,18 @@
 
 const EXT = 'blockmlArduino_';
 
+// Part → the name its pin gets in C++ (null: just the number). Keep in step with PARTS in ../../arduino.js.
 const PARTS = {
   'LED': 'LED', 'red LED': 'RED_LED', 'yellow LED': 'YELLOW_LED', 'green LED': 'GREEN_LED',
-  'white LED': 'WHITE_LED', 'buzzer': 'BUZZER', 'output': null, 'flame sensor': 'FLAME',
-  'button': 'BUTTON', 'input': null, 'input pull-up': null, 'light sensor (LDR)': 'LDR',
+  'white LED': 'WHITE_LED', 'buzzer': 'BUZZER', 'vibration motor': 'VIBRATION', 'pump / relay': 'PUMP', 'output': null,
+  'button': 'BUTTON', 'flame sensor': 'FLAME', 'PIR motion sensor': 'PIR', 'tilt switch': 'TILT', 'input': null, 'input pull-up': null,
+  'light sensor (LDR)': 'LDR', 'potentiometer': 'POT', 'soil moisture sensor': 'SOIL', 'thermistor': 'THERMISTOR',
+  'gas sensor (MQ)': 'GAS', 'water-level probe': 'WATER', 'line sensor (IR)': 'LINE',
 };
 export const PART_NAMES = Object.keys(PARTS);
-export const isInputPart = (part) => ['flame sensor', 'button', 'input', 'input pull-up', 'light sensor (LDR)'].includes(part);
+/** Analog sensors: read with analogRead, no pinMode. */
+export const ANALOG_PARTS = ['light sensor (LDR)', 'potentiometer', 'soil moisture sensor', 'thermistor', 'gas sensor (MQ)', 'water-level probe', 'line sensor (IR)'];
+export const isInputPart = (part) => ['button', 'flame sensor', 'PIR motion sensor', 'tilt switch', 'input', 'input pull-up', ...ANALOG_PARTS].includes(part);
 
 /** "A0" → 14, "8" → 8, anything else → NaN. */
 export function pinNumber(pin) {
@@ -45,6 +50,13 @@ export function generate(blocks, { variables = {} } = {}) {
     return false;
   };
   const scripts = topFlags.filter((t) => hasArduino(t));
+  // My Blocks: their definitions, by the text of the block ("blink %s times").
+  const definitions = new Map();
+  for (const b of Object.values(blocks)) {
+    if (!b.topLevel || b.opcode !== 'procedures_definition') continue;
+    const proto = get(b.inputs?.custom_block?.block);
+    if (proto && proto.mutation) definitions.set(proto.mutation.proccode, { def: b, proto });
+  }
   const main = scripts[0] || topFlags[0];
 
   const notes = [];
@@ -55,7 +67,20 @@ export function generate(blocks, { variables = {} } = {}) {
   const varNames = new Map(); // Scratch id → C name
   let usesSerial = false;
   let usesDistance = false;
+  let usesRandom = false;
   let loopDepth = 0;
+  const motors = new Map(); // "A" → {en, in1, in2} (pin numbers)
+  const analogUsed = new Set();
+  const called = new Set(); // My Blocks used, by proccode
+  let params = new Map(); // inside a My Block: argument name → C name
+
+  const parseList = (v) => (Array.isArray(v) ? v : (() => { try { return JSON.parse(v || '[]'); } catch { return []; } })());
+  const funcName = (proccode) => {
+    const words = String(proccode).replace(/%[sbn]/g, ' ').split(/[^A-Za-z0-9]+/).filter(Boolean);
+    if (!words.length) return 'myBlock';
+    const name = words.map((w, i) => (i ? w[0].toUpperCase() + w.slice(1) : w[0].toLowerCase() + w.slice(1))).join('');
+    return /^\d/.test(name) ? 'block' + name : name;
+  };
 
   const varName = (field) => {
     const id = field.id;
@@ -78,6 +103,15 @@ export function generate(blocks, { variables = {} } = {}) {
     let name = PARTS[part] || null;
     if (name && [...pins.values()].some((p) => p.name === name)) name = `${name}_${pinCode(pin)}`;
     pins.set(pin, { name, part });
+  }
+  // And the motors the program sets up: their pins get names like MOTOR_A_EN.
+  for (const b of Object.values(blocks)) {
+    if (b.opcode !== EXT + 'setupMotor') continue;
+    const m = b.fields?.MOTOR?.value || menuValue(b, 'MOTOR') || 'A';
+    const nums = ['EN', 'IN1', 'IN2'].map((k) => pinNumber(menuValue(b, k)));
+    if (motors.has(m) || nums.some((n) => Number.isNaN(n))) continue;
+    motors.set(m, { en: nums[0], in1: nums[1], in2: nums[2] });
+    for (const [k, n] of [['EN', nums[0]], ['IN1', nums[1]], ['IN2', nums[2]]]) if (!pins.has(n)) pins.set(n, { name: `MOTOR_${m}_${k}`, part: `motor ${m} ${k === 'EN' ? 'speed (PWM)' : 'direction'}` });
   }
 
   function menuValue(b, input) {
@@ -122,7 +156,7 @@ export function generate(blocks, { variables = {} } = {}) {
     const f = (n) => b.fields?.[n]?.value;
     const two = (a, op, c, float) => {
       const x = value(b, a), y = value(b, c);
-      return { code: `(${x.code} ${op} ${y.code})`, float: float || x.float || y.float };
+      return { code: `(${x.code} ${op} ${y.code})`, float: float || x.float || y.float, ulong: x.ulong || y.ulong };
     };
     switch (b.opcode) {
       case 'math_number': case 'math_whole_number': case 'math_positive_number':
@@ -131,7 +165,13 @@ export function generate(blocks, { variables = {} } = {}) {
       case 'text': return literal(f('TEXT'));
       case 'data_variable': {
         const name = varName(b.fields.VARIABLE);
-        return { code: name, float: varTypes.get(name) === 'float', variable: name };
+        return { code: name, float: varTypes.get(name) === 'float', ulong: varTypes.get(name) === 'unsigned long', variable: name };
+      }
+      case 'argument_reporter_string_number': case 'argument_reporter_boolean': {
+        const name = params.get(f('VALUE'));
+        if (name) return { code: name };
+        notes.push(b.opcode);
+        return { code: `0 /* "${f('VALUE')}" only exists inside its My Block */` };
       }
       case 'operator_add': return two('NUM1', '+', 'NUM2');
       case 'operator_subtract': return two('NUM1', '-', 'NUM2');
@@ -150,7 +190,9 @@ export function generate(blocks, { variables = {} } = {}) {
       case 'operator_round': return { code: `round(${value(b, 'NUM').code})` };
       case 'operator_random': {
         const lo = value(b, 'FROM'), hi = value(b, 'TO');
-        return { code: `random(${lo.code}, ${hi.code} + 1)` };
+        usesRandom = true;
+        // Scratch's "pick random 1 to 6" can give 6; Arduino's random(1, 7) stops before 7.
+        return { code: isNumber(hi.code) ? `random(${lo.code}, ${Number(hi.code) + 1})` : `random(${lo.code}, ${hi.code} + 1)` };
       }
       case 'operator_join':
         return { code: `String(${value(b, 'STRING1').code}) + String(${value(b, 'STRING2').code})`, text: true };
@@ -161,7 +203,16 @@ export function generate(blocks, { variables = {} } = {}) {
         return { code: map[op] || `0 /* ${op} */`, float: op !== 'abs' };
       }
       case EXT + 'digitalRead': return { code: `digitalRead(${pinExpr(b, 'PIN').code})` };
-      case EXT + 'analogRead': return { code: `analogRead(${pinExpr(b, 'PIN').code})` };
+      case EXT + 'analogRead': {
+        const pe = pinExpr(b, 'PIN');
+        if (pe.pin !== null) analogUsed.add(pe.pin);
+        return { code: `analogRead(${pe.code})` };
+      }
+      case EXT + 'millis': return { code: 'millis()', ulong: true };
+      case EXT + 'map': {
+        const v = ['VALUE', 'FROMLOW', 'FROMHIGH', 'TOLOW', 'TOHIGH'].map((k) => value(b, k).code);
+        return { code: `map(${v.join(', ')})` };
+      }
       case EXT + 'distance':
         usesDistance = true;
         return { code: `readDistanceCm(${pinExpr(b, 'TRIG').code}, ${pinExpr(b, 'ECHO').code})`, float: true };
@@ -211,11 +262,46 @@ export function generate(blocks, { variables = {} } = {}) {
         return [`${p}while (${bare(value(b, 'CONDITION').code)}) {`, ...sub(b, 'SUBSTACK', depth), `${p}}`];
       case 'control_wait_until':
         return [`${p}while (!(${bare(value(b, 'CONDITION').code)})) {}`];
-      case 'control_stop': return [`${p}while (true) {}  // stop: do nothing forever`];
+      case 'control_stop': {
+        const what = b.fields?.STOP_OPTION?.value || 'all';
+        if (what === 'this script') return [`${p}return;  // stop this script: start loop() (or leave the function) early`];
+        if (what === 'all') return [`${p}while (true) {}  // stop all: do nothing forever`];
+        return [`${p}// (stop other scripts: an Arduino runs one program)`];
+      }
+      case 'procedures_call': {
+        const proccode = b.mutation?.proccode;
+        const d = definitions.get(proccode);
+        if (!d) { notes.push('procedures_call'); return [`${p}// "${proccode}" has no definition`]; }
+        called.add(proccode);
+        const ids = parseList(b.mutation.argumentids);
+        const args = ids.map((id) => value(b, id).code);
+        return [`${p}${funcName(proccode)}(${args.join(', ')});`];
+      }
+      case EXT + 'playTone': {
+        const pe = pinExpr(b, 'PIN');
+        if (pe.pin !== null && !pins.has(pe.pin)) autoOutputs.add(pe.pin);
+        return [`${p}tone(${pe.code}, ${value(b, 'HZ').code});`];
+      }
+      case EXT + 'stopTone': return [`${p}noTone(${pinExpr(b, 'PIN').code});`];
+      case EXT + 'setupMotor': {
+        const m = b.fields?.MOTOR?.value || menuValue(b, 'MOTOR') || 'A';
+        if (!motors.has(m)) return [`${p}// motor ${m}: pins must be numbers`];
+        return [`${p}pinMode(MOTOR_${m}_EN, OUTPUT);   // motor ${m} speed (PWM)`, `${p}pinMode(MOTOR_${m}_IN1, OUTPUT);`, `${p}pinMode(MOTOR_${m}_IN2, OUTPUT);`];
+      }
+      case EXT + 'runMotor': {
+        const m = b.fields?.MOTOR?.value || menuValue(b, 'MOTOR') || 'A';
+        if (!motors.has(m)) { notes.push('runMotor'); return [`${p}// motor ${m} is not set up (use "set up motor ${m}" first)`]; }
+        const dir = (menuValue(b, 'DIR') || 'stop').toLowerCase();
+        const speed = value(b, 'SPEED').code;
+        if (dir.startsWith('f')) return [`${p}digitalWrite(MOTOR_${m}_IN1, HIGH);  // motor ${m} forward`, `${p}digitalWrite(MOTOR_${m}_IN2, LOW);`, `${p}analogWrite(MOTOR_${m}_EN, ${speed});`];
+        if (dir.startsWith('b')) return [`${p}digitalWrite(MOTOR_${m}_IN1, LOW);   // motor ${m} backward`, `${p}digitalWrite(MOTOR_${m}_IN2, HIGH);`, `${p}analogWrite(MOTOR_${m}_EN, ${speed});`];
+        return [`${p}digitalWrite(MOTOR_${m}_IN1, LOW);   // motor ${m} stop`, `${p}digitalWrite(MOTOR_${m}_IN2, LOW);`, `${p}analogWrite(MOTOR_${m}_EN, 0);`];
+      }
       case 'data_setvariableto': {
         const name = varName(b.fields.VARIABLE);
         const v = value(b, 'VALUE');
         if (v.float) varTypes.set(name, 'float');
+        else if (v.ulong && varTypes.get(name) === 'int') varTypes.set(name, 'unsigned long');
         if (v.text) varTypes.set(name, 'String');
         return [`${p}${name} = ${v.code};`];
       }
@@ -242,7 +328,10 @@ export function generate(blocks, { variables = {} } = {}) {
         const part = menuValue(b, 'PART');
         const info = pe.pin !== null ? pins.get(pe.pin) : null;
         const label = info && info.name ? '' : `  // ${part}`;
-        if (part === 'light sensor (LDR)') return [`${p}// ${pe.code}: light sensor (analog pins need no pinMode)`];
+        if (ANALOG_PARTS.includes(part)) {
+          if (pe.pin !== null) analogUsed.add(pe.pin);
+          return [`${p}// ${pe.code}: ${part}, an analog sensor (no pinMode needed)`];
+        }
         const mode = part === 'input pull-up' ? 'INPUT_PULLUP' : isInputPart(part) ? 'INPUT' : 'OUTPUT';
         return [`${p}pinMode(${pe.code}, ${mode});${label}`];
       }
@@ -288,9 +377,34 @@ export function generate(blocks, { variables = {} } = {}) {
     }
   }
 
+  // The My Blocks the program uses (and those they use), as C++ functions.
+  const functions = [];
+  const done = new Set();
+  for (let more = true; more;) {
+    more = false;
+    for (const proccode of [...called]) {
+      if (done.has(proccode)) continue;
+      done.add(proccode);
+      more = true;
+      const { def, proto } = definitions.get(proccode);
+      const names = parseList(proto.mutation.argumentnames);
+      const kinds = (String(proccode).match(/%[sbn]/g) || []);
+      params = new Map(names.map((n) => [n, cIdent(n)]));
+      const body = stack(get(def.next), 1);
+      const args = names.map((n, i) => `${kinds[i] === '%b' ? 'bool' : 'int'} ${params.get(n)}`);
+      functions.push('', `// My Block "${String(proccode).replace(/%[sbn]/g, '( )')}"`, `void ${funcName(proccode)}(${args.join(', ')}) {`, ...body, '}');
+      params = new Map();
+    }
+  }
+
   // What setup() needs before the student's own blocks.
   const pre = [];
   if (usesSerial) pre.push('Serial.begin(9600);');
+  if (usesRandom) {
+    const used = new Set([...pins.keys(), ...analogUsed]);
+    const free = [19, 18, 17, 16, 15, 14].find((n) => !used.has(n)) ?? 19;
+    pre.push(`randomSeed(analogRead(${pinCode(free)}));  // noise on an unconnected pin: different numbers every time`);
+  }
   for (const n of [...servos].sort((a, b) => a - b)) pre.push(`servo${pinCode(n)}.attach(${pinCode(n)});`);
   for (const n of [...autoOutputs].sort((a, b) => a - b)) {
     if (!servos.has(n)) pre.push(`pinMode(${pinCode(n)}, OUTPUT);  // added: Arduino needs this for an output pin`);
@@ -310,6 +424,7 @@ export function generate(blocks, { variables = {} } = {}) {
       '  digitalWrite(trig, LOW);  delayMicroseconds(2);', '  digitalWrite(trig, HIGH); delayMicroseconds(10);', '  digitalWrite(trig, LOW);',
       '  long t = pulseIn(echo, HIGH, 30000);  // 0 = no echo', '  return t * 0.034 / 2;', '}');
   }
+  lines.push(...functions);
   if (lines[lines.length - 1] !== '') lines.push('');
   lines.push('void setup() {', ...[...pre, ...setupBody].map((l) => '  ' + l), '}', '');
   lines.push('void loop() {');

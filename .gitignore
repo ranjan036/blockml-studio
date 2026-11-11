@@ -4,3 +4,6 @@ dist/
 .DS_Store
 debug/
 debug.html
+
+# The key that encrypts the teacher-only data (api/_teacher/*.enc); also set as TEACHER_DATA_KEY in Vercel.
+.teacher-data-key

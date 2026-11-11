@@ -181,6 +181,25 @@ try {
   await sleep(500);
   check('stop: every output LOW on the board', !(await lv(8)) && !(await lv(10)) && !(await lv(11)));
 
+  // 3b. Tones and a motor driver on the (simulated) real board, through the blocks' own functions.
+  const prim = (op, args) => js(`return Promise.resolve(vm.runtime._primitives.blockmlArduino_${op}(${JSON.stringify(args)})).then(() => true)`);
+  await prim('playTone', { HZ: 1000, PIN: '8' });
+  await sleep(600);
+  const toneEdges = await js(`const h = __sim.uno.history[8]; const t = h[h.length - 1].t; return h.filter(e => e.high && e.t > t - 100000).length`);
+  check('board: play tone 1000 Hz on pin 8 → ~1000 rising edges a second', toneEdges > 85 && toneEdges < 115, `${toneEdges} in 100 ms`);
+  await prim('stopTone', { PIN: '8' });
+  await prim('setupMotor', { MOTOR: 'A', EN: '9', IN1: '5', IN2: '6' });
+  await prim('runMotor', { MOTOR: 'A', DIR: 'forward', SPEED: 200 });
+  await sleep(500);
+  const duty = await js(`const h = __sim.uno.history[9].slice(-41); let hi = 0, tot = 0; for (let i = 1; i < h.length; i++) { const d = h[i].t - h[i - 1].t; tot += d; if (h[i - 1].high) hi += d; } return hi / tot`);
+  check('board: motor A forward 200 → IN1 HIGH, IN2 LOW, EN PWM ≈ 78%', (await lv(5)) === true && (await lv(6)) === false && Math.abs(duty - 200 / 255) < 0.04, `duty ${(duty * 100).toFixed(0)}%`);
+  check('panel shows motor A forward 200', /motor A.*forward 200/.test((await js(card('motor A'))).replace(/\s+/g, ' ')), await js(card('motor A')));
+  await prim('runMotor', { MOTOR: 'A', DIR: 'backward', SPEED: 120 });
+  await sleep(300);
+  check('board: motor A backward → IN1 LOW, IN2 HIGH', (await lv(5)) === false && (await lv(6)) === true);
+  await js('vm.stopAll(); return true;');
+  await sleep(300);
+
   // 4. Show Arduino C++.
   await js(`[...document.querySelectorAll('.bml-ard-head button')].find(b => b.textContent === 'C++').click(); return true;`);
   const code = await until('C++ window', `const m = document.querySelector('.bml-ard-modal pre'); return m && m.innerText`);
@@ -215,6 +234,53 @@ try {
       await sleep(150);
     }
     check(`lesson ${name}`, want.test(seen), want.test(seen) ? '' : seen.slice(0, 200));
+    await js('vm.stopAll(); return true;');
+  }
+
+  // 6. Intermediate Robotics starters on the virtual board.
+  const slider = (title, value) => `const c = [...document.querySelectorAll('.bml-ard-part')].find(e => e.innerText.includes(${JSON.stringify(title)}));
+    const r = c.querySelector('input[type=range]'); r.value = ${value}; r.dispatchEvent(new Event('input')); return true;`;
+  const advanced = [
+    ['bridge-3', 'Bridge 3 barrier: hand at 10 cm → servo 90°, buzzer', [slider('distance', 10)], /servo 90°/, 6000],
+    ['week-02', 'Week 2 My Blocks traffic light: green first', [], /green LED HIGH/, 6000],
+    ['week-05', 'Week 5 potentiometer: raw and mapped on the Serial Monitor', [slider('potentiometer', 1023)], /raw 1023 {3}mapped 100/, 6000],
+    ['week-07', 'Week 7 AgriBot: dry soil (100) → pump on', [slider('soil moisture', 100)], /pump \/ relay PUMPING/, 6000],
+    ['week-09', 'Week 9 reminder (millis): after 10 s the reminder LED lights', [], /pin 9 · LED HIGH/, 14000],
+    ['week-13', 'Week 13 Smart Home Hub: hot (600) → fan on', [slider('thermistor', 600)], /pin 9 · LED HIGH/, 6000],
+  ];
+  for (const [slug, name, actions, want, ms] of advanced) {
+    const url = `http://localhost:${PORT}/lessons/advanced/${slug}/project.sb3`;
+    await cdp('Page.navigate', { url: `http://localhost:${PORT}/editor?project_url=${encodeURIComponent(url)}` });
+    await until(`${slug} loaded`, `return window.vm && vm.extensionManager.isExtensionLoaded('blockmlArduino') && vm.runtime.targets.some(t => t.sprite && t.sprite.name === 'Arduino')`, 40000);
+    await sleep(800);
+    await js('vm.greenFlag(); return true;');
+    await until(`${slug} panel`, `return document.querySelectorAll('.bml-ard-part').length > 0`);
+    await sleep(400);
+    for (const a of actions) await js(a);
+    let seen = '';
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      seen = (await js(parts)) + ' / ' + (await js(`return document.querySelector('.bml-ard-serial pre').innerText`));
+      if (want.test(seen)) break;
+      await sleep(200);
+    }
+    check(`advanced: ${name}`, want.test(seen), want.test(seen) ? '' : seen.slice(0, 220));
+    if (slug === 'week-13') {
+      // Hysteresis: 520 keeps the fan on; 480 turns it off.
+      await js(slider('thermistor', 520));
+      await sleep(1500);
+      const still = /pin 9 · LED HIGH/.test(await js(parts));
+      await js(slider('thermistor', 480));
+      await sleep(1500);
+      const off = /pin 9 · LED LOW/.test(await js(parts));
+      check('advanced: Week 13 hysteresis — 520 keeps the fan on, 480 turns it off', still && off);
+    }
+    if (slug === 'week-02') {
+      await js(`[...document.querySelectorAll('.bml-ard-head button')].find(b => b.textContent === 'C++').click(); return true;`);
+      const code = await until('C++ window', `const m = document.querySelector('.bml-ard-modal pre'); return m && m.innerText`);
+      check('advanced: Week 2 C++ has the My Blocks as functions', code.includes('void greenLight() {') && code.includes('redLightWithCountdown();'));
+      await js(`document.querySelectorAll('.bml-ard-modal').forEach(m => m.remove()); return true;`);
+    }
     await js('vm.stopAll(); return true;');
   }
 } catch (err) {
