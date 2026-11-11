@@ -6,7 +6,7 @@
 const TOP_SPEED = 120; // px (cm) per second at speed 255
 const STALL = 60; // below this PWM a real gear motor does not start
 const TRACK = 44; // distance between the wheels at size 100%, px (all geometry scales with the sprite's size)
-const NOSE = 26; // from the car's centre to the sensor, px
+const NOSE = 30; // from the car's centre to the sensor at the front edge, px (at size 100%)
 const MAX_RANGE = 400; // HC-SR04: no echo beyond ~4 m
 const SENSOR_AHEAD = 36; // the IR line sensors, just in front of the nose, px
 const SENSOR_GAP = 8; // between neighbouring line sensors, px

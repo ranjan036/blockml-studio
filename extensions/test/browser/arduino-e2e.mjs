@@ -92,6 +92,12 @@ try {
   await cdp('Page.enable');
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: fakeSerial });
   // ONLY=rover runs just the Mars Rover part (the whole test takes over 10 minutes).
+  // The panel helpers shared by several parts.
+  const slider = (title, value) => `const c = [...document.querySelectorAll('.bml-ard-part')].find(e => e.innerText.includes(${JSON.stringify(title)}));
+    if (!c) return false; const r = c.querySelector('input[type=range]'); if (!r) return false; r.value = ${value}; r.dispatchEvent(new Event('input')); return true;`;
+  // Waits until the card is on the panel, then moves its slider.
+  const setSlider = (title, value) => until(`the ${title} slider`, slider(title, value), 8000);
+  if (!process.env.ONLY || process.env.ONLY === 'phase2') {
   if (!process.env.ONLY) {
   // 0. A new project: the Arduino sprite is in the sprite library, and adding the Arduino
   //    extension adds it; pin 13 lights its "L".
@@ -248,8 +254,6 @@ try {
   }
 
   // 6. Intermediate Robotics starters on the virtual board.
-  const slider = (title, value) => `const c = [...document.querySelectorAll('.bml-ard-part')].find(e => e.innerText.includes(${JSON.stringify(title)}));
-    const r = c.querySelector('input[type=range]'); r.value = ${value}; r.dispatchEvent(new Event('input')); return true;`;
   const advanced = [
     ['bridge-3', 'Bridge 3 barrier: hand at 10 cm → servo 90°, buzzer', [slider('distance', 10)], /servo 90°/, 6000],
     ['week-02', 'Week 2 My Blocks traffic light: green first', [], /green LED HIGH/, 6000],
@@ -294,6 +298,8 @@ try {
     await js('vm.stopAll(); return true;');
   }
 
+  }
+
   // 7. Phase 2: the virtual car (Park Assist) and Projects 6–7.
   const open = async (slug) => {
     const url = `http://localhost:${PORT}/lessons/advanced/${slug}/project.sb3`;
@@ -311,9 +317,9 @@ try {
   const x1 = await carX();
   await until('car stops at the wall', `const c = vm.runtime.targets.find(t => t.getName() === 'Car'); const t = document.querySelector('.bml-ard-serial pre').innerText.trim().split('\\n').pop(); return c.x > 100 && /left 0 · right 0/.test(document.querySelector('.bml-ard').innerText)`, 15000);
   const x2 = await carX();
-  const gap = 188 - (x2 + 13); // the wall's face is at x = 188; the sensor is 13 px ahead of the (half-size) car's centre
+  const gap = 188 - (x2 + 15); // the wall's face is at x = 188; the sensor (front edge) is 15 px ahead of the half-size car's centre
   await shot('arduino-car.png');
-  check('Park Assist: the virtual car drives toward the wall', x1 > -160 && x2 > x1, `x ${x1.toFixed(0)} → ${x2.toFixed(0)}`);
+  check('Park Assist: the virtual car drives toward the wall', x2 - x1 > 150, `x ${x1.toFixed(0)} → ${x2.toFixed(0)}`);
   check('Park Assist: it brakes before the wall (gap 0–15 cm), no crash', gap > 0 && gap <= 15 && !/CRASH/.test(await serialText()), `gap ${gap.toFixed(1)} cm`);
   // With no braking distance (it never brakes) it crashes, and the panel says so.
   await js('vm.stopAll(); return true;');
@@ -338,18 +344,18 @@ try {
 
   // Clean City: a hand opens the lid; fumes light the gas LED.
   await open('week-23');
-  await js(slider('distance', 10));
-  await js(slider('gas sensor', 650));
+  await setSlider('distance', 10);
+  await setSlider('gas sensor', 650);
   await until('lid open and gas alert', `const t = [...document.querySelectorAll('.bml-ard-part')].map(e => e.innerText.replace(/\\s+/g, ' ')).join(' / '); return /servo 90°/.test(t) && /pin 8 · LED HIGH/.test(t)`, 6000);
   check('Clean City (Week 23): hand at 10 cm opens the lid, gas 650 lights the alert', true);
-  await js(slider('distance', 100));
+  await setSlider('distance', 100);
   await until('lid closes after 3 s', `return /servo 0°/.test([...document.querySelectorAll('.bml-ard-part')].map(e => e.innerText.replace(/\\s+/g, ' ')).join(' / '))`, 6000);
   check('Clean City: the lid closes again after 3 s while the air monitor keeps running', true);
   await js('vm.stopAll(); return true;');
   }
 
-  // 8. Phase 3: the Mars Rover's line sensors read the track on the stage.
-  {
+  // 8. Phase 3: the Mars Rover's line sensors read the track on the stage. (SKIP_ROVER=1 skips it.)
+  if (!process.env.SKIP_ROVER) {
     const openRover = async (slug) => {
       const url = `http://localhost:${PORT}/lessons/advanced/${slug}/project.sb3`;
       await cdp('Page.navigate', { url: `http://localhost:${PORT}/editor?project_url=${encodeURIComponent(url)}` });

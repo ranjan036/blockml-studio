@@ -1191,3 +1191,6 @@ proportional steering, and Scratch lists → C++ arrays.
   follow the line to the crater and turn away without touching it (stable over repeated runs).
   After a detour the starters have no "rejoin" logic — that is the students' Week 31 challenge.
 - The Arduino panel now opens at most 46% of the window high (it used to cover the stage).
+- The car's distance sensor is at its front edge (it was 3 cm behind, so Park Assist could
+  brake 5 cm short yet brush the wall). Browser test: ONLY=phase2 / ONLY=rover / SKIP_ROVER=1
+  run parts of it (the whole test takes ~15 min and was once stopped for low memory).
