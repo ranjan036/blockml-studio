@@ -216,6 +216,15 @@ helper. Every lesson program is compiled with arduino-cli in the tests.
   the distance block measures from the car's nose to the nearest "Wall…"/"Obstacle…" sprite or
   the stage edge (no echo beyond 4 m); driving into one is a crash (it stops, the Serial
   Monitor says so). The car also mirrors the motors when a real board is connected.
+- **Line sensors on the car**: pins set up as "line sensor (IR)" (five, A0–A4) sit in a row on
+  the car's nose, A0 on the right … A4 on the left, and read the stage under them through the
+  renderer (`extractColor`): a dark line ≈ 950, the light floor ≈ 50-90 — draw any track as a
+  backdrop. The car is drawn at 50% (32 × 24 cm) and its geometry scales with its size;
+  collisions use Scratch's own pixel-accurate "touching".
+- C++ lists: a Scratch list is an `int`/`float` array of 20 with a `…Length` counter (add,
+  delete all, replace, item, length; items count from 1 in Scratch, from 0 in C++);
+  "floor of (a / b)" with whole numbers is integer division, `mod` of decimals is `fmod`;
+  `constrain` block; repeat counters never reuse a student's variable name.
 - Firmware 2 adds `T pin hz` (tone; 0 = noTone); Studio asks to update older boards. After the
   last servo is detached it gives Timer1 back to `analogWrite` (pins 9/10), switching off the
   Servo library's leftover interrupt and resetting the counter.

@@ -91,6 +91,8 @@ try {
   await cdp('Runtime.enable');
   await cdp('Page.enable');
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: fakeSerial });
+  // ONLY=rover runs just the Mars Rover part (the whole test takes over 10 minutes).
+  if (!process.env.ONLY) {
   // 0. A new project: the Arduino sprite is in the sprite library, and adding the Arduino
   //    extension adds it; pin 13 lights its "L".
   await cdp('Page.navigate', { url: `http://localhost:${PORT}/editor` });
@@ -309,7 +311,7 @@ try {
   const x1 = await carX();
   await until('car stops at the wall', `const c = vm.runtime.targets.find(t => t.getName() === 'Car'); const t = document.querySelector('.bml-ard-serial pre').innerText.trim().split('\\n').pop(); return c.x > 100 && /left 0 · right 0/.test(document.querySelector('.bml-ard').innerText)`, 15000);
   const x2 = await carX();
-  const gap = 188 - (x2 + 26); // the wall's face is at x = 188; the sensor is 26 px ahead of the car's centre
+  const gap = 188 - (x2 + 13); // the wall's face is at x = 188; the sensor is 13 px ahead of the (half-size) car's centre
   await shot('arduino-car.png');
   check('Park Assist: the virtual car drives toward the wall', x1 > -160 && x2 > x1, `x ${x1.toFixed(0)} → ${x2.toFixed(0)}`);
   check('Park Assist: it brakes before the wall (gap 0–15 cm), no crash', gap > 0 && gap <= 15 && !/CRASH/.test(await serialText()), `gap ${gap.toFixed(1)} cm`);
@@ -318,7 +320,7 @@ try {
   await js(`vm.greenFlag(); setTimeout(() => { const v = vm.runtime.getTargetForStage().lookupVariableByNameAndType('brakeDistance', ''); v.value = -1; }, 300); return true;`);
   await until('crash reported', `return /CRASH! The car hit Wall/.test(document.querySelector('.bml-ard-serial pre').innerText)`, 15000);
   const x3 = await carX();
-  check('Park Assist: without braking it crashes into the Wall and stops there', x3 + 32 <= 190 && x3 > 140, `x ${x3.toFixed(0)}`);
+  check('Park Assist: without braking it crashes into the Wall and stops there', x3 + 16 <= 190 && x3 > 150, `x ${x3.toFixed(0)}`);
   await js('vm.stopAll(); return true;');
 
   // Sentinel: press the button (arm), then motion → buzzer.
@@ -344,6 +346,97 @@ try {
   await until('lid closes after 3 s', `return /servo 0°/.test([...document.querySelectorAll('.bml-ard-part')].map(e => e.innerText.replace(/\\s+/g, ' ')).join(' / '))`, 6000);
   check('Clean City: the lid closes again after 3 s while the air monitor keeps running', true);
   await js('vm.stopAll(); return true;');
+  }
+
+  // 8. Phase 3: the Mars Rover's line sensors read the track on the stage.
+  {
+    const openRover = async (slug) => {
+      const url = `http://localhost:${PORT}/lessons/advanced/${slug}/project.sb3`;
+      await cdp('Page.navigate', { url: `http://localhost:${PORT}/editor?project_url=${encodeURIComponent(url)}` });
+      await until(`${slug} loaded`, `return window.vm && vm.extensionManager.isExtensionLoaded('blockmlArduino') && vm.runtime.targets.some(t => t.sprite && t.sprite.name === 'Car')`, 40000);
+      await sleep(1200);
+      await js('vm.greenFlag(); return true;');
+      await until(`${slug} panel`, `return document.querySelectorAll('.bml-ard-part').length > 0`);
+    };
+    const lineCards = `return [...document.querySelectorAll('.bml-ard-part')].map(e => e.innerText.replace(/\\s+/g, ' ')).filter(t => t.includes('line sensor')).join(' / ')`;
+    const reading = (pin) => js(`const c = [...document.querySelectorAll('.bml-ard-part')].find(e => e.innerText.includes('A${pin} · line sensor')); return c ? Number(c.querySelector('.val').innerText) : -1`);
+    const carPose = () => js(`const c = vm.runtime.targets.find(t => t.getName() === 'Car'); return { x: c.x, y: c.y, dir: c.direction }`);
+
+    await openRover('week-30');
+    await sleep(1500);
+    const cards = await js(lineCards);
+    const r = [];
+    for (const n of [0, 1, 2, 3, 4]) r.push(await reading(n));
+    check('Week 30: five line sensors on the virtual car read the track', /on the virtual car/.test(cards) && r[2] > 500 && r[0] < 500 && r[4] < 500, `A0-A4 = ${r.join(', ')}`);
+    // Drag the car off the line: every sensor reads the white floor.
+    await js(`const c = vm.runtime.targets.find(t => t.getName() === 'Car'); c.setXY(0, 0); return true;`);
+    await sleep(800);
+    const off = [];
+    for (const n of [0, 1, 2, 3, 4]) off.push(await reading(n));
+    check('Week 30: off the line every sensor reads the white floor (low)', off.every((x) => x >= 0 && x < 200), off.join(', '));
+    await shot('arduino-rover-table.png');
+    await js('vm.stopAll(); return true;');
+
+    // Week 32: proportional steering follows the oval.
+    await openRover('week-32');
+    if (process.env.KP) await sleep(1500);
+    if (process.env.KP) await js(`vm.runtime.getTargetForStage().lookupVariableByNameAndType('Kp', '').value = ${Number(process.env.KP)}; return true;`);
+    const start = await carPose();
+    let turned = 0, last = start.dir, path = 0, prev = start, onLine = 0, samples = 0;
+    for (let t = 0; t < 40; t++) {
+      await sleep(500);
+      const pose = await carPose();
+      path += Math.hypot(pose.x - prev.x, pose.y - prev.y);
+      turned += Math.abs(((pose.dir - last + 540) % 360) - 180);
+      last = pose.dir; prev = pose;
+      samples++;
+      if ((await reading(2)) > 500 || (await reading(1)) > 500 || (await reading(3)) > 500) onLine++;
+      if (process.env.DEBUG_ROVER) console.log(t, pose.x.toFixed(0), pose.y.toFixed(0), pose.dir.toFixed(0), [0, 1, 2, 3, 4].map((n) => 0).join(''), await js(`return ['error','correction','Kp'].map(n => n + '=' + vm.runtime.getTargetForStage().lookupVariableByNameAndType(n, '').value).join(' ')`), (await js(lineCards)).replace(/line sensor \(on the virtual car\)/g, ''));
+    }
+    await shot('arduino-rover-lap.png');
+    check('Week 32: the rover drives along the track (over 600 cm in 20 s) and turns the corners (over 180°)', path > 600 && turned > 180, `path ${path.toFixed(0)} cm, turned ${turned.toFixed(0)}°`);
+    check('Week 32: it stays on the line (a middle sensor sees it at least 90% of the time)', onLine / samples >= 0.9, `${onLine}/${samples}`);
+    check('Week 32: no crash', !/CRASH/.test(await js(`return document.querySelector('.bml-ard-serial pre').innerText`)));
+    await js('vm.stopAll(); return true;');
+
+    // Week 31: following the line, the rover meets the crater and turns away before touching it.
+    await openRover('week-31');
+    let nearest = 999;
+    for (let t = 0; t < 60; t++) {
+      await sleep(500);
+      const d = await js(`const c = vm.runtime.targets.find(t => t.getName() === 'Car'), o = vm.runtime.targets.find(t => t.getName() === 'Obstacle'); return Math.hypot(c.x - o.x, c.y - o.y)`);
+      nearest = Math.min(nearest, d);
+    }
+    const serial = await js(`return document.querySelector('.bml-ard-serial pre').innerText`);
+    // (After turning away it has no "rejoin the line" logic yet: that is the students' Week 31 challenge.)
+    check('Week 31: the rover reaches the crater and turns away without touching it', nearest < 90 && !/hit Obstacle/.test(serial), `closest ${nearest.toFixed(0)} px`);
+    await shot('arduino-rover-crater.png');
+    await js('vm.stopAll(); return true;');
+
+    // Week 33: Mission Day on the unseen track (bends, and a crater on it).
+    await openRover('week-33');
+    // Until it reaches the crater it must follow the bends on the line; then avoid the crater
+    // without touching it. (Rejoining the line after a detour is the students' Week 31 challenge.)
+    const craterDist = () => js(`const c = vm.runtime.targets.find(t => t.getName() === 'Car'), o = vm.runtime.targets.find(t => t.getName() === 'Obstacle'); return Math.hypot(c.x - o.x, c.y - o.y)`);
+    let mPath = 0, mPrev = await carPose(), mOn = 0, mN = 0, mNearest = 999;
+    for (let t = 0; t < 30; t++) {
+      await sleep(500);
+      const pose = await carPose();
+      const d = await craterDist();
+      mNearest = Math.min(mNearest, d);
+      if (mNearest > 70) { // still on the way to the crater
+        mPath += Math.hypot(pose.x - mPrev.x, pose.y - mPrev.y);
+        mN++;
+        if ((await reading(2)) > 500 || (await reading(1)) > 500 || (await reading(3)) > 500) mOn++;
+      }
+      mPrev = pose;
+    }
+    const mSerial = await js(`return document.querySelector('.bml-ard-serial pre').innerText`);
+    await shot('arduino-rover-mission.png');
+    check('Week 33 Mission Day: the rover follows the unseen track\'s bends to the crater (on the line ≥ 90%)', mN > 0 && mOn / mN >= 0.9 && mPath > 150 && mNearest < 70, `path ${mPath.toFixed(0)} cm, on the line ${mOn}/${mN}, closest to the crater ${mNearest.toFixed(0)} px`);
+    check('Week 33 Mission Day: it turns away before touching the crater', !/hit Obstacle/.test(mSerial));
+    await js('vm.stopAll(); return true;');
+  }
 } catch (err) {
   check('test ran to the end', false, err.message);
   await shot('arduino-failure.png').catch(() => {});

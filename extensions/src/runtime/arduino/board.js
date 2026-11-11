@@ -13,13 +13,14 @@ const ANALOG = {
   'thermistor': ['thermistor', 'cold', 'hot', 450],
   'gas sensor (MQ)': ['gas sensor', 'clean air', 'smoke / fumes', 150],
   'water-level probe': ['water level', 'dry', 'flooded', 0],
-  'line sensor (IR)': ['line sensor', 'black line', 'white floor', 800],
+  'line sensor (IR)': ['line sensor', 'white floor', 'black line', 100],
 };
 // Digital sensors: [shown when it reads HIGH, shown when LOW, the reading that lights the switch up].
 const DIGITAL = {
   'flame sensor': ['no flame', 'FLAME!', 0],
   'PIR motion sensor': ['MOTION!', 'no motion', 1],
   'tilt switch': ['TILTED!', 'upright', 1],
+  'water probe (wet/dry)': ['WET!', 'dry', 1],
   'button': ['pressed', 'not pressed', 1],
   'input pull-up': ['not pressed', 'pressed', 0],
 };
@@ -39,6 +40,7 @@ export class BoardModel {
       this.tones = new Map(); // pin → Hz
       this.motors = new Map(); // "A"/"B" → {en, in1, in2}
       this.reads = new Map(); // what the real board said last: key → value
+      this.analogFromCar = new Set(); // analog pins the virtual car's line sensors set
       this.serial = [];
     } else {
       for (const o of this.outputs.values()) { o.level = 0; o.pwm = 0; }
@@ -118,7 +120,7 @@ export class BoardModel {
 }
 
 const CSS = `
-.bml-ard{position:fixed;right:16px;bottom:16px;width:340px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);display:flex;flex-direction:column;z-index:500;background:#fff;border:2px solid #0f766e;border-radius:12px;box-shadow:0 10px 30px rgba(15,23,42,.3);font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a}
+.bml-ard{position:fixed;right:16px;bottom:16px;width:340px;max-width:calc(100vw - 32px);max-height:min(46vh, calc(100vh - 32px));resize:vertical;overflow:hidden;display:flex;flex-direction:column;z-index:500;background:#fff;border:2px solid #0f766e;border-radius:12px;box-shadow:0 10px 30px rgba(15,23,42,.3);font:13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a}
 .bml-ard *{box-sizing:border-box}
 .bml-ard-head{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#0f766e;color:#fff;border-radius:9px 9px 0 0;cursor:move;user-select:none;touch-action:none}
 .bml-ard-title{font-weight:700;flex:1}
@@ -406,6 +408,9 @@ export class Panel {
       return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: title }), el('div', { class: 'val', text: v === undefined ? '–' : String(v) }));
     }
     const v = m.analogRead(pin);
+    if (m.analogFromCar.has(pin)) {
+      return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: `${title} (on the virtual car)` }), el('div', { class: 'val', text: String(v) }));
+    }
     const out = el('div', { class: 'val', style: 'min-width:36px;text-align:right', text: String(v) });
     const range = el('input', { type: 'range', min: '0', max: '1023', value: String(v), title: info ? `${info[1]} ← → ${info[2]}` : '0 – 1023' });
     range.addEventListener('input', () => { m.analog.set(pin, Number(range.value)); out.textContent = range.value; this.actions.inputChanged?.(); });

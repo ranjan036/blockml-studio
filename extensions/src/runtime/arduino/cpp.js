@@ -9,14 +9,14 @@ const EXT = 'blockmlArduino_';
 const PARTS = {
   'LED': 'LED', 'red LED': 'RED_LED', 'yellow LED': 'YELLOW_LED', 'green LED': 'GREEN_LED',
   'white LED': 'WHITE_LED', 'buzzer': 'BUZZER', 'vibration motor': 'VIBRATION', 'pump / relay': 'PUMP', 'output': null,
-  'button': 'BUTTON', 'flame sensor': 'FLAME', 'PIR motion sensor': 'PIR', 'tilt switch': 'TILT', 'input': null, 'input pull-up': null,
+  'button': 'BUTTON', 'flame sensor': 'FLAME', 'PIR motion sensor': 'PIR', 'tilt switch': 'TILT', 'water probe (wet/dry)': 'WATER_PROBE', 'input': null, 'input pull-up': null,
   'light sensor (LDR)': 'LDR', 'potentiometer': 'POT', 'soil moisture sensor': 'SOIL', 'thermistor': 'THERMISTOR',
   'gas sensor (MQ)': 'GAS', 'water-level probe': 'WATER', 'line sensor (IR)': 'LINE',
 };
 export const PART_NAMES = Object.keys(PARTS);
 /** Analog sensors: read with analogRead, no pinMode. */
 export const ANALOG_PARTS = ['light sensor (LDR)', 'potentiometer', 'soil moisture sensor', 'thermistor', 'gas sensor (MQ)', 'water-level probe', 'line sensor (IR)'];
-export const isInputPart = (part) => ['button', 'flame sensor', 'PIR motion sensor', 'tilt switch', 'input', 'input pull-up', ...ANALOG_PARTS].includes(part);
+export const isInputPart = (part) => ['button', 'flame sensor', 'PIR motion sensor', 'tilt switch', 'water probe (wet/dry)', 'input', 'input pull-up', ...ANALOG_PARTS].includes(part);
 
 /** "A0" → 14, "8" → 8, anything else → NaN. */
 export function pinNumber(pin) {
@@ -82,6 +82,23 @@ export function generate(blocks, { variables = {} } = {}) {
     return /^\d/.test(name) ? 'block' + name : name;
   };
 
+  // Scratch lists become fixed-size arrays with a length counter (C++ arrays can't grow).
+  const LIST_SIZE = 20;
+  const lists = new Map(); // Scratch id → {name, float}
+  const listName = (field) => {
+    const id = field.id;
+    if (!lists.has(id)) {
+      let name = cIdent(field.value || 'list');
+      const taken = new Set([...varNames.values(), ...[...lists.values()].map((l) => l.name)]);
+      while (taken.has(name)) name += '_';
+      lists.set(id, { name, float: false });
+    }
+    return lists.get(id);
+  };
+  // Every variable name in the sprite, so "repeat" loop counters (i, j, …) never hide one.
+  const studentNames = new Set(Object.values(blocks).flatMap((b) => ['VARIABLE', 'LIST'].map((k) => b.fields?.[k]?.value).filter(Boolean).map(cIdent)));
+  const counterNames = ['i', 'j', 'k', 'm', 'n', 'p', 'q'].filter((n) => !studentNames.has(n));
+
   const varName = (field) => {
     const id = field.id;
     if (!varNames.has(id)) {
@@ -95,13 +112,16 @@ export function generate(blocks, { variables = {} } = {}) {
   };
 
   // First pass: the pins the program sets up, so later blocks can use their names.
-  for (const b of Object.values(blocks)) {
-    if (b.opcode !== EXT + 'setupPin') continue;
-    const pin = pinNumber(menuValue(b, 'PIN'));
-    const part = menuValue(b, 'PART');
-    if (Number.isNaN(pin) || pins.has(pin)) continue;
+  const setups = Object.values(blocks).filter((b) => b.opcode === EXT + 'setupPin')
+    .map((b) => ({ pin: pinNumber(menuValue(b, 'PIN')), part: menuValue(b, 'PART') }))
+    .filter(({ pin }) => !Number.isNaN(pin));
+  const partCount = new Map();
+  for (const { part } of setups) partCount.set(part, (partCount.get(part) || 0) + 1);
+  for (const { pin, part } of setups) {
+    if (pins.has(pin)) continue;
     let name = PARTS[part] || null;
-    if (name && [...pins.values()].some((p) => p.name === name)) name = `${name}_${pinCode(pin)}`;
+    // Several pins with the same part (five line sensors): every name gets its pin, LINE_A0 … LINE_A4.
+    if (name && (partCount.get(part) > 1 || [...pins.values()].some((p) => p.name === name))) name = `${name}_${pinCode(pin)}`;
     pins.set(pin, { name, part });
   }
   // And the motors the program sets up: their pins get names like MOTOR_A_EN.
@@ -180,7 +200,11 @@ export function generate(blocks, { variables = {} } = {}) {
         const x = value(b, 'NUM1'), y = value(b, 'NUM2');
         return { code: `(${x.code} / ${x.float || y.float ? y.code : toFloat(y.code)})`, float: true };
       }
-      case 'operator_mod': return two('NUM1', '%', 'NUM2');
+      case 'operator_mod': {
+        const x = value(b, 'NUM1'), y = value(b, 'NUM2');
+        if (x.float || y.float) return { code: `fmod(${x.code}, ${y.code})`, float: true };
+        return { code: `(${x.code} % ${y.code})`, ulong: x.ulong || y.ulong };
+      }
       case 'operator_lt': return { code: two('OPERAND1', '<', 'OPERAND2').code };
       case 'operator_gt': return { code: two('OPERAND1', '>', 'OPERAND2').code };
       case 'operator_equals': return { code: two('OPERAND1', '==', 'OPERAND2').code };
@@ -198,6 +222,12 @@ export function generate(blocks, { variables = {} } = {}) {
         return { code: `String(${value(b, 'STRING1').code}) + String(${value(b, 'STRING2').code})`, text: true };
       case 'operator_mathop': {
         const op = f('OPERATOR');
+        const inner = get(b.inputs?.NUM?.block);
+        if (op === 'floor' && inner && inner.opcode === 'operator_divide') {
+          // "floor of (millis / 500)": whole numbers divide to a whole number in C++.
+          const x = value(inner, 'NUM1'), y = value(inner, 'NUM2');
+          if (!x.float && !y.float) return { code: `(${x.code} / ${y.code})`, ulong: x.ulong || y.ulong };
+        }
         const x = value(b, 'NUM').code;
         const map = { abs: `abs(${x})`, floor: `floor(${x})`, ceiling: `ceil(${x})`, sqrt: `sqrt(${x})`, sin: `sin(${x} * DEG_TO_RAD)`, cos: `cos(${x} * DEG_TO_RAD)` };
         return { code: map[op] || `0 /* ${op} */`, float: op !== 'abs' };
@@ -209,6 +239,15 @@ export function generate(blocks, { variables = {} } = {}) {
         return { code: `analogRead(${pe.code})` };
       }
       case EXT + 'millis': return { code: 'millis()', ulong: true };
+      case EXT + 'constrain': {
+        const x = value(b, 'VALUE'), lo = value(b, 'LOW'), hi = value(b, 'HIGH');
+        return { code: `constrain(${x.code}, ${lo.code}, ${hi.code})`, float: x.float || lo.float || hi.float };
+      }
+      case 'data_itemoflist': {
+        const l = listName(b.fields.LIST);
+        return { code: `${l.name}[${index(value(b, 'INDEX'))}]`, float: l.float };
+      }
+      case 'data_lengthoflist': return { code: `${listName(b.fields.LIST).name}Length` };
       case EXT + 'map': {
         const v = ['VALUE', 'FROMLOW', 'FROMHIGH', 'TOLOW', 'TOHIGH'].map((k) => value(b, k).code);
         return { code: `map(${v.join(', ')})` };
@@ -223,6 +262,9 @@ export function generate(blocks, { variables = {} } = {}) {
         return { code: `0 /* "${blockName(b.opcode)}" has no Arduino version */` };
     }
   }
+
+  // Scratch counts list items from 1, C++ arrays from 0.
+  const index = (v) => (isNumber(v.code) ? String(Number(v.code) - 1) : `${v.code} - 1`);
 
   const toFloat = (code) => (isNumber(code) ? (code.includes('.') ? code : code + '.0') : `float(${code})`);
 
@@ -245,7 +287,7 @@ export function generate(blocks, { variables = {} } = {}) {
     switch (b.opcode) {
       case 'control_wait': return [`${p}delay(${seconds(value(b, 'DURATION'))});`];
       case 'control_repeat': {
-        const i = ['i', 'j', 'k', 'm', 'n'][loopDepth] || `i${loopDepth}`;
+        const i = counterNames[loopDepth] || `rep${loopDepth}`;
         loopDepth++;
         const body = sub(b, 'SUBSTACK', depth);
         loopDepth--;
@@ -304,6 +346,19 @@ export function generate(blocks, { variables = {} } = {}) {
         else if (v.ulong && varTypes.get(name) === 'int') varTypes.set(name, 'unsigned long');
         if (v.text) varTypes.set(name, 'String');
         return [`${p}${name} = ${v.code};`];
+      }
+      case 'data_addtolist': {
+        const l = listName(b.fields.LIST);
+        const v = value(b, 'ITEM');
+        if (v.float) l.float = true;
+        return [`${p}if (${l.name}Length < ${LIST_SIZE}) ${l.name}[${l.name}Length++] = ${v.code};  // add to the list`];
+      }
+      case 'data_deletealloflist': return [`${p}${listName(b.fields.LIST).name}Length = 0;  // empty the list`];
+      case 'data_replaceitemoflist': {
+        const l = listName(b.fields.LIST);
+        const v = value(b, 'ITEM');
+        if (v.float) l.float = true;
+        return [`${p}${l.name}[${index(value(b, 'INDEX'))}] = ${v.code};`];
       }
       case 'data_changevariableby': {
         const name = varName(b.fields.VARIABLE);
@@ -418,6 +473,7 @@ export function generate(blocks, { variables = {} } = {}) {
   }
   for (const n of [...servos].sort((a, b) => a - b)) lines.push(`Servo servo${pinCode(n)};`);
   for (const [name, type] of varTypes) lines.push(`${type} ${name} = ${type === 'String' ? '""' : '0'};`);
+  for (const l of lists.values()) lines.push(`${l.float ? 'float' : 'int'} ${l.name}[${LIST_SIZE}];  // a Scratch list: up to ${LIST_SIZE} items`, `int ${l.name}Length = 0;`);
   if (usesDistance) {
     lines.push('', '// HC-SR04: send a 10 µs pulse, time the echo, turn the time into cm.', 'float readDistanceCm(int trig, int echo) {',
       '  pinMode(trig, OUTPUT);', '  pinMode(echo, INPUT);',

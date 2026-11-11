@@ -1167,3 +1167,27 @@ Projects 8–10 + Capstone (Weeks 24–36) with the line-following rover and lis
 Next: phase 3 = Projects 8–10 + Capstone (Weeks 24–36): vibration motor mapping, water
 probes and escalating alerts, the IR line-sensor array on the car (reading the backdrop),
 proportional steering, and Scratch lists → C++ arrays.
+
+### 15.27 Intermediate Robotics, phase 3: Projects 8–10, the rover, Capstone (2026-11-11)
+
+- **Starters Weeks 24–33** (36 of 39 sessions; Weeks 34–36 are the student's own invention):
+  24 vibration ramp, 25–26 distance → vibration (map with a reversed range + constrain),
+  27 three water probes, 28–29 Rescue Alert (wet/dry probes + gas, My Blocks sound warning /
+  sound critical / all clear, slow and fast beeps from (millis / period) mod 2 — C++ exactly
+  like the Teacher Guide), 30 the five line sensors into a list (array) as a table, 31 on/off
+  line following with a crater check first, 32 proportional steering (weights list, error,
+  Kp), 33 Mission Day on an unseen track with a crater.
+- **Rover simulation**: line sensors read the track backdrop; two tracks (practice oval,
+  "mission" three-lobed loop). The car is 50% size (a realistic 32 cm rover); at full size it
+  could not pivot clear of a crater with the Teacher Guide's 12 cm margin. In the simulator
+  **Kp = 60** (the Guide's 25 misses the corners here — the page says so and makes tuning the
+  point of Week 32). The rover's sensor reading and error maths are My Blocks with "run without
+  screen refresh", otherwise Scratch's repeat loops wait a frame each and the rover reacts 3
+  times a second.
+- New: `constrain` block, "water probe (wet/dry)" part, IR line sensors read higher over the
+  line (as the Guide's code expects), lists → arrays, integer division for floor(a / b).
+- Browser test: line sensors read 92/691/890/691/92 across the line and all ~92 off it; the
+  week-32 rover drives > 1,400 cm in 20 s on the line 39–40/40 samples; Week 31 and Mission Day
+  follow the line to the crater and turn away without touching it (stable over repeated runs).
+  After a detour the starters have no "rejoin" logic — that is the students' Week 31 challenge.
+- The Arduino panel now opens at most 46% of the window high (it used to cover the stage).

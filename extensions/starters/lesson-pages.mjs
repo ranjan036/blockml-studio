@@ -348,6 +348,7 @@ export function advancedSessionPage(s, project, starter, nav) {
   const open = starter
     ? `<div class="buttons"><a class="btn ai" data-project="project.sb3" target="_blank" rel="noopener">▶ Open in BlockML Studio</a></div>
 <p class="small">Runs on the <b>virtual board</b> without a board, or on your Arduino Uno: press <b>Connect Arduino board</b> (Chrome or Edge). Download: <a href="project.sb3" download="${s.id}.sb3">${s.id}.sb3</a></p>
+${starter.note ? `<p class="say">${starter.note}</p>` : ''}
 <details><summary>The Arduino C++ behind these blocks</summary><pre style="background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;overflow:auto;font-size:13px">${esc(starter.cpp)}</pre></details>`
     : '<p class="small">No starter project for this session: build your own with the Arduino blocks (Add Extension → Arduino), or write the C++ in the Arduino IDE.</p>';
   const navLinks = [nav.prev ? `<a href="../${nav.prev.id}/">← ${esc(nav.prev.label)}</a>` : '', nav.next ? `<a href="../${nav.next.id}/">${esc(nav.next.label)} →</a>` : ''].filter(Boolean).join(' · ');

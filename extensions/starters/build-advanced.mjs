@@ -12,8 +12,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { v } from './sb3.mjs';
 import { advancedSessionPage, advancedIndexPage } from './lesson-pages.mjs';
-import { flag, forever, ifThen, ifElse, set, change, wait, waitUntil, eq, lt, gt, and, or, not, sub, div, join2, random } from './blocks.mjs';
-import { ard, repeat, define, call, arg, arduinoProject, cppFor } from './arduino-blocks.mjs';
+import { flag, forever, ifThen, ifElse, set, change, wait, waitUntil, eq, lt, gt, and, or, not, sub, add, mul, div, join2, random, round, addTo } from './blocks.mjs';
+import { op } from './sb3.mjs';
+import { ard, repeat, define, defineFast, call, arg, arduinoProject, cppFor } from './arduino-blocks.mjs';
 import { dataKey, saveSecret } from './teacher-secret.mjs';
 import { carSprite3, wallSprite3 } from './arduino-sprite.mjs';
 
@@ -25,6 +26,33 @@ const curriculum = JSON.parse(fs.readFileSync(new URL('./advanced/curriculum.jso
 const join = (...parts) => parts.reduceRight((acc, p) => join2(p, acc));
 // digital write pin to a variable (1 = HIGH, 0 = LOW)
 const writeVar = (pin, name) => ({ op: 'blockmlArduino_digitalWrite', inputs: { PIN: { menu: 'blockmlArduino_menu_pins', field: 'pins', value: String(pin) }, LEVEL: { reporter: v(name), shadow: { menu: 'blockmlArduino_menu_levels', field: 'levels', value: 'HIGH' } } } });
+const item = (list, index) => op('data_itemoflist', { INDEX: index }, { LIST: list });
+const clear = (list) => ({ op: 'data_deletealloflist', fields: { LIST: list } });
+const abs = (x) => op('operator_mathop', { NUM: x }, { OPERATOR: 'abs' });
+const floor = (x) => op('operator_mathop', { NUM: x }, { OPERATOR: 'floor' });
+// The five line-sensor readings A0-A4 into a list (an array in C++). In the rover these are
+// My Blocks that "run without screen refresh", so the loop is as quick as a real Arduino's.
+const readLineBody = [clear('readings'), set('i', 0), repeat(5, addTo('readings', ard.analogReadAt(v('i'))), change('i', 1))];
+const readLine = readLineBody;
+const readSensors = defineFast('read line sensors', [], ...readLineBody);
+const lineTable = ard.print(join('A0 ', item('readings', 1), '  A1 ', item('readings', 2), '  A2 ', item('readings', 3), '  A3 ', item('readings', 4), '  A4 ', item('readings', 5)));
+// Mars Rover wiring (Teacher Guide): motors ENA 11 IN1 10 IN2 9 (left, A), IN3 5 IN4 4 ENB 3 (right, B); HC-SR04 Trig 12 Echo 13.
+const roverSetup = [ard.setupMotor('A', 11, 10, 9), ard.setupMotor('B', 3, 5, 4), ...[0, 1, 2, 3, 4].map((n) => ard.setup(`A${n}`, 'line sensor (IR)'))];
+// A signed speed for each side, like the Teacher Guide's setMotors(left, right).
+const setMotors = define('set motors left %s right %s', ['left', 'right'],
+  ifElse(lt(arg('left'), 0), [ard.motor('A', 'backward', ard.constrain(abs(arg('left')), 0, 255))], [ard.motor('A', 'forward', ard.constrain(arg('left'), 0, 255))]),
+  ifElse(lt(arg('right'), 0), [ard.motor('B', 'backward', ard.constrain(abs(arg('right')), 0, 255))], [ard.motor('B', 'forward', ard.constrain(arg('right'), 0, 255))]));
+const drive = (l, r) => call('set motors left %s right %s', { left: l, right: r });
+// The weighted line position: -2 (far right) … +2 (far left), from the readings.
+const lineErrorBody = [set('weighted', 0), set('total', 0), set('i', 1),
+  repeat(5, change('weighted', mul(item('readings', v('i')), item('weights', v('i')))), change('total', item('readings', v('i'))), change('i', 1)),
+  ifElse(gt(v('total'), 0), [set('error', div(v('weighted'), v('total')))], [set('error', 0)])];
+const lineError = lineErrorBody;
+const findError = defineFast('find line error', [], ...lineErrorBody);
+const weightsSetup = [clear('weights'), ...[-2, -1, 0, 1, 2].map((w) => addTo('weights', w))];
+// The slow and fast beeps of Rescue Alert: the buzzer follows (millis / period) mod 2.
+const beepEvery = (pin, ms) => [set('beep', op('operator_mod', { NUM1: floor(div(ard.millis(), ms)), NUM2: 2 })), writeVar(pin, 'beep')];
+
 // "flip" a 0/1 variable
 const toggle = (name) => set(name, sub(1, v(name)));
 
@@ -192,6 +220,95 @@ const STARTERS = {
       set('gas', ard.analogRead('A0')),
       ifElse(gt(v('gas'), 400), [ard.write(8, 'HIGH'), ard.write(7, 'HIGH')], [ard.write(8, 'LOW'), ard.write(7, 'LOW')]),
       ard.print(join('Distance: ', v('distance'), ' | Gas: ', v('gas'))), wait(0.2))]], ['distance', 'gas', 'lidOpen'], ['lidOpenedAt']],
+
+  // ---- Project 8: Guide Bot ----
+  'week-24': [[[flag, ard.setup(9, 'vibration motor'),
+    forever(set('level', 0), repeat(51, ard.pwm(9, v('level')), change('level', 5), wait(0.03)),
+      repeat(51, change('level', -5), ard.pwm(9, v('level')), wait(0.03)), wait(0.5))]], ['level']],
+
+  // Closer = stronger: map the distance (0-100 cm) to vibration (255-0).
+  'week-25': [[[flag, ard.setup(9, 'vibration motor'),
+    forever(set('distance', ard.distance(10, 11)),
+      ifElse(and(gt(v('distance'), 0), lt(v('distance'), 100)), [set('intensity', ard.constrain(ard.map(v('distance'), 0, 100, 255, 0), 0, 255))], [set('intensity', 0)]),
+      ard.pwm(9, v('intensity')), ard.print(join('Distance: ', v('distance'), ' | Vibration: ', v('intensity'))), wait(0.1))]], ['distance', 'intensity']],
+
+  'week-26': [[[flag, ard.setup(11, 'vibration motor'),
+    forever(set('distance', ard.distance(9, 10)),
+      ifElse(and(gt(v('distance'), 0), lt(v('distance'), 100)), [set('intensity', ard.constrain(ard.map(v('distance'), 0, 100, 255, 0), 0, 255))], [set('intensity', 0)]),
+      ard.pwm(11, v('intensity')), ard.print(join('Distance: ', v('distance'), ' | Vibration: ', v('intensity'))), wait(0.1))]], ['distance', 'intensity']],
+
+  // ---- Project 9: Rescue Alert ----
+  // Three probes at increasing heights, each through a 10 kΩ pull-down to an analog pin.
+  'week-27': [[[flag, ard.setup('A0', 'water-level probe'), ard.setup('A1', 'water-level probe'), ard.setup('A2', 'water-level probe'),
+    forever(ard.print(join('low ', ard.analogRead('A0'), '   middle ', ard.analogRead('A1'), '   high ', ard.analogRead('A2'))), wait(0.5))]]],
+
+  // Escalating alerts: slow beeps for a warning, fast beeps for critical.
+  'week-28': [[
+    [flag, ard.setup(2, 'water probe (wet/dry)'), ard.setup(3, 'water probe (wet/dry)'), ard.setup('A1', 'gas sensor (MQ)'),
+      ard.setup(8, 'buzzer'), ard.setup(9, 'yellow LED'), ard.setup(10, 'red LED'),
+      forever(set('gas', ard.analogRead('A1')),
+        ifElse(or(eq(ard.digitalRead(3), 1), gt(v('gas'), 500)), [call('sound critical')],
+          [ifElse(or(eq(ard.digitalRead(2), 1), gt(v('gas'), 350)), [call('sound warning')], [call('all clear')])]),
+        wait(0.05))],
+    define('sound warning', [], ard.write(9, 'HIGH'), ard.write(10, 'LOW'), ...beepEvery(8, 500)),
+    define('sound critical', [], ard.write(9, 'LOW'), ard.write(10, 'HIGH'), ...beepEvery(8, 150)),
+    define('all clear', [], ard.write(9, 'LOW'), ard.write(10, 'LOW'), ard.write(8, 'LOW')),
+  ], ['gas'], ['beep']],
+
+  // Rescue Alert (Teacher Guide wiring): water probes 2 (low) and 3 (critical), gas A0.
+  'week-29': [[
+    [flag, ard.setup(2, 'water probe (wet/dry)'), ard.setup(3, 'water probe (wet/dry)'), ard.setup('A0', 'gas sensor (MQ)'),
+      ard.setup(8, 'yellow LED'), ard.setup(9, 'red LED'), ard.setup(10, 'buzzer'),
+      forever(set('waterRising', ard.digitalRead(2)), set('waterCritical', ard.digitalRead(3)), set('gas', ard.analogRead('A0')),
+        ifElse(or(eq(v('waterCritical'), 1), gt(v('gas'), 500)), [call('sound critical')],
+          [ifElse(or(eq(v('waterRising'), 1), gt(v('gas'), 350)), [call('sound warning')], [call('all clear')])]),
+        ard.print(join('Water rising: ', v('waterRising'), ' | Critical: ', v('waterCritical'), ' | Gas: ', v('gas'))),
+        wait(0.05))],
+    define('sound warning', [], ard.write(8, 'HIGH'), ard.write(9, 'LOW'), ...beepEvery(10, 500)),
+    define('sound critical', [], ard.write(8, 'LOW'), ard.write(9, 'HIGH'), ...beepEvery(10, 150)),
+    define('all clear', [], ard.write(8, 'LOW'), ard.write(9, 'LOW'), ard.write(10, 'LOW')),
+  ], ['gas'], ['waterRising', 'waterCritical', 'beep']],
+
+  // ---- Project 10: Mars Rover ----
+  // The five line sensors as a table (a list = an array). Drag the car across the line.
+  'week-30': [[[flag, ...roverSetup, forever(...readLine, lineTable, wait(0.2))]], [], ['i'], { track: 'practice' }],
+
+  // Line following (on/off steering) with an obstacle check first: avoiding a crater beats following.
+  'week-31': [[
+    [flag, ...roverSetup, forever(set('distance', ard.distance(12, 13)),
+      ifElse(and(gt(v('distance'), 0), lt(v('distance'), 12)), [drive(120, -120), wait(0.3)],
+        [ifElse(gt(ard.analogRead('A2'), 500), [drive(150, 150)],
+          [ifElse(or(gt(ard.analogRead('A3'), 500), gt(ard.analogRead('A4'), 500)), [drive(40, 150)],
+            [ifElse(or(gt(ard.analogRead('A1'), 500), gt(ard.analogRead('A0'), 500)), [drive(150, 40)], [drive(100, 100)])])])]))],
+    setMotors,
+  ], ['distance'], [], { track: 'practice', obstacle: { x: 40, y: 130 } }],
+
+  // Proportional steering: the further off the line, the harder it turns (error × Kp).
+  'week-32': [[
+    [flag, ...roverSetup, ...weightsSetup, set('Kp', 60),
+      forever(call('read line sensors'), call('find line error'), set('correction', round(mul(v('Kp'), v('error')))),
+        drive(sub(150, v('correction')), add(150, v('correction'))), ard.print(join('error ', v('error'), '  correction ', v('correction'))))],
+    setMotors, readSensors, findError,
+  ], ['error', 'correction'], ['Kp', 'i', 'weighted', 'total'], { track: 'practice' }],
+
+  // Mission Day: proportional line following, and craters avoided first, on the unseen track.
+  'week-33': [[
+    [flag, ...roverSetup, ...weightsSetup, set('Kp', 60),
+      forever(set('distance', ard.distance(12, 13)),
+        ifElse(and(gt(v('distance'), 0), lt(v('distance'), 12)), [drive(120, -120), wait(0.3)],
+          [call('read line sensors'), call('find line error'), set('correction', round(mul(v('Kp'), v('error')))), drive(sub(150, v('correction')), add(150, v('correction')))]))],
+    setMotors, readSensors, findError,
+  ], ['distance', 'error'], ['Kp', 'i', 'weighted', 'total', 'correction'], { track: 'mission', obstacle: { x: 88, y: 109 } }],
+};
+
+// Notes for a session's page about how the Studio project differs from the real build.
+const NOTES = {
+  'week-16': 'On the stage: <b>Add virtual car</b> is already in this project — motor A is the left wheel, motor B the right. A real chassis drifts; the virtual one drives straight, so the drift experiment needs the real car.',
+  'week-17': 'The virtual car brakes in front of the Wall sprite. Drag the wall closer or further while it drives; change <b>brakeDistance</b> and the speed.',
+  'week-30': 'The five IR sensors sit on the virtual car\'s nose (A0 on the right … A4 on the left) and read the track drawn on the stage. Drag the car across the line and watch the table.',
+  'week-31': 'The grey rock is an <b>Obstacle</b> sprite: the car\'s distance sensor sees it. Move it anywhere on the track.',
+  'week-32': 'In the simulator <b>Kp = 60</b> drives the oval smoothly (try 25, the Teacher Guide\'s value for a real rover, and watch it miss the corner). On a real rover start near 25 and tune: that is this week\'s challenge.',
+  'week-33': 'The stage has two backdrops: the <b>mission track</b> (the unseen terrain) and a grid. Teachers can draw a new track as a backdrop (a dark line about 10 px wide on a light floor) for a truly unseen Mission Day.',
 };
 
 function write(dir, file, content) {
@@ -215,11 +332,11 @@ sessions.forEach((s, i) => {
   let starter = null;
   if (def) {
     const [scripts, shown = [], hidden = [], car = false] = def;
-    const p = arduinoProject(BASE, scripts, { variables: shown, hidden, car });
+    const p = arduinoProject(BASE, scripts, { variables: shown, hidden, ...(typeof car === 'object' ? car : { car }) });
     write(s.id, 'project.sb3', p);
     const out = cppFor(p);
     if (out.unsupported.length) unsupported.push(`${s.id}: ${out.unsupported.join(', ')}`);
-    starter = { cpp: out.code };
+    starter = { cpp: out.code, note: NOTES[s.id] };
     starters++;
   }
   const project = curriculum.projects.find((p) => p.number === s.project) || null;

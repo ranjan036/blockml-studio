@@ -56,5 +56,28 @@ const CAR_RESET = {
 };
 export const CAR_COSTUMES = [['car', CAR_SVG]];
 export const WALL_COSTUMES = [['wall', WALL_SVG]];
-export const carSprite3 = () => sprite3('Car', CAR_COSTUMES, [32, 24], { x: -170, y: 0, draggable: true, scripts: CAR_RESET });
+export const carSprite3 = () => sprite3('Car', CAR_COSTUMES, [32, 24], { x: -170, y: 0, size: 50, draggable: true, scripts: CAR_RESET });
 export const wallSprite3 = () => sprite3('Wall', WALL_COSTUMES, [12, 100], { x: 200, y: 0, draggable: true });
+
+// Mars Rover tracks: a black tape line on a light floor, drawn as stage backdrops, which the
+// virtual car's IR line sensors read. "practice" is an oval; "mission" is the unseen Mission
+// Day terrain with bends (teachers can draw their own backdrop the same way).
+function missionPath() {
+  const pts = [];
+  for (let i = 0; i < 180; i++) {
+    const t = (i / 180) * 2 * Math.PI;
+    const r = 1 + 0.18 * Math.sin(3 * t);
+    pts.push(`${(240 + 175 * r * Math.cos(t)).toFixed(1)} ${(175 + 120 * r * Math.sin(t)).toFixed(1)}`);
+  }
+  return `M${pts.join(' L')} Z`;
+}
+const floor = (body) => `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="480" height="360" fill="#f8f5ec"/>${body}</svg>`;
+export const TRACKS = {
+  practice: floor('<rect x="50" y="50" width="380" height="260" rx="90" fill="none" stroke="#111" stroke-width="10"/>'),
+  // A smooth three-lobed loop (r = 1 + 0.18·sin 3θ): bends in both directions, no straight to rely on.
+  mission: floor(`<path d="${missionPath()}" fill="none" stroke="#111" stroke-width="10" stroke-linejoin="round"/>`),
+};
+// Where the car starts on each track (on the bottom straight, facing right).
+export const TRACK_START = { practice: { x: -60, y: -130 }, mission: { x: 0, y: -93 } };
+// A crater/rock for the rover to avoid (its name starts with "Obstacle", so the sensor sees it).
+export const OBSTACLE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="#78716c" stroke="#44403c" stroke-width="3"/><circle cx="15" cy="16" r="4" fill="#a8a29e"/><circle cx="28" cy="27" r="6" fill="#57534e"/></svg>';

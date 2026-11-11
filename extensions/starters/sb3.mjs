@@ -147,7 +147,7 @@ export class Project {
           const protoId = nextId();
           const proto = { opcode: 'procedures_prototype', next: null, parent: id, inputs: {}, fields: {}, shadow: true, topLevel: false,
             mutation: { tagName: 'mutation', children: [], proccode: spec.proccode, argumentids: JSON.stringify(names.map(argId)),
-              argumentnames: JSON.stringify(names), argumentdefaults: JSON.stringify(names.map(() => '')), warp: 'false' } };
+              argumentnames: JSON.stringify(names), argumentdefaults: JSON.stringify(names.map(() => '')), warp: spec.warp ? 'true' : 'false' } };
           blocks[protoId] = proto;
           for (const name of names) {
             const argShadow = nextId();
@@ -158,7 +158,7 @@ export class Project {
         }
         if (spec.op === 'procedures_call') {
           const args = spec.args || {};
-          b.mutation = { tagName: 'mutation', children: [], proccode: spec.proccode, argumentids: JSON.stringify(Object.keys(args).map(argId)), warp: 'false' };
+          b.mutation = { tagName: 'mutation', children: [], proccode: spec.proccode, argumentids: JSON.stringify(Object.keys(args).map(argId)), warp: spec.warp ? 'true' : 'false' };
           for (const [name, value] of Object.entries(args)) b.inputs[argId(name)] = input(value, id, name);
         }
         return id;

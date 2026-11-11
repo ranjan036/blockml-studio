@@ -5,9 +5,11 @@
 
 const TOP_SPEED = 120; // px (cm) per second at speed 255
 const STALL = 60; // below this PWM a real gear motor does not start
-const TRACK = 44; // distance between the wheels, px
+const TRACK = 44; // distance between the wheels at size 100%, px (all geometry scales with the sprite's size)
 const NOSE = 26; // from the car's centre to the sensor, px
 const MAX_RANGE = 400; // HC-SR04: no echo beyond ~4 m
+const SENSOR_AHEAD = 36; // the IR line sensors, just in front of the nose, px
+const SENSOR_GAP = 8; // between neighbouring line sensors, px
 
 const rad = (deg) => (deg * Math.PI) / 180;
 
@@ -52,7 +54,8 @@ export class VirtualCar {
     const [vl, vr] = w;
     if (!vl && !vr) return;
     const v = (vl + vr) / 2;
-    const turn = ((vr - vl) / TRACK) * (180 / Math.PI); // degrees per second, positive = to the left
+    const k = car.size / 100;
+    const turn = ((vr - vl) / (TRACK * k)) * (180 / Math.PI); // degrees per second, positive = to the left
     const dir = car.direction - turn * dt; // Scratch: 90 = right, clockwise
     const x = car.x + v * dt * Math.sin(rad(dir));
     const y = car.y + v * dt * Math.cos(rad(dir));
@@ -73,15 +76,10 @@ export class VirtualCar {
     }
   }
 
-  /** The obstacle (or "the edge") the car is touching, if any. */
+  /** The obstacle (or "the edge") the car is touching, if any: Scratch's own pixel-accurate "touching". */
   touching(car) {
-    const b = car.getBounds();
-    if (!b) return null;
-    if (b.left < -240 || b.right > 240 || b.bottom < -180 || b.top > 180) return 'the edge of the stage';
-    for (const o of this.obstacles()) {
-      const r = o.getBounds();
-      if (r && b.left < r.right && b.right > r.left && b.bottom < r.top && b.top > r.bottom) return o.getName();
-    }
+    if (car.isTouchingEdge()) return 'the edge of the stage';
+    for (const o of this.obstacles()) if (car.isTouchingSprite(o.getName())) return o.getName();
     return null;
   }
 
@@ -90,7 +88,8 @@ export class VirtualCar {
     const car = this.car();
     if (!car) return null;
     const dx = Math.sin(rad(car.direction)), dy = Math.cos(rad(car.direction));
-    const ox = car.x + NOSE * dx, oy = car.y + NOSE * dy;
+    const k = car.size / 100;
+    const ox = car.x + NOSE * k * dx, oy = car.y + NOSE * k * dy;
     let best = Infinity;
     const box = (left, right, bottom, top) => {
       // Ray–rectangle (slab) intersection.
@@ -113,6 +112,37 @@ export class VirtualCar {
     }
     if (!(best <= MAX_RANGE)) return 0;
     return Math.max(2, Math.round(best * 10) / 10); // the HC-SR04 can't see closer than ~2 cm
+  }
+
+  /**
+   * What an IR line sensor on the car's nose reads (0-1023, higher over a dark line, as the
+   * rover code expects), or null without a car. `pins` are all the line-sensor pins: they sit
+   * in a row across the nose, the lowest pin on the right (A0) and the highest on the left (A4),
+   * matching the Teacher Guide's weights {-2,-1,0,1,2}.
+   */
+  line(pin, pins) {
+    const car = this.car();
+    const renderer = this.vm.renderer;
+    if (!car || !renderer || !renderer.canvas) return null;
+    const sorted = [...pins].sort((a, b) => a - b);
+    const k = sorted.indexOf(pin);
+    if (k < 0) return null;
+    const dx = Math.sin(rad(car.direction)), dy = Math.cos(rad(car.direction));
+    const size = car.size / 100;
+    const left = (k - (sorted.length - 1) / 2) * SENSOR_GAP * size; // + = to the car's left
+    const sx = car.x + SENSOR_AHEAD * size * dx - left * dy;
+    const sy = car.y + SENSOR_AHEAD * size * dy + left * dx;
+    const w = renderer.canvas.clientWidth, h = renderer.canvas.clientHeight;
+    if (!w || !h) return null;
+    let sum = 0, n = 0;
+    try {
+      const { data } = renderer.extractColor((sx / 480 + 0.5) * w, (0.5 - sy / 360) * h, 2);
+      for (let i = 0; i < data.length; i += 4) { sum += (data[i] + data[i + 1] + data[i + 2]) / 3; n++; }
+    } catch {
+      return null;
+    }
+    const bright = n ? sum / n / 255 : 1;
+    return Math.round(50 + (1 - bright) * 900); // white floor ≈ 50, black tape ≈ 950
   }
 
   status() {

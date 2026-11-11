@@ -247,7 +247,16 @@ export function createArduino(vm, { base }) {
     },
     analogRead(pin) {
       touch();
-      if (!real()) return model.analogRead(pin);
+      if (!real()) {
+        // IR line sensors read the stage under the virtual car's nose.
+        if (model.parts.get(pin) === 'line sensor (IR)') {
+          const linePins = [...model.parts].filter(([, part]) => part === 'line sensor (IR)').map(([p]) => p);
+          const v = car.line(pin, linePins);
+          if (v !== null) { model.analog.set(pin, v); model.analogFromCar.add(pin); return v; }
+        }
+        model.analogFromCar.delete(pin);
+        return model.analogRead(pin);
+      }
       if (!model.analog.has(pin)) model.analog.set(pin, 0);
       return ask(`A ${pin}`, `a${pin}`);
     },

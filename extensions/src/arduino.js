@@ -30,7 +30,7 @@
   const ANALOG_PINS = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'];
   // Keep in step with PARTS in runtime/arduino/cpp.js.
   const PARTS = ['LED', 'red LED', 'yellow LED', 'green LED', 'white LED', 'buzzer', 'vibration motor', 'pump / relay', 'output',
-    'button', 'flame sensor', 'PIR motion sensor', 'tilt switch', 'input', 'input pull-up',
+    'button', 'flame sensor', 'PIR motion sensor', 'tilt switch', 'water probe (wet/dry)', 'input', 'input pull-up',
     'light sensor (LDR)', 'potentiometer', 'soil moisture sensor', 'thermistor', 'gas sensor (MQ)', 'water-level probe', 'line sensor (IR)'];
 
   /** "8", 8, "A0" → pin number 2–19, or null (pins 0 and 1 are the USB cable's). */
@@ -172,6 +172,16 @@
               TOHIGH: { type: Scratch.ArgumentType.NUMBER, defaultValue: 255 },
             },
           },
+          {
+            opcode: 'constrain',
+            blockType: Scratch.BlockType.REPORTER,
+            text: 'constrain [VALUE] between [LOW] and [HIGH]',
+            arguments: {
+              VALUE: { type: Scratch.ArgumentType.NUMBER, defaultValue: 300 },
+              LOW: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+              HIGH: { type: Scratch.ArgumentType.NUMBER, defaultValue: 255 },
+            },
+          },
           { blockType: Scratch.BlockType.LABEL, text: 'Serial Monitor' },
           {
             opcode: 'print',
@@ -282,6 +292,11 @@
       const c = Math.trunc(n(TOLOW)), d = Math.trunc(n(TOHIGH));
       if (a === b) return c;
       return Math.trunc(((x - a) * (d - c)) / (b - a)) + c;
+    }
+
+    constrain({ VALUE, LOW, HIGH }) {
+      const n = Scratch.Cast.toNumber;
+      return Math.min(n(HIGH), Math.max(n(LOW), n(VALUE)));
     }
 
     print({ TEXT }) {
