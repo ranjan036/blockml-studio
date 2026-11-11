@@ -17,6 +17,7 @@ models are served by the studio site itself.
 | **Lens** (`src/lens.js`, id `blockmlLens`) | recognise what the camera sees · what the camera sees · confidence of what the camera sees · [name/confidence] of guess (n) · read text in camera image · text read · number of words read · word (n) of text read · confidence of text read — "what is this?" (MobileNet's 1,000 ImageNet things, the Image Model's model) and printed English text (Tesseract.js, `ocr/` + `models/ocr-eng/`) |
 | **Chat AI** (`src/chat.js`, id `blockmlChat`) | ask chat AI [ ] and wait · chat AI's answer · answer was blocked by the safety check? · set chat AI's role to [ ] · forget the conversation · start the chat AI · chat AI is ready? · chat AI download % · use the [small/big] chat model — a chatbot on the graphics chip (WebLLM + WebGPU; Qwen2.5 0.5B by default, 1.5B on request), with our safety check |
 | **Weather** (`src/weather.js`, id `blockmlWeather`) | get the weather for [place] · weather place · [temperature/humidity/wind speed/cloud cover/rain] now · weather now · [measure] in (n) hours · weather in (n) hours · rain in the next (n) hours? · weather is ready? · weather problem — real forecasts (MET Norway via `/api/weather`), places from an offline city list |
+| **Arduino** (`src/arduino.js`, id `blockmlArduino`) | buttons: Connect Arduino board · Show board · Show Arduino C++ · set up pin (8) as [LED/red/yellow/green/white LED/buzzer/output/flame sensor/button/light sensor (LDR)/input/input pull-up] · digital write pin (8) to [HIGH/LOW] · analog write (PWM) pin (9) value (128) · servo on pin (9) to (90) degrees · digital read pin (2) · analog read pin (A0) · distance in cm: Trig (7) Echo (6) · Serial print [ ] · real board connected? — an Arduino Uno over USB (Web Serial, Chrome or Edge) running the CODE AI firmware, or a virtual board; see below |
 | All vision | turn camera [on/off/on flipped] · set camera transparency to (n) % · show [points/boxes/nothing] on stage · set AI speed to [normal/fast/battery saver] |
 
 Design rule: the AI blocks are the **senses** (numbers, names, yes/no); the
@@ -178,3 +179,30 @@ npm run build     # -> dist/, copied into ../gui/static/extensions and ../gui/st
 
 `STARTER_BASE=http://localhost:3111/extensions/ node starters/build-starters.mjs`
 builds starters that load the extensions from a local server.
+
+### Arduino (Fundamental Robotics, sessions 42–51)
+
+Blocks are named like the Arduino C++ they stand for, and **Show Arduino C++** turns the
+sprite's "when green flag clicked" script into a sketch for the Arduino IDE
+(`src/runtime/arduino/cpp.js`): blocks before `forever` become `setup()`, the inside of
+`forever` becomes `loop()`, `set up pin` becomes a named `const int` plus `pinMode`,
+servos get `#include <Servo.h>` and `attach`, the distance block a `readDistanceCm`
+helper. Every lesson program is compiled with arduino-cli in the tests.
+
+- **Real board**: Web Serial at 115200 baud talks to the **CODE AI firmware**
+  (`firmware/codeai-board/codeai-board.ino`, a one-line-per-command protocol; the built
+  `firmware/codeai-board.hex` is committed, rebuild with `npm run build-firmware`, which needs
+  arduino-cli). **Prepare board** installs it from the browser over the Uno's bootloader
+  (STK500, `src/runtime/arduino/stk500.js`; 115200 then 57600 baud; CH340 clones answer
+  slowly, so each sync waits 600 ms). Opening the port restarts the Uno; Studio waits for
+  "CODEAI 1 ready". Stopping the project turns every output LOW.
+- **Virtual board** (no board, or a phone): the Arduino panel draws LEDs, the buzzer
+  (with sound), servos, and gives switches and sliders for the flame sensor, buttons,
+  analog pins and the HC-SR04 ("nothing in front" = no echo = 0).
+- **Tests**: `test/firmware.test.js` runs the real firmware in a simulated Uno (avr8js,
+  `test/sim/uno.mjs`) with software parts; `test/arduino-cpp.test.js` checks (and with
+  `ARDUINO_CLI` set, compiles) the C++; `test/browser/arduino-e2e.mjs` drives the real
+  editor in headless Chrome with a fake Web Serial port whose board is the simulated Uno
+  plus a JS bootloader (`test/sim/fake-serial.mjs`); `scripts/board-test.mjs COM5`
+  installs and checks the firmware on a real Uno with nothing wired.
+- Phone apps can't use USB, so the app exporter refuses Arduino projects with that reason.

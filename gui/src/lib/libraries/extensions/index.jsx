@@ -22,6 +22,8 @@ import blockmlChatIconURL from './blockml/chat.svg';
 import blockmlChatInsetIconURL from './blockml/chat-small.svg';
 import blockmlWeatherIconURL from './blockml/weather.svg';
 import blockmlWeatherInsetIconURL from './blockml/weather-small.svg';
+import blockmlArduinoIconURL from './blockml/arduino.svg';
+import blockmlArduinoInsetIconURL from './blockml/arduino-small.svg';
 
 import musicIconURL from './music/music.png';
 import musicInsetIconURL from './music/music-small.svg';
@@ -183,6 +185,16 @@ export default [
         insetIconURL: blockmlWeatherInsetIconURL,
         description: 'Real weather and forecasts for any city: temperature, rain, wind, clouds. Needs the internet. Data from MET Norway.',
         tags: ['ai'],
+        featured: true
+    },
+    {
+        name: 'Arduino',
+        extensionId: 'blockmlArduino',
+        extensionURL: blockmlExtensionURL('arduino.js'),
+        iconURL: blockmlArduinoIconURL,
+        insetIconURL: blockmlArduinoInsetIconURL,
+        description: 'Robotics: LEDs, buzzer, servo, distance and light sensors on an Arduino Uno by USB (Chrome or Edge), or on a virtual board. Shows your blocks as Arduino C++.',
+        tags: ['hardware'],
         featured: true
     },
     {

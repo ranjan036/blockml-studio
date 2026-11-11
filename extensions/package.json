@@ -12,8 +12,9 @@
     "fetch-ocr-model": "node scripts/fetch-ocr-model.mjs",
     "build-cities": "node scripts/build-cities.mjs",
     "train-kindness": "node --max-old-space-size=6000 scripts/train-kindness.mjs",
-    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs && node starters/build-printables.mjs && node starters/build-ai-sessions.mjs",
-    "test": "vitest run"
+    "build": "vite build && node scripts/assemble.mjs && node starters/build-starters.mjs && node starters/build-lessons.mjs && node starters/build-printables.mjs && node starters/build-ai-sessions.mjs && node starters/build-robotics.mjs",
+    "test": "vitest run",
+    "build-firmware": "node scripts/build-firmware.mjs"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "0.2.85",
@@ -32,6 +33,7 @@
     "vosk-browser": "0.0.8"
   },
   "devDependencies": {
+    "avr8js": "0.21.1",
     "esbuild": "0.21.5",
     "fflate": "0.8.3",
     "hyparquet": "1.31.2",
@@ -39,5 +41,8 @@
     "qrcode-generator": "2.0.4",
     "vite": "5.4.21",
     "vitest": "2.1.9"
+  },
+  "optionalDependencies": {
+    "serialport": "13.0.0"
   }
 }

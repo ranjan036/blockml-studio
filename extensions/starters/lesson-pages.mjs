@@ -100,6 +100,7 @@ export function indexPage(cards) {
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
 <section><div class="kicker" style="color:var(--navy)">Sessions 18–37</div><h2><a href="ai/" style="color:inherit">AI sessions (AI 1–20)</a></h2><p class="small">One project and a lesson card for each pure-AI session.</p></section>
+<section><div class="kicker" style="color:var(--navy)">Sessions 42–51</div><h2><a href="robotics/" style="color:inherit">Fundamental Robotics (Arduino)</a></h2><p class="small">Seven Arduino projects and the showcase, with a virtual board for home practice and the C++ behind every program.</p></section>
 <section><h2>Printables</h2><p class="small"><a href="printables/vocabulary">AI Vocabulary Cards</a> (Example, Label, Train, Predict, Confidence) · For the Codes &amp; Cards blocks: <a href="printables/cards">recognition cards</a> · <a href="printables/tags">AprilTags</a> · <a href="printables/qr">QR codes</a></p></section>
 <p class="small"><a href="../editor">Open BlockML Studio</a></p></main></body></html>`;
 }
@@ -186,5 +187,59 @@ export function aiIndexPage(cards) {
 <p class="objective">Twenty pure-AI sessions: one project and a lesson card each (AI 19 and 20 are discussions).</p></div></header>
 <main>${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">AI ${c.number}: ${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
+<p class="small"><a href="../">All lessons</a> · <a href="../../editor">Open BlockML Studio</a></p></main></body></html>`;
+}
+
+/**
+ * A lesson card for one robotics session (Fundamental Robotics, sessions 42–51).
+ * card: {number, session, slug, kicker, title, objective, about, learn[], applied, realLife, funFact,
+ *        kit[], wiring[[part, leg, pin]], steps[], cpp, challenges[], troubleshoot[], bug?: {symptom, hints[], answer},
+ *        extraButtons?, extraSections?}
+ */
+export function roboticsPage(card) {
+  const open = (file, label, cls) => `<a class="btn ${cls}" data-project="${file}" target="_blank" rel="noopener">${label}</a>`;
+  return `${HEAD(card.title)}<body>
+<header><div class="wrap">
+<div class="kicker">${esc(card.kicker)}</div>
+<h1>${esc(card.title)}</h1>
+<p class="objective">“${esc(card.objective)}”</p>
+</div></header>
+<main>
+<section>
+<h2>Open the project</h2>
+<div class="buttons">
+${open('project.sb3', '▶ Project', 'ai')}
+${card.bug ? open('fix-the-bug.sb3', '🐞 Fix the bug', 'light') : ''}
+${card.extraButtons || ''}
+</div>
+<p class="small">Opens in BlockML Studio with the Arduino blocks. No board? It runs on the <b>virtual board</b> (great for home practice). With an Arduino Uno on USB, press <b>Connect Arduino board</b> (Chrome or Edge). Download: <a href="project.sb3" download="${card.slug}.sb3">${card.slug}.sb3</a>${card.bug ? ` · <a href="fix-the-bug.sb3" download="${card.slug}-fix-the-bug.sb3">fix-the-bug.sb3</a>` : ''}</p>
+</section>
+<section><h2>What it's about</h2><p>${card.about}</p>
+<h3>Students learn</h3>${list(card.learn)}
+<div class="grid2"><div><h3>Where it's applied</h3><p>${card.applied}</p></div><div><h3>Real-life example</h3><p>${card.realLife}</p></div></div>
+<p class="say"><b>Fun fact:</b> ${card.funFact}</p></section>
+<section class="grid2">
+<div><h2>Kit (per pair)</h2>${list(card.kit)}</div>
+<div><h2>Wiring</h2>${card.wiring.length ? `<table><tr><th>Part</th><th>Leg / wire</th><th>Uno</th></tr>${card.wiring.map(([part, leg, pin]) => `<tr><td>${esc(part)}</td><td>${esc(leg)}</td><td><b>${esc(pin)}</b></td></tr>`).join('')}</table>` : '<p>Teams choose.</p>'}
+<p class="small">Unplug USB before changing wires. Every LED gets a 220 Ω resistor.</p></div>
+</section>
+<section><h2>Session ${card.session}</h2>${card.say ? `<p class="say">${card.say}</p>` : ''}${steps(card.steps)}</section>
+${card.cpp ? `<section><h2>Blocks → Arduino C++</h2><p>Press <b>Show Arduino C++</b> (in the Arduino blocks, or the <b>C++</b> button on the board panel) to see the same program written for the Arduino IDE. It should look like this:</p><pre style="background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;overflow:auto;font-size:13px">${esc(card.cpp)}</pre><p class="small">Paste it into the Arduino IDE and press Upload to run it without Studio. That replaces the CODE AI program on the board: press <b>Prepare board</b> in Studio before using blocks again.</p></section>` : ''}
+${card.extraSections || ''}
+${card.bug ? `<section><h2>🐞 Fix the bug</h2><p>${card.bug.symptom}</p>${list(card.bug.hints)}
+<details><summary>Answer (for teachers)</summary><p>${card.bug.answer}</p></details></section>` : ''}
+<section><h2>Challenges</h2>${list(card.challenges)}</section>
+<section><h2>Troubleshooting</h2>${list(card.troubleshoot)}</section>
+<p class="small">Part of the CODE AI Core Curriculum (Fundamental Robotics), built with BlockML Studio. <a href="../">Robotics sessions</a> · <a href="../../">All lessons</a></p>
+</main>${OPEN_SCRIPT.replace("'../../editor", "'../../../editor")}</body></html>`;
+}
+
+/** The robotics sessions index. */
+export function roboticsIndexPage(cards, extra = '') {
+  return `${HEAD('Robotics sessions')}<body>
+<header><div class="wrap"><div class="kicker">BlockML Studio · CODE AI Core Curriculum · Sessions 42–51</div><h1>Fundamental Robotics</h1>
+<p class="objective">“This is a taste of what Intermediate Robotics goes deep into.” Arduino Uno blocks, a virtual board for home practice, and the Arduino C++ behind every program.</p></div></header>
+<main>${extra}${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
+<h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
 <p class="small"><a href="../">All lessons</a> · <a href="../../editor">Open BlockML Studio</a></p></main></body></html>`;
 }
