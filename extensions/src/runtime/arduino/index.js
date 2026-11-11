@@ -4,6 +4,7 @@
 import { BoardModel, Panel } from './board.js';
 import { BoardClient, webLink } from './serial.js';
 import { parseHex, upload } from './stk500.js';
+import { VirtualCar } from './car.js';
 import { generate, pinNumber, isInputPart } from './cpp.js';
 
 export { generate, pinNumber, parseHex };
@@ -30,6 +31,28 @@ export function createArduino(vm, { base }) {
   panel.hide = () => { hiddenByUser = true; origHide(); };
 
   const real = () => !!client && !client.closed;
+
+  // The virtual car (a "Car" sprite driven by motors A and B), for home practice.
+  const car = new VirtualCar(vm, model, {
+    onCrash: (what) => { model.print(`CRASH! The car hit ${what}.`); panel.update(); },
+  });
+  panel.car = car;
+
+  /** Adds the Car and a Wall sprite to the project (the "Add virtual car" button). */
+  async function addCar() {
+    const names = new Set(vm.runtime.targets.filter((t) => t.isOriginal).map((t) => t.getName()));
+    const editing = vm.editingTarget;
+    for (const [name, file] of [['Car', 'arduino-car.sprite3'], ['Wall', 'arduino-wall.sprite3']]) {
+      if (names.has(name)) continue;
+      const res = await fetch(new URL(`../sprites/${file}`, base).href);
+      if (!res.ok) throw new Error(`Could not load the ${name} sprite`);
+      await vm.addSprite(await res.arrayBuffer());
+    }
+    if (editing && editing.isOriginal) vm.setEditingTarget(editing.id);
+    model.print('Virtual car added: motor A = left wheel, motor B = right wheel; its distance sensor looks ahead.');
+    hiddenByUser = false;
+    panel.show();
+  }
 
   // The "Arduino" sprite's on-board LED (costume "uno L on") follows pin 13, like the real "L".
   function boardSpriteL(on) {
@@ -192,6 +215,7 @@ export function createArduino(vm, { base }) {
     connect: () => connect(),
     showCode,
     showBoard() { hiddenByUser = false; panel.show(); },
+    addCar: () => addCar().catch((e) => { model.print(String(e.message || e)); panel.update(); }),
     connected: real,
     setupPin(pin, part) {
       model.setup(pin, part);
@@ -229,7 +253,16 @@ export function createArduino(vm, { base }) {
     },
     distance(trig, echo) {
       touch();
-      if (!real()) return model.distance(trig, echo);
+      if (!real()) {
+        const cm = car.distance();
+        if (cm !== null) { // measured by the virtual car
+          model.sonars.set(`${trig},${echo}`, cm);
+          model.sonarFromCar = true;
+          return cm;
+        }
+        model.sonarFromCar = false;
+        return model.distance(trig, echo);
+      }
       const key = `${trig},${echo}`;
       if (!model.sonars.has(key)) model.sonars.set(key, 0);
       return ask(`U ${trig} ${echo}`, `u${key}`);

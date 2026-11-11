@@ -3,7 +3,7 @@
 // and the C++ Studio's "Show Arduino C++" makes from a project.
 import { unzipSync, strFromU8 } from 'fflate';
 import { Project, op } from './sb3.mjs';
-import { BOARD_COSTUMES } from './arduino-sprite.mjs';
+import { BOARD_COSTUMES, CAR_COSTUMES, WALL_COSTUMES } from './arduino-sprite.mjs';
 import { generate, blocksFromSb3 } from '../src/runtime/arduino/cpp.js';
 
 const menu = (name, value) => ({ menu: `blockmlArduino_menu_${name}`, field: name, value: String(value) });
@@ -35,12 +35,18 @@ const BACKDROP = '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="36
   '<g stroke="#ccfbf1" stroke-width="2">' + Array.from({ length: 12 }, (_, i) => `<path d="M${i * 40} 0 V360"/>`).join('') + Array.from({ length: 9 }, (_, i) => `<path d="M0 ${i * 40} H480"/>`).join('') + '</g></svg>';
 
 /** A robotics project: the Arduino sprite (scripts on it) on a grid; variables shown on the stage. */
-export function arduinoProject(base, scripts, { variables = [], hidden = [] } = {}) {
+export function arduinoProject(base, scripts, { variables = [], hidden = [], car = false } = {}) {
   const p = new Project();
   p.useExtension('blockmlArduino', base + 'arduino.js');
   for (const name of [...variables, ...hidden]) p.variable(name);
   p.addStage([p.costume('grid', BACKDROP, [240, 180])]);
-  p.addSprite('Arduino', BOARD_COSTUMES.map(([name, svg]) => p.costume(name, svg, [100, 70])), scripts, { y: 20 });
+  p.addSprite('Arduino', BOARD_COSTUMES.map(([name, svg]) => p.costume(name, svg, [100, 70])), scripts, car ? { x: 150, y: 120, size: 60 } : { y: 20 });
+  if (car) {
+    // The virtual car (motor A = left wheel, motor B = right wheel) and a wall to park against.
+    const reset = [{ op: 'event_whenflagclicked' }, { op: 'motion_gotoxy', inputs: { X: -170, Y: 0 } }, { op: 'motion_pointindirection', inputs: { DIRECTION: 90 } }];
+    p.addSprite('Car', CAR_COSTUMES.map(([name, svg]) => p.costume(name, svg, [32, 24])), [reset], { x: -170, y: 0 });
+    p.addSprite('Wall', WALL_COSTUMES.map(([name, svg]) => p.costume(name, svg, [12, 100])), [], { x: 200, y: -40 });
+  }
   variables.forEach((name, i) => p.showVariable(name, { x: 5, y: 5 + i * 28 }));
   return p;
 }

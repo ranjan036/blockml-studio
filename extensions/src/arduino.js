@@ -75,6 +75,7 @@
           { blockType: Scratch.BlockType.BUTTON, text: 'Connect Arduino board', func: 'connectButton' },
           { blockType: Scratch.BlockType.BUTTON, text: 'Show board', func: 'boardButton' },
           { blockType: Scratch.BlockType.BUTTON, text: 'Show Arduino C++', func: 'codeButton' },
+          { blockType: Scratch.BlockType.BUTTON, text: 'Add virtual car', func: 'carButton' },
           { blockType: Scratch.BlockType.LABEL, text: 'Outputs (pinMode, digitalWrite…)' },
           {
             opcode: 'setupPin',
@@ -199,6 +200,7 @@
     connectButton() { withBoard((b) => b.connect()); }
     boardButton() { withBoard((b) => b.showBoard()); }
     codeButton() { withBoard((b) => b.showCode()); }
+    carButton() { withBoard((b) => b.addCar()); }
 
     setupPin({ PIN, PART }) {
       const p = pin(PIN);

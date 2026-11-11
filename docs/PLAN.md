@@ -1146,3 +1146,24 @@ a simulated driving car on the stage for Projects 5 and 10.
 
 Next: phase 2 = Projects 5–7 (Weeks 14–23) with the simulated car (Park Assist); phase 3 =
 Projects 8–10 + Capstone (Weeks 24–36) with the line-following rover and lists → arrays.
+
+### 15.26 Intermediate Robotics, phase 2: Projects 5–7 and the virtual car (2026-11-11)
+
+- **Virtual car** for Park Assist (and later the Mars Rover): "Add virtual car" adds a Car
+  and a Wall sprite; motor A = left wheel, motor B = right wheel (Teacher Guide wiring: ENA 11,
+  IN1 6, IN2 7, IN3 5, IN4 4, ENB 3). Differential steering, stall below PWM 60 (the Week 15
+  mini challenge), the HC-SR04 measures from the car's nose to Wall/Obstacle sprites or the
+  stage edge, crashes are stopped and reported. Students can drag the wall while it runs.
+- **Starters** Weeks 14–23 (26 of 39 sessions now): 14 five-reading average (running total;
+  arrays wait for Week 30), 15 one motor forward/stop/back, 16 the two-motor chassis test on
+  the car, 17 Park Assist (My Blocks drive forward / stop motors, adjustable brake distance),
+  18 PIR + millis timestamp, 19 armed/disarmed state, 20 Sentinel with named functions and a
+  5 s arming delay, 21 servo fixed angles, 22 gas warm-up, 23 Clean City (millis lid + air
+  monitor side by side). All compile; Week 17's C++ matches the Teacher Guide's sketch.
+- Browser test: the car drives to the wall and brakes 0–15 cm short without crashing; with
+  no braking it crashes and stops at the wall; Sentinel arms and alarms; Clean City's lid
+  opens, the gas alert lights, and the lid closes after 3 s.
+
+Next: phase 3 = Projects 8–10 + Capstone (Weeks 24–36): vibration motor mapping, water
+probes and escalating alerts, the IR line-sensor array on the car (reading the backdrop),
+proportional steering, and Scratch lists → C++ arrays.

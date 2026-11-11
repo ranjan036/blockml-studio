@@ -309,6 +309,8 @@ export class Panel {
       cards.push(this.ledCard(pin, part || (pin === 13 ? 'LED' : 'output'), o));
     }
     for (const [key, cm] of m.sonars) cards.push(this.sonarCard(key, cm));
+    const carState = this.car && this.car.status();
+    if (carState) cards.push(this.carCard(carState));
     if (!cards.length) cards.push(el('div', { class: 'bml-ard-empty', text: 'Parts appear here when your blocks use a pin.' }));
     this.parts.replaceChildren(...cards);
     this.sound(!real && !this.muted && this.visible ? buzzing : 0);
@@ -410,10 +412,21 @@ export class Panel {
     return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: info ? `${title} (${info[1]} ↔ ${info[2]})` : title }), range, out);
   }
 
+  carCard(st) {
+    const sp = (v) => (v ? `${v > 0 ? '+' : '−'}${Math.round(Math.abs(v))}` : '0');
+    const text = !st.wheels ? 'set up motor A (left) and motor B (right) to drive it'
+      : `wheels: left ${sp(st.wheels[0])} · right ${sp(st.wheels[1])} cm/s${st.crashed ? ` · CRASHED into ${st.crashed}` : ''}`;
+    return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: 'virtual car' }), el('div', { class: 'val', text }));
+  }
+
   sonarCard(key, cm) {
     const m = this.model;
     const [trig, echo] = key.split(',').map(Number);
     const title = `distance · Trig ${trig} Echo ${echo}`;
+    if (this.mode !== 'real' && m.sonarFromCar) {
+      return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: `${title} (the virtual car's sensor)` }),
+        el('div', { class: 'val', text: cm ? `${cm} cm` : '0 (no echo)' }));
+    }
     if (this.mode === 'real') {
       const v = m.reads.get(`u${key}`);
       return el('div', { class: 'bml-ard-part wide' }, el('div', { class: 'name', text: title }), el('div', { class: 'val', text: v === undefined ? '–' : `${v} cm` }));

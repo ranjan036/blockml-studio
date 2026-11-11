@@ -17,20 +17,44 @@ export const boardSvg = (lOn = false) => '<svg xmlns="http://www.w3.org/2000/svg
 
 export const BOARD_COSTUMES = [['uno', boardSvg(false)], ['uno L on', boardSvg(true)]];
 
-/** The sprite as a .sprite3 file (what "Upload sprite" and vm.addSprite take). */
-export function arduinoSprite3() {
+/** A sprite as a .sprite3 file (what "Upload sprite" and vm.addSprite take). */
+export function sprite3(name, costumeList, center, { x = 0, y = 0, size = 100, direction = 90, draggable = false, scripts = {} } = {}) {
   const files = {};
-  const costumes = BOARD_COSTUMES.map(([name, svg]) => {
+  const costumes = costumeList.map(([cname, svg]) => {
     const data = strToU8(svg);
     const assetId = createHash('md5').update(data).digest('hex');
     files[`${assetId}.svg`] = data;
-    return { name, assetId, md5ext: `${assetId}.svg`, dataFormat: 'svg', bitmapResolution: 1, rotationCenterX: 100, rotationCenterY: 70 };
+    return { name: cname, assetId, md5ext: `${assetId}.svg`, dataFormat: 'svg', bitmapResolution: 1, rotationCenterX: center[0], rotationCenterY: center[1] };
   });
   const sprite = {
-    isStage: false, name: 'Arduino', variables: {}, lists: {}, broadcasts: {}, blocks: {}, comments: {},
-    currentCostume: 0, costumes, sounds: [], volume: 100, visible: true, x: 130, y: 80, size: 70,
-    direction: 90, draggable: false, rotationStyle: 'all around',
+    isStage: false, name, variables: {}, lists: {}, broadcasts: {}, blocks: scripts, comments: {},
+    currentCostume: 0, costumes, sounds: [], volume: 100, visible: true, x, y, size,
+    direction, draggable, rotationStyle: 'all around',
   };
   files['sprite.json'] = strToU8(JSON.stringify(sprite));
   return zipSync(files);
 }
+
+export const arduinoSprite3 = () => sprite3('Arduino', BOARD_COSTUMES, [100, 70], { x: 130, y: 80, size: 70 });
+
+// The virtual car, seen from above, facing right (direction 90): two wheels, a caster, and the
+// HC-SR04's two "eyes" on its nose. Motor A drives the left wheel, motor B the right one.
+export const CAR_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 64 48">' +
+  '<rect x="12" y="1" width="20" height="9" rx="3" fill="#1f2937"/><rect x="12" y="38" width="20" height="9" rx="3" fill="#1f2937"/>' +
+  '<rect x="4" y="9" width="50" height="30" rx="8" fill="#0e7490" stroke="#164e63" stroke-width="3"/>' +
+  '<text x="15" y="17" font-family="Arial" font-size="7" fill="#cffafe">L A</text><text x="15" y="36" font-family="Arial" font-size="7" fill="#cffafe">R B</text>' +
+  '<rect x="18" y="18" width="16" height="12" rx="2" fill="#0f172a"/>' +
+  '<rect x="52" y="14" width="10" height="20" rx="2" fill="#1e3a8a"/><circle cx="58" cy="19" r="3.5" fill="#cbd5e1"/><circle cx="58" cy="29" r="3.5" fill="#cbd5e1"/></svg>';
+export const WALL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="200" viewBox="0 0 24 200">' +
+  '<rect width="24" height="200" fill="#b45309"/>' + Array.from({ length: 10 }, (_, i) => `<path d="M0 ${i * 20} H24 M${i % 2 ? 12 : 0} ${i * 20} V${i * 20 + 20}" stroke="#fde68a" stroke-width="1.5"/>`).join('') + '</svg>';
+
+// The car's own script: back to the start (left, facing the wall) when the green flag is clicked.
+const CAR_RESET = {
+  carflag: { opcode: 'event_whenflagclicked', next: 'cargo', parent: null, inputs: {}, fields: {}, shadow: false, topLevel: true, x: 20, y: 20 },
+  cargo: { opcode: 'motion_gotoxy', next: 'carpoint', parent: 'carflag', inputs: { X: [1, [4, '-170']], Y: [1, [4, '0']] }, fields: {}, shadow: false, topLevel: false },
+  carpoint: { opcode: 'motion_pointindirection', next: null, parent: 'cargo', inputs: { DIRECTION: [1, [8, '90']] }, fields: {}, shadow: false, topLevel: false },
+};
+export const CAR_COSTUMES = [['car', CAR_SVG]];
+export const WALL_COSTUMES = [['wall', WALL_SVG]];
+export const carSprite3 = () => sprite3('Car', CAR_COSTUMES, [32, 24], { x: -170, y: 0, draggable: true, scripts: CAR_RESET });
+export const wallSprite3 = () => sprite3('Wall', WALL_COSTUMES, [12, 100], { x: 200, y: 0, draggable: true });

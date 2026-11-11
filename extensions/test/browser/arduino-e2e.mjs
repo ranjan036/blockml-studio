@@ -55,6 +55,8 @@ ws.on('message', (data) => {
   const m = JSON.parse(data);
   if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
   if (m.method === 'Runtime.consoleAPICalled') logs.push(`${m.params.type}: ${m.params.args.map((a) => a.value ?? a.description).join(' ')}`);
+  // "Leave site? Changes may not be saved" when the test moves on from an edited project.
+  if (m.method === 'Page.javascriptDialogOpening') ws.send(JSON.stringify({ id: ++id, method: 'Page.handleJavaScriptDialog', params: { accept: true } }));
   if (m.method === 'Runtime.exceptionThrown') logs.push(`exception: ${m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text}`);
 });
 const cdp = (method, params = {}) => new Promise((resolve, reject) => {
@@ -116,6 +118,12 @@ try {
   const lit = await js(`const t = vm.runtime.targets.find(t => t.getName() === 'Arduino'); return t.getCostumes()[t.currentCostume].name`);
   check('pin 13 HIGH lights the sprite L LED', lit === 'uno L on', lit);
   await shot('arduino-sprite-added.png');
+  // Click the real toolbox button (a Blockly flyout button) with the mouse.
+  const btn = await until('the Add virtual car button', `const b = [...document.querySelectorAll('.blocklyFlyoutButton')].find(e => e.textContent.includes('Add virtual car'));
+    if (!b) return false; b.scrollIntoView && b.scrollIntoView(); const r = b.getBoundingClientRect(); return r.width ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : false;`, 10000);
+  for (const type of ['mousePressed', 'mouseReleased']) await cdp('Input.dispatchMouseEvent', { type, x: btn.x, y: btn.y, button: 'left', clickCount: 1 });
+  await until('Car and Wall added', `const n = vm.runtime.targets.filter(t => t.isOriginal).map(t => t.getName()); return n.includes('Car') && n.includes('Wall')`, 10000);
+  check('"Add virtual car" adds the Car and Wall sprites; the student keeps their sprite', (await js('return vm.editingTarget.getName()')) === 'Sprite1');
   await js(`vm.runtime._primitives.blockmlArduino_digitalWrite({PIN: '13', LEVEL: 'LOW'}); return true;`);
   await sleep(300);
   check('pin 13 LOW turns it off', (await js(`const t = vm.runtime.targets.find(t => t.getName() === 'Arduino'); return t.getCostumes()[t.currentCostume].name`)) === 'uno');
@@ -283,6 +291,59 @@ try {
     }
     await js('vm.stopAll(); return true;');
   }
+
+  // 7. Phase 2: the virtual car (Park Assist) and Projects 6–7.
+  const open = async (slug) => {
+    const url = `http://localhost:${PORT}/lessons/advanced/${slug}/project.sb3`;
+    await cdp('Page.navigate', { url: `http://localhost:${PORT}/editor?project_url=${encodeURIComponent(url)}` });
+    await until(`${slug} loaded`, `return window.vm && vm.extensionManager.isExtensionLoaded('blockmlArduino') && vm.runtime.targets.some(t => t.sprite && t.sprite.name === 'Arduino')`, 40000);
+    await sleep(800);
+    await js('vm.greenFlag(); return true;');
+    await until(`${slug} panel`, `return document.querySelectorAll('.bml-ard-part').length > 0`);
+  };
+  const carX = () => js(`return vm.runtime.targets.find(t => t.getName() === 'Car').x`);
+  const serialText = () => js(`return document.querySelector('.bml-ard-serial pre').innerText`);
+
+  await open('week-17');
+  await sleep(1500);
+  const x1 = await carX();
+  await until('car stops at the wall', `const c = vm.runtime.targets.find(t => t.getName() === 'Car'); const t = document.querySelector('.bml-ard-serial pre').innerText.trim().split('\\n').pop(); return c.x > 100 && /left 0 · right 0/.test(document.querySelector('.bml-ard').innerText)`, 15000);
+  const x2 = await carX();
+  const gap = 188 - (x2 + 26); // the wall's face is at x = 188; the sensor is 26 px ahead of the car's centre
+  await shot('arduino-car.png');
+  check('Park Assist: the virtual car drives toward the wall', x1 > -160 && x2 > x1, `x ${x1.toFixed(0)} → ${x2.toFixed(0)}`);
+  check('Park Assist: it brakes before the wall (gap 0–15 cm), no crash', gap > 0 && gap <= 15 && !/CRASH/.test(await serialText()), `gap ${gap.toFixed(1)} cm`);
+  // With no braking distance (it never brakes) it crashes, and the panel says so.
+  await js('vm.stopAll(); return true;');
+  await js(`vm.greenFlag(); setTimeout(() => { const v = vm.runtime.getTargetForStage().lookupVariableByNameAndType('brakeDistance', ''); v.value = -1; }, 300); return true;`);
+  await until('crash reported', `return /CRASH! The car hit Wall/.test(document.querySelector('.bml-ard-serial pre').innerText)`, 15000);
+  const x3 = await carX();
+  check('Park Assist: without braking it crashes into the Wall and stops there', x3 + 32 <= 190 && x3 > 140, `x ${x3.toFixed(0)}`);
+  await js('vm.stopAll(); return true;');
+
+  // Sentinel: press the button (arm), then motion → buzzer.
+  await open('week-19');
+  await sleep(400);
+  const clickSwitch = (label) => js(`const b = [...document.querySelectorAll('.bml-ard-switch')].find(x => x.textContent === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true;`);
+  await clickSwitch('not pressed');
+  await sleep(500);
+  await clickSwitch('pressed');
+  await until('armed', `return /armed = 1/.test(document.querySelector('.bml-ard-serial pre').innerText)`, 5000);
+  await clickSwitch('no motion');
+  await until('alarm', `return /pin 8 · buzzer.*BEEP/.test([...document.querySelectorAll('.bml-ard-part')].map(e => e.innerText.replace(/\\s+/g, ' ')).join(' / '))`, 5000);
+  check('Sentinel (Week 19): button arms it, motion sounds the buzzer', true);
+  await js('vm.stopAll(); return true;');
+
+  // Clean City: a hand opens the lid; fumes light the gas LED.
+  await open('week-23');
+  await js(slider('distance', 10));
+  await js(slider('gas sensor', 650));
+  await until('lid open and gas alert', `const t = [...document.querySelectorAll('.bml-ard-part')].map(e => e.innerText.replace(/\\s+/g, ' ')).join(' / '); return /servo 90°/.test(t) && /pin 8 · LED HIGH/.test(t)`, 6000);
+  check('Clean City (Week 23): hand at 10 cm opens the lid, gas 650 lights the alert', true);
+  await js(slider('distance', 100));
+  await until('lid closes after 3 s', `return /servo 0°/.test([...document.querySelectorAll('.bml-ard-part')].map(e => e.innerText.replace(/\\s+/g, ' ')).join(' / '))`, 6000);
+  check('Clean City: the lid closes again after 3 s while the air monitor keeps running', true);
+  await js('vm.stopAll(); return true;');
 } catch (err) {
   check('test ran to the end', false, err.message);
   await shot('arduino-failure.png').catch(() => {});

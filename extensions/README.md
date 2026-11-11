@@ -210,6 +210,12 @@ helper. Every lesson program is compiled with arduino-cli in the tests.
   (variables that hold it become `unsigned long`), `map()`, `tone()`/`noTone()`, motor
   drivers (named `MOTOR_A_EN/IN1/IN2` pins, three lines per direction), `randomSeed()` on a
   free analog pin when "pick random" is used, and "stop this script" → `return;`.
+- **Virtual car** (`src/runtime/arduino/car.js`, button **Add virtual car**): a sprite named
+  "Car" driven by motor A (left wheel) and motor B (right wheel) — differential steering,
+  120 cm/s at speed 255, gear motors stall below PWM 60, 1 stage pixel = 1 cm. In virtual mode
+  the distance block measures from the car's nose to the nearest "Wall…"/"Obstacle…" sprite or
+  the stage edge (no echo beyond 4 m); driving into one is a crash (it stops, the Serial
+  Monitor says so). The car also mirrors the motors when a real board is connected.
 - Firmware 2 adds `T pin hz` (tone; 0 = noTone); Studio asks to update older boards. After the
   last servo is detached it gives Timer1 back to `analogWrite` (pins 9/10), switching off the
   Servo library's leftover interrupt and resetting the counter.
