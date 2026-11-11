@@ -13,6 +13,7 @@ import { Project, op, bool, v } from './sb3.mjs';
 import { roboticsPage, roboticsIndexPage } from './lesson-pages.mjs';
 import { flag, forever, ifThen, ifElse, set, change, say, wait, whenKey, eq, lt, gt, and, join2, repeatUntil } from './blocks.mjs';
 import { generate, blocksFromSb3 } from '../src/runtime/arduino/cpp.js';
+import { BOARD_COSTUMES, boardSvg, arduinoSprite3 } from './arduino-sprite.mjs';
 
 const BASE = process.env.STARTER_BASE || 'https://studio.blockml.codeai.ltd/extensions/';
 const OUT = path.join('..', 'gui', 'static', 'lessons', 'robotics');
@@ -34,21 +35,14 @@ const repeat = (times, ...body) => ({ op: 'control_repeat', inputs: { TIMES: tim
 // ---- Pictures -----------------------------------------------------------------------
 const BACKDROP = '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360"><rect width="480" height="360" fill="#ecfdf5"/>' +
   '<g stroke="#ccfbf1" stroke-width="2">' + Array.from({ length: 12 }, (_, i) => `<path d="M${i * 40} 0 V360"/>`).join('') + Array.from({ length: 9 }, (_, i) => `<path d="M0 ${i * 40} H480"/>`).join('') + '</g></svg>';
-const BOARD = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="140" viewBox="0 0 200 140">' +
-  '<rect x="4" y="4" width="192" height="132" rx="12" fill="#0e7490" stroke="#164e63" stroke-width="4"/>' +
-  '<rect x="-2" y="40" width="34" height="30" rx="4" fill="#cbd5e1" stroke="#64748b" stroke-width="3"/>' +
-  '<g fill="#fde68a">' + Array.from({ length: 14 }, (_, i) => `<rect x="${44 + i * 10.5}" y="10" width="7" height="9" rx="1.5"/>`).join('') +
-  Array.from({ length: 6 }, (_, i) => `<rect x="${110 + i * 12}" y="121" width="8" height="9" rx="1.5"/>`).join('') + '</g>' +
-  '<rect x="78" y="56" width="62" height="38" rx="4" fill="#0f172a"/>' +
-  '<text x="109" y="80" font-family="Arial" font-size="13" font-weight="bold" fill="#e0f2fe" text-anchor="middle">UNO</text>' +
-  '<circle cx="168" cy="40" r="5" fill="#fbbf24"/><text x="168" y="58" font-family="Arial" font-size="9" fill="#cffafe" text-anchor="middle">L</text></svg>';
+// The board sprite (arduino-sprite.mjs): costumes "uno" and "uno L on" (pin 13's LED).
 
 function project(scripts, { variables = [] } = {}) {
   const p = new Project();
   p.useExtension('blockmlArduino', BASE + 'arduino.js');
   for (const name of variables) p.variable(name);
   p.addStage([p.costume('grid', BACKDROP, [240, 180])]);
-  p.addSprite('Arduino', [p.costume('uno', BOARD, [100, 70])], scripts, { y: 20 });
+  p.addSprite('Arduino', BOARD_COSTUMES.map(([name, svg]) => p.costume(name, svg, [100, 70])), scripts, { y: 20 });
   for (const name of variables) p.showVariable(name);
   return p;
 }
@@ -347,4 +341,11 @@ const kitNote = `<section><h2>Before you start</h2><ul>
 <li><b>Blocks → C++:</b> every program shows its Arduino C++ (<b>Show Arduino C++</b>), ready for the Arduino IDE.</li>
 <li>Safety: unplug USB before changing wires; every LED gets a 220 Ω resistor; flames only with the teacher.</li></ul></section>`;
 fs.writeFileSync(path.join(OUT, 'index.html'), roboticsIndexPage(cards, kitNote));
+
+// The Arduino sprite for the editor's sprite library (and for adding it with the extension).
+const SPRITES = path.join('..', 'gui', 'static', 'sprites');
+fs.mkdirSync(SPRITES, { recursive: true });
+fs.writeFileSync(path.join(SPRITES, 'arduino-uno.sprite3'), arduinoSprite3());
+fs.writeFileSync(path.join(SPRITES, 'arduino-uno.svg'), boardSvg(true));
+console.log('robotics: sprites/arduino-uno.sprite3');
 console.log('robotics: index.html');

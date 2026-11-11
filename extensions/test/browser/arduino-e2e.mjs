@@ -89,6 +89,37 @@ try {
   await cdp('Runtime.enable');
   await cdp('Page.enable');
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: fakeSerial });
+  // 0. A new project: the Arduino sprite is in the sprite library, and adding the Arduino
+  //    extension adds it; pin 13 lights its "L".
+  await cdp('Page.navigate', { url: `http://localhost:${PORT}/editor` });
+  await until('editor ready', `return window.vm && vm.runtime.targets.length >= 2 && !!document.querySelector('[aria-label="Choose a Sprite"]')`, 40000);
+  await sleep(1000);
+  const sprites = `return vm.runtime.targets.filter(t => t.isOriginal && !t.isStage).map(t => t.getName()).join(',')`;
+  const clickText = (sel, text) => `const e = [...document.querySelectorAll(${JSON.stringify(sel)})].find(x => x.innerText.trim() === ${JSON.stringify(text)}); if (!e) return false; e.click(); return true;`;
+  await js(`document.querySelector('[aria-label="Choose a Sprite"]').click(); return true;`);
+  await until('sprite library shows Arduino Uno', clickText('[class*="library-item_library-item_"]', 'Arduino Uno'), 15000);
+  await until('Arduino sprite added from the library', `return ${sprites.replace('return ', '')}.split(',').includes('Arduino')`);
+  const costumes = await js(`return vm.runtime.targets.find(t => t.getName() === 'Arduino').getCostumes().map(c => c.name).join(',')`);
+  check('sprite library: "Arduino Uno" adds the Arduino sprite (costumes uno, uno L on)', costumes === 'uno,uno L on', costumes);
+  await shot('arduino-sprite-library.png');
+  // Delete it again and select the cat, then add the extension.
+  await js(`const t = vm.runtime.targets.find(t => t.getName() === 'Arduino'); vm.deleteSprite(t.id); vm.setEditingTarget(vm.runtime.targets.find(t => !t.isStage).id); return true;`);
+  await sleep(500);
+  await js(`document.querySelector('[title="Add Extension"]').click(); return true;`);
+  await until('extension library shows Arduino', `const e = [...document.querySelectorAll('[class*="library-item_library-item_"]')].find(x => x.innerText.includes('Robotics: LEDs')); if (!e) return false; e.click(); return true;`, 15000);
+  await until('Arduino sprite added with the extension', `return vm.extensionManager.isExtensionLoaded('blockmlArduino') && ${sprites.replace('return ', '')}.split(',').includes('Arduino')`);
+  const all = await js(sprites);
+  check('adding the Arduino extension adds the Arduino sprite once', all === 'Sprite1,Arduino', all);
+  check('the student keeps editing their own sprite', (await js('return vm.editingTarget.getName()')) === 'Sprite1');
+  await js(`vm.runtime._primitives.blockmlArduino_digitalWrite({PIN: '13', LEVEL: 'HIGH'}); return true;`);
+  await sleep(400);
+  const lit = await js(`const t = vm.runtime.targets.find(t => t.getName() === 'Arduino'); return t.getCostumes()[t.currentCostume].name`);
+  check('pin 13 HIGH lights the sprite L LED', lit === 'uno L on', lit);
+  await shot('arduino-sprite-added.png');
+  await js(`vm.runtime._primitives.blockmlArduino_digitalWrite({PIN: '13', LEVEL: 'LOW'}); return true;`);
+  await sleep(300);
+  check('pin 13 LOW turns it off', (await js(`const t = vm.runtime.targets.find(t => t.getName() === 'Arduino'); return t.getCostumes()[t.currentCostume].name`)) === 'uno');
+
   const project = `http://localhost:${PORT}/lessons/robotics/r6-parking-barrier/project.sb3`;
   await cdp('Page.navigate', { url: `http://localhost:${PORT}/editor?project_url=${encodeURIComponent(project)}` });
   await until('project loaded with the Arduino extension', `return window.vm && vm.extensionManager.isExtensionLoaded('blockmlArduino') && vm.runtime.targets.some(t => t.sprite && t.sprite.name === 'Arduino')`, 40000);

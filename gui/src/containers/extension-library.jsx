@@ -4,6 +4,7 @@ import React from 'react';
 import VM from 'scratch-vm';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 import log from '../lib/log';
+import {addArduinoSprite, hasArduinoSprite} from '../lib/blockml-arduino-sprite.js';
 
 import extensionLibraryContent, {
     galleryError,
@@ -152,6 +153,16 @@ class ExtensionLibrary extends React.PureComponent {
                 this.props.vm.extensionManager.loadExtensionURL(url)
                     .then(() => {
                         this.props.onCategorySelected(extensionId);
+                        // blockml: like choosing a board in PictoBlox, the board appears as a sprite.
+                        if (extensionId === 'blockmlArduino' && !hasArduinoSprite(this.props.vm)) {
+                            const editing = this.props.vm.editingTarget;
+                            addArduinoSprite(this.props.vm)
+                                .then(() => {
+                                    // Keep editing the sprite the student was on.
+                                    if (editing && editing.isOriginal) this.props.vm.setEditingTarget(editing.id);
+                                })
+                                .catch(err => log.warn(err));
+                        }
                     })
                     .catch(err => {
                         log.error(err);

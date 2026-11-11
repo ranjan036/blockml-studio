@@ -1072,6 +1072,12 @@ were kept as the defaults). Decisions: blocks as a **bridge to Arduino C++**, an
   Street light, and the S51 showcase (smart dustbin); each with a fix-the-bug version
   except S51.
 - The app exporter (BlockML repo, `sb3Validate.js`) refuses Arduino projects with the reason.
+- **The Arduino sprite** (asked for after launch, like PictoBlox's board sprite): an Uno
+  picture with costumes "uno" and "uno L on". It is first in Choose a Sprite ("Arduino
+  Uno"), and adding the Arduino extension adds it to a project that has none (the student
+  keeps editing their own sprite). Pin 13 HIGH lights its "L", like the real board. Files:
+  `extensions/starters/arduino-sprite.mjs` → `gui/static/sprites/arduino-uno.sprite3`;
+  `gui/src/lib/blockml-arduino-sprite.js`.
 
 Tested without wiring: the firmware in a simulated Uno (avr8js) with software LEDs,
 servo (pulse widths), HC-SR04, flame sensor and LDR; the uploader and firmware on the

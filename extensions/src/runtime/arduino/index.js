@@ -28,6 +28,18 @@ export function createArduino(vm, { base }) {
 
   const real = () => !!client && !client.closed;
 
+  // The "Arduino" sprite's on-board LED (costume "uno L on") follows pin 13, like the real "L".
+  function boardSpriteL(on) {
+    for (const t of vm.runtime.targets) {
+      if (!t.isOriginal || t.isStage || t.getName() !== 'Arduino') continue;
+      const want = on ? 'uno L on' : 'uno';
+      const now = t.getCostumes()[t.currentCostume];
+      if (!now || (now.name !== 'uno' && now.name !== 'uno L on')) continue; // the student changed costumes: leave it
+      const i = t.getCostumeIndexByName(want);
+      if (i >= 0 && i !== t.currentCostume) t.setCostume(i);
+    }
+  }
+
   function touch() {
     if (!hiddenByUser && !panel.visible) panel.show();
     panel.update();
@@ -154,6 +166,7 @@ export function createArduino(vm, { base }) {
   vm.runtime.on('PROJECT_START', () => { hiddenByUser = false; });
   vm.runtime.on('PROJECT_STOP_ALL', () => {
     model.reset(false);
+    boardSpriteL(false);
     send('Z');
     panel.update();
   });
@@ -179,11 +192,13 @@ export function createArduino(vm, { base }) {
     },
     digitalWrite(pin, level) {
       model.write(pin, level);
+      if (pin === 13) boardSpriteL(!!level);
       touch();
       return send(`D ${pin} ${level ? 1 : 0}`);
     },
     analogWrite(pin, value) {
       model.pwm(pin, value);
+      if (pin === 13) boardSpriteL(model.outputs.get(pin).pwm > 0);
       touch();
       return send(`W ${pin} ${model.outputs.get(pin).pwm}`);
     },

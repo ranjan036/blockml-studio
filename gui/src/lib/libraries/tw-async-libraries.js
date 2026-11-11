@@ -1,3 +1,5 @@
+import {ARDUINO_SPRITE_ITEM} from '../blockml-arduino-sprite.js';
+
 const asyncLibrary = callback => {
     let data = null;
     return () => {
@@ -16,6 +18,8 @@ export const getCostumeLibrary = asyncLibrary(
 export const getSoundLibrary = asyncLibrary(
     () => import(/* webpackChunkName: "library-sounds" */ './sounds.json')
 );
+// blockml: the Arduino board sprite comes first (see ../blockml-arduino-sprite.js).
 export const getSpriteLibrary = asyncLibrary(
     () => import(/* webpackChunkName: "library-sprites" */ './sprites.json')
+        .then(mod => ({default: [ARDUINO_SPRITE_ITEM, ...mod.default]}))
 );
