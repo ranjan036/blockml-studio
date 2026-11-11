@@ -10,7 +10,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { unzipSync, strFromU8 } from 'fflate';
 import { Project, op, bool, v } from './sb3.mjs';
-import { roboticsPage, roboticsIndexPage } from './lesson-pages.mjs';
+import { roboticsPage, roboticsIndexPage, teacherPage } from './lesson-pages.mjs';
+import { saveAnswers } from './teacher-answers.mjs';
 import { flag, forever, ifThen, ifElse, set, change, say, wait, whenKey, eq, lt, gt, and, join2, repeatUntil } from './blocks.mjs';
 import { generate, blocksFromSb3 } from '../src/runtime/arduino/cpp.js';
 import { BOARD_COSTUMES, boardSvg, arduinoSprite3 } from './arduino-sprite.mjs';
@@ -341,6 +342,12 @@ const kitNote = `<section><h2>Before you start</h2><ul>
 <li><b>Blocks → C++:</b> every program shows its Arduino C++ (<b>Show Arduino C++</b>), ready for the Arduino IDE.</li>
 <li>Safety: unplug USB before changing wires; every LED gets a 220 Ω resistor; flames only with the teacher.</li></ul></section>`;
 fs.writeFileSync(path.join(OUT, 'index.html'), roboticsIndexPage(cards, kitNote));
+
+// Fix-the-bug answers: only on the teacher page (password), not on the lesson cards.
+saveAnswers({ id: 'robotics', name: 'Fundamental Robotics (sessions 42–51)', order: 2 }, cards, (c) => `/lessons/robotics/${c.slug}/`);
+fs.mkdirSync(path.join(OUT, '..', 'teacher'), { recursive: true });
+fs.writeFileSync(path.join(OUT, '..', 'teacher', 'index.html'), teacherPage());
+console.log('teacher page: lessons/teacher/index.html');
 
 // The Arduino sprite for the editor's sprite library (and for adding it with the extension).
 const SPRITES = path.join('..', 'gui', 'static', 'sprites');

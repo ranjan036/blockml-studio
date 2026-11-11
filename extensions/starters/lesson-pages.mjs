@@ -53,6 +53,10 @@ document.querySelectorAll('a[data-project]').forEach(function (a) {
 });
 </script>`;
 
+// Fix-the-bug answers are not on the lesson pages (students read them): teachers see them
+// on /lessons/teacher/ after a password (api/teacher.js, answers from teacher-answers.mjs).
+const TEACHER_NOTE = (slug) => `<p class="small">Teachers: the answer is on the <a href="/lessons/teacher/#${slug}">teacher page</a> (password).</p>`;
+
 /** A lesson card page for one game. */
 export function lessonPage(card) {
   const open = (file, label, cls) => `<a class="btn ${cls}" data-project="${file}" target="_blank" rel="noopener">${label}</a>`;
@@ -83,7 +87,7 @@ ${card.sessions.map((s) => `<section><h2>${esc(s.title)}</h2>${s.say ? `<p class
 <section><h2>Common misconceptions</h2><table><tr><th>Students may think…</th><th>Help them see…</th></tr>
 ${card.misconceptions.map(([m, h]) => `<tr><td>“${esc(m)}”</td><td>${esc(h)}</td></tr>`).join('')}</table></section>
 <section><h2>🐞 Fix the bug</h2><p>${card.bug.symptom}</p>${list(card.bug.hints)}
-<details><summary>Answer (for teachers)</summary><p>${card.bug.answer}</p></details></section>
+${TEACHER_NOTE(card.slug)}</section>
 <section><h2>Challenges</h2>${list(card.challenges)}</section>
 <section><h2>📱 Make it an Android app</h2>${steps(card.app)}</section>
 <section><h2>No internet or no camera?</h2>${list(card.offline)}</section>
@@ -227,7 +231,7 @@ ${card.extraButtons || ''}
 ${card.cpp ? `<section><h2>Blocks → Arduino C++</h2><p>Press <b>Show Arduino C++</b> (in the Arduino blocks, or the <b>C++</b> button on the board panel) to see the same program written for the Arduino IDE. It should look like this:</p><pre style="background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;overflow:auto;font-size:13px">${esc(card.cpp)}</pre><p class="small">Paste it into the Arduino IDE and press Upload to run it without Studio. That replaces the CODE AI program on the board: press <b>Prepare board</b> in Studio before using blocks again.</p></section>` : ''}
 ${card.extraSections || ''}
 ${card.bug ? `<section><h2>🐞 Fix the bug</h2><p>${card.bug.symptom}</p>${list(card.bug.hints)}
-<details><summary>Answer (for teachers)</summary><p>${card.bug.answer}</p></details></section>` : ''}
+${TEACHER_NOTE(card.slug)}</section>` : ''}
 <section><h2>Challenges</h2>${list(card.challenges)}</section>
 <section><h2>Troubleshooting</h2>${list(card.troubleshoot)}</section>
 <p class="small">Part of the CODE AI Core Curriculum (Fundamental Robotics), built with BlockML Studio. <a href="../">Robotics sessions</a> · <a href="../../">All lessons</a></p>
@@ -242,4 +246,53 @@ export function roboticsIndexPage(cards, extra = '') {
 <main>${extra}${cards.map((c) => `<section><div class="kicker" style="color:var(--navy)">${esc(c.kicker)}</div>
 <h2><a href="${c.slug}/" style="color:inherit">${esc(c.title)}</a></h2><p class="small">${esc(c.objective)}</p></section>`).join('\n')}
 <p class="small"><a href="../">All lessons</a> · <a href="../../editor">Open BlockML Studio</a></p></main></body></html>`;
+}
+
+/** The teacher page: asks for the password, then shows every fix-the-bug answer (from /api/teacher). */
+export function teacherPage() {
+  return `${HEAD('Teacher answers').replace('<meta charset="utf-8">', '<meta charset="utf-8"><meta name="robots" content="noindex">')}<body>
+<header><div class="wrap"><div class="kicker">BlockML Studio · for CODE AI teachers</div><h1>Teacher answers</h1>
+<p class="objective">The fix-the-bug answers for every game and robotics lesson.</p></div></header>
+<main>
+<section id="login"><h2>Teacher password</h2>
+<form id="form" style="display:flex;gap:8px;flex-wrap:wrap"><input id="pw" type="password" autocomplete="current-password" required
+style="flex:1;min-width:200px;padding:9px 12px;border:2px solid var(--line);border-radius:10px;font:inherit">
+<button class="btn" type="submit" style="border:0;cursor:pointer;font:inherit;font-weight:700">Show answers</button></form>
+<p id="msg" class="small"></p></section>
+<div id="answers"></div>
+<p class="small"><a href="../">All lessons</a></p>
+</main>
+<script>
+var form = document.getElementById('form'), pw = document.getElementById('pw'), msg = document.getElementById('msg');
+function show(data) {
+  document.getElementById('login').style.display = 'none';
+  var out = document.getElementById('answers');
+  data.groups.forEach(function (g) {
+    var sec = document.createElement('section');
+    var h = document.createElement('h2'); h.textContent = g.name; sec.appendChild(h);
+    g.items.forEach(function (it) {
+      var d = document.createElement('div'); d.id = it.slug; d.style.margin = '10px 0 14px';
+      var t = document.createElement('h3'); var a = document.createElement('a'); a.href = it.url; a.textContent = it.title; t.appendChild(a); d.appendChild(t);
+      var sy = document.createElement('p'); sy.className = 'small'; sy.innerHTML = 'Bug: ' + it.symptom; d.appendChild(sy);
+      var an = document.createElement('p'); an.innerHTML = it.answer; d.appendChild(an);
+      sec.appendChild(d);
+    });
+    out.appendChild(sec);
+  });
+  if (location.hash) { var el = document.getElementById(location.hash.slice(1)); if (el) { el.scrollIntoView(); el.style.background = '#fff8db'; } }
+}
+function ask(password, quiet) {
+  msg.textContent = quiet ? '' : 'Checking…';
+  return fetch('/api/teacher', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: password }) })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; }); })
+    .then(function (r) {
+      if (r.ok) { try { sessionStorage.setItem('teacherPw', password); } catch (e) {} show(r.body); return; }
+      try { sessionStorage.removeItem('teacherPw'); } catch (e) {}
+      msg.textContent = r.status === 401 ? 'That password is not right.' : (r.body.error || 'Something went wrong.');
+    })
+    .catch(function () { msg.textContent = 'Could not check the password: is the internet on?'; });
+}
+form.addEventListener('submit', function (e) { e.preventDefault(); ask(pw.value); });
+try { var saved = sessionStorage.getItem('teacherPw'); if (saved) ask(saved, true); } catch (e) {}
+</script></body></html>`;
 }

@@ -1100,3 +1100,14 @@ no echo doesn't open it), stop, Show C++, and every lesson on the virtual board 
    and that darkness gives the low number with the LDR on the 5V side.
 9. Show Arduino C++ → paste into the Arduino IDE → Upload works; then Prepare board again.
 10. Unplug the cable while running: the panel says so and falls back to the virtual board.
+
+### 15.24 Teacher answers behind a password (2026-11-11)
+
+The fix-the-bug answers (8 games, 7 robotics lessons) are no longer on the lesson pages,
+which students read. Each card links to `/lessons/teacher/#<lesson>`, which asks for the
+teacher password and gets the answers from `api/teacher.js` (POST; constant-time check
+against the Vercel environment variable **TEACHER_PASSWORD**, a short delay after a wrong
+password, no caching). The builders write the answers to `api/_teacher/*.json` (and the
+same in `gui/api/`), never into the published lesson files; a test checks that no lesson
+page contains an answer. Limit: the answers are still in this public repository's source
+(and history), so a student who reads the GitHub code could find them.

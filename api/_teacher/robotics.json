@@ -1,0 +1,55 @@
+{
+ "name": "Fundamental Robotics (sessions 42–51)",
+ "order": 2,
+ "items": [
+  {
+   "slug": "r1-led-blink",
+   "title": "Robotics 1 · Session 42 · LED Blinking",
+   "url": "/lessons/robotics/r1-led-blink/",
+   "symptom": "The LED never seems to turn off — it just stays on.",
+   "answer": "The <b>wait 1 seconds</b> after <b>digital write pin 8 to LOW</b> is missing, so the LED is off for only a few microseconds — too short to see. Add the wait back."
+  },
+  {
+   "slug": "r2-traffic-light",
+   "title": "Robotics 2 · Session 43 · Traffic Light System",
+   "url": "/lessons/robotics/r2-traffic-light/",
+   "symptom": "Yellow and red are on together, and after the first round yellow never goes off.",
+   "answer": "<b>digital write pin 9 to LOW</b> is missing after the yellow wait. Two lights on together usually means a missing LOW before the next HIGH."
+  },
+  {
+   "slug": "r3-fire-alarm",
+   "title": "Robotics 3 · Session 44 · Buzzer + Fire Alarm",
+   "url": "/lessons/robotics/r3-fire-alarm/",
+   "symptom": "The alarm rings all the time — and stops when there IS a flame.",
+   "answer": "The if checks <b>digital read pin 2 = 1</b>, but most flame modules give <b>0</b> when they see a flame (and 1 when they don't). Change 1 to 0 — or check your own module, since a few work the other way."
+  },
+  {
+   "slug": "r4-servo",
+   "title": "Robotics 4 · Sessions 45–46 · Servo Motor Project",
+   "url": "/lessons/robotics/r4-servo/",
+   "symptom": "The servo sweeps up to 180° once, then stops moving for ever.",
+   "answer": "The second repeat says <b>change angle by 1</b>, so the angle keeps growing past 180 (the servo can't go further). It should be <b>change angle by -1</b> to come back."
+  },
+  {
+   "slug": "r5-ultrasonic",
+   "title": "Robotics 5 · Session 47 · Ultrasonic Distance Sensor",
+   "url": "/lessons/robotics/r5-ultrasonic/",
+   "symptom": "The distance never changes, however you move your hand.",
+   "answer": "<b>set distance to (distance in cm…)</b> is above the forever loop, so it measures once at the start. Move it inside the loop."
+  },
+  {
+   "slug": "r6-parking-barrier",
+   "title": "Robotics 6 · Sessions 48–49 · Flagship synthesis · Automatic Parking Barrier",
+   "url": "/lessons/robotics/r6-parking-barrier/",
+   "symptom": "The gate opens when there is nothing in front of it at all.",
+   "answer": "With no echo the sensor gives 0, and 0 &lt; 15, so the gate opens. Check <b>distance &gt; 0 and distance &lt; 15</b>."
+  },
+  {
+   "slug": "r7-street-light",
+   "title": "Robotics 7 · Session 50 · Automatic Street Light",
+   "url": "/lessons/robotics/r7-street-light/",
+   "symptom": "The street light is on in the daytime and off at night.",
+   "answer": "The if says <b>light &gt; 400</b>, but with the LDR on the 5V side, darkness gives a <b>low</b> number. It should be <b>light &lt; 400</b>. (If your LDR is wired the other way round, the opposite is right — always check the readings first.)"
+  }
+ ]
+}

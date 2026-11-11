@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Project, op, bool, v } from './sb3.mjs';
 import { lessonPage, indexPage, cardsPage, phrasesPage } from './lesson-pages.mjs';
+import { saveAnswers } from './teacher-answers.mjs';
 import {
   flag, forever, ifThen, ifElse, waitUntil, stopAll, set, change, say, sayFor, costume, costumeFrom, goTo, changeX, changeY, yPosition, random, keyPressed, touching, eq, lt, gt, and, not, sub, add, mul, div, or, join2, round, repeatUntil, wait, hide, show, setX, setY, xPosition, goToSprite, colorEffect, front, timer, resetTimer, cloneOf, whenClone, deleteClone, whenClicked, whenKey, broadcast, whenReceive, soundMenu, startSound, playUntilDone, stopAllSounds, setPitch, changePitch, clearSoundEffects, setVolume, changeVolume, volume, think, thinkFor, setSize, changeSize, size, changeGhost, clearGraphicEffects, forwardLayers, costumeNumber, nextBackdrop, switchBackdropAndWait, moveSteps, turnLeft, pointIn, direction, pointTowards, glideTo, glide, bounceOnEdge, rotationStyle, distanceTo, mouseX, mouseY, mouseDown, propertyOf, colourTouchingColour, loudness, current, daysSince2000, username, dragMode, letterOf, showVariable, hideVariable, whenStageClicked, whenBackdropIs, whenTimerOver, broadcastAndWait, addTo, insertAt, deleteOf, replaceItem, itemNumberOf, listContains, showList, hideList, sounds, face, pose, img, text,
 } from './blocks.mjs';
@@ -1635,4 +1636,6 @@ ${mouth}${cheeks}<rect x="35" y="118" width="70" height="38" rx="10" fill="#8b5c
 }
 
 fs.writeFileSync(path.join(OUT, 'index.html'), indexPage(cards));
+// Fix-the-bug answers: only on the teacher page (password), not on the lesson cards.
+saveAnswers({ id: 'games', name: 'Coding & AI games (sessions 2–17)', order: 1 }, [...cards].sort((a, b) => a.number - b.number), (c) => `/lessons/${c.slug}/`);
 console.log('lesson: index.html');

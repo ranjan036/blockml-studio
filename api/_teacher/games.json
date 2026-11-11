@@ -1,0 +1,62 @@
+{
+ "name": "Coding & AI games (sessions 2–17)",
+ "order": 1,
+ "items": [
+  {
+   "slug": "game1-maze-runner",
+   "title": "Game 1 · Sessions 2–3 · AI Level 1: Use · Maze Runner, Voice-Controlled",
+   "url": "/lessons/game1-maze-runner/",
+   "symptom": "In <b>Fix the bug</b>, the runner walks straight through walls — but only when going right.",
+   "answer": "The right-arrow block steps back with <code>change x by 4</code> — further into the wall. It should be <code>change x by -4</code>, the opposite of the move."
+  },
+  {
+   "slug": "game2-catch-the-apple",
+   "title": "Game 2 · Sessions 4–5 · AI Level 2: Customize (flagship) · Catch the Apple, Train Your Own Sorter",
+   "url": "/lessons/game2-catch-the-apple/",
+   "symptom": "In <b>Fix the bug</b>, apples that fall to the ground just sit there, and you never lose a life.",
+   "answer": "The ground check is <code>if y position &lt; -250</code>, but the stage only goes down to y = −180, and Scratch keeps sprites on the stage, so it is never true. Change −250 to −150."
+  },
+  {
+   "slug": "game3-balloon-pop",
+   "title": "Game 3 · Sessions 6–7 · AI Level 1: Use · Balloon Pop, Smile to Pop",
+   "url": "/lessons/game3-balloon-pop/",
+   "symptom": "In <b>Fix the bug</b>, all the balloons suddenly speed up or slow down together whenever a new balloon appears.",
+   "answer": "<code>speed</code> was made <b>for all sprites</b>, so there is only one speed shared by every balloon; each new clone overwrites it. Delete it and make a new variable <code>speed</code> <b>for this sprite only</b> — then every clone keeps its own."
+  },
+  {
+   "slug": "game4-dino-jump",
+   "title": "Game 4 · Sessions 8–9 · AI Level 1: Use · Dino Jump, Jump When You Jump",
+   "url": "/lessons/game4-dino-jump/",
+   "symptom": "In <b>Fix the bug</b>, holding space makes the dino fly up and away.",
+   "answer": "The jump check is only <code>if key space pressed</code>, so the dino can jump again in mid-air every frame. It needs <code>and &lt;y position = -95&gt;</code>: jump only when standing on the ground."
+  },
+  {
+   "slug": "game5-space-shooter",
+   "title": "Game 5 · Sessions 10–11 · AI Level 2: Customize (flagship #2) · Space Shooter, Friend or Foe",
+   "url": "/lessons/game5-space-shooter/",
+   "symptom": "In <b>Fix the bug</b>, when lives reach 0 the game never ends: no “Game over” sign and no high score, the ship stops moving, and new ships keep coming.",
+   "answer": "The Ship broadcasts <code>game over</code> but the Sign waits for <code>gameover</code> (no space) — a different message, so the Sign never hears it. Pick <code>game over</code> in the Sign's <code>when I receive</code> block."
+  },
+  {
+   "slug": "game6-car-racing",
+   "title": "Game 6 · Sessions 12–13 · AI Level 1: Use (reused, continuous) · Car Racing, Lean to Steer",
+   "url": "/lessons/game6-car-racing/",
+   "symptom": "In <b>Fix the bug</b>, the lane lines slowly bunch together and gaps appear in the road.",
+   "answer": "Five lines 72 apart make a pattern 360 long, and the stage is 360 tall, so the line position must use <code>mod 360</code>. The bug uses <code>mod 300</code>, so lines come back too early, bunch together and leave gaps. Change 300 to 360."
+  },
+  {
+   "slug": "game7-platform-adventure",
+   "title": "Game 7 · Sessions 14–15 · AI Level 1: Use + reliability lesson · Platform Adventure, Ask the Guide",
+   "url": "/lessons/game7-platform-adventure/",
+   "symptom": "In <b>Fix the bug</b>, when you reach the star, level 2 flashes and you win at once.",
+   "answer": "After switching to level 2, the hero is still at the star's old place, and the star moves to its level-2 place right next to it, so the hero touches it and wins. <code>start level</code> must be called after <code>next backdrop</code> to send the hero back to the start."
+  },
+  {
+   "slug": "game8-kindness-checker",
+   "title": "Game 8 · Sessions 16–17 · AI Level 1: Use + reflect · Kindness Checker",
+   "url": "/lessons/game8-kindness-checker/",
+   "symptom": "In <b>Fix the bug</b>, “you are a loser” is not caught, but “you are an idiot” is.",
+   "answer": "The counter starts at <code>set i to 0</code>. There is no item 0, and the loop runs as many times as there are words, so it checks items 0 to 7 — and never item 8, “loser”. Start at 1."
+  }
+ ]
+}
