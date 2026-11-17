@@ -35,6 +35,15 @@ export const BLOCKML_BACKDROPS = [
         rotationCenterX: 240,
         rotationCenterY: 180,
         bitmapResolution: 1
+    },
+    {
+        name: 'Minion Sky',
+        tags: ['outdoors', 'sky', 'minion', 'parachute', 'game'],
+        rawURL: 'backdrops/minion-sky.svg',
+        blockmlSvg: 'backdrops/minion-sky.svg',
+        rotationCenterX: 240,
+        rotationCenterY: 180,
+        bitmapResolution: 1
     }
 ];
 

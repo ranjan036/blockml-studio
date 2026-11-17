@@ -1211,3 +1211,6 @@ proportional steering, and Scratch lists → C++ arrays.
   `falling` (arms up, air streaks) and `parachute` (red-and-white canopy, smiling). Our own
   little yellow character, not the film's design. Body in the same place in both costumes
   (rotation centre = the body), starts at (0, 80), size 80, doesn't rotate.
+- 2026-11-17 (later): **Minion Sky** backdrop: blue sky, sun, clouds to fall past, a grass field
+  (top at stage y = -140) with a red-and-white landing target at x = 0. The Minion (size 80)
+  stands on the target at about y = -125.

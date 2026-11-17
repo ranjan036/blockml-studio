@@ -72,6 +72,20 @@ export const MINION_COSTUMES = [['falling', MINION_FALLING], ['parachute', MINIO
 // Rotation centre = the middle of the body; starts high up with the whole parachute on stage.
 export const minionSprite3 = () => sprite3('Minion', MINION_COSTUMES, [50, 105], { x: 0, y: 80, size: 80, rotationStyle: "don't rotate" });
 
+// The Minion game's sky: clouds to fall past, a field at the bottom with a landing target
+// (grass top at stage y = -140, target centre at x = 0).
+const cloud = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" fill="#ffffff" opacity=".95"><ellipse cx="0" cy="0" rx="34" ry="16"/><ellipse cx="-22" cy="6" rx="22" ry="12"/><ellipse cx="24" cy="6" rx="24" ry="12"/><ellipse cx="4" cy="-12" rx="20" ry="14"/></g>`;
+export const MINION_SKY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#e0f2fe"/></linearGradient></defs>
+<rect width="480" height="360" fill="url(#sky)"/>
+<circle cx="70" cy="60" r="28" fill="#fde047"/><circle cx="70" cy="60" r="38" fill="#fde047" opacity=".3"/>
+${cloud(330, 55, 1.2)}${cloud(150, 130, 0.8)}${cloud(400, 190, 0.9)}${cloud(60, 220, 0.7)}
+<path d="M0 300 Q60 270 130 292 T260 285 T380 290 T480 282 V330 H0 Z" fill="#86efac"/>
+<rect y="320" width="480" height="40" fill="#4ade80"/><rect y="318" width="480" height="4" fill="#15803d"/>
+<ellipse cx="240" cy="332" rx="46" ry="9" fill="#ffffff" stroke="#dc2626" stroke-width="4"/>
+<ellipse cx="240" cy="332" rx="26" ry="5" fill="#fecaca" stroke="#dc2626" stroke-width="3"/>
+<ellipse cx="240" cy="332" rx="7" ry="2" fill="#dc2626"/></svg>`;
+
 /** Library files: [file name, contents]; sprites go to static/sprites/, backdrops to static/backdrops/. */
 export const LIBRARY_SPRITES = [
   ['dino.sprite3', dinoSprite3()], ['dino.svg', dinoSvg(25, 33)],
@@ -79,4 +93,4 @@ export const LIBRARY_SPRITES = [
   ['minion.sprite3', minionSprite3()], ['minion.svg', MINION_PARACHUTE],
   ['minion-falling.svg', MINION_FALLING],
 ];
-export const LIBRARY_BACKDROPS = [['dino-desert.svg', DESERT_SVG]];
+export const LIBRARY_BACKDROPS = [['dino-desert.svg', DESERT_SVG], ['minion-sky.svg', MINION_SKY_SVG]];
