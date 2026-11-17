@@ -5,7 +5,7 @@
 import {ARDUINO_SPRITE_ITEM} from './blockml-arduino-sprite.js';
 
 export const BLOCKML_SPRITES = [
-    ARDUINO_SPRITE_ITEM,
+    {...ARDUINO_SPRITE_ITEM},
     {
         name: 'Dino',
         tags: ['animals', 'dinosaur', 'dino', 'game'],
@@ -23,6 +23,12 @@ export const BLOCKML_SPRITES = [
         tags: ['people', 'fantasy', 'minion', 'parachute', 'game'],
         rawURL: 'sprites/minion.svg',
         blockmlSprite3: 'sprites/minion.sprite3'
+    },
+    {
+        name: 'Sky Cloud',
+        tags: ['outdoors', 'sky', 'cloud', 'weather', 'game'],
+        rawURL: 'sprites/cloud.svg',
+        blockmlSprite3: 'sprites/cloud.sprite3'
     }
 ];
 
@@ -46,6 +52,12 @@ export const BLOCKML_BACKDROPS = [
         bitmapResolution: 1
     }
 ];
+
+// Unique React keys: the library keys items by name, and Scratch has items with the same
+// names as some of ours (its "Cloud" sprite, for one).
+[...BLOCKML_SPRITES, ...BLOCKML_BACKDROPS].forEach(item => {
+    item.key = `blockml-${item.blockmlSprite3 || item.blockmlSvg}`;
+});
 
 const fetchFile = path => fetch(new URL(path, location.href).href).then(res => {
     if (!res.ok) throw new Error(`Could not load ${path} (${res.status})`);

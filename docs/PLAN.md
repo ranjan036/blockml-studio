@@ -1214,3 +1214,7 @@ proportional steering, and Scratch lists → C++ arrays.
 - 2026-11-17 (later): **Minion Sky** backdrop: blue sky, sun, clouds to fall past, a grass field
   (top at stage y = -140) with a red-and-white landing target at x = 0. The Minion (size 80)
   stands on the target at about y = -125.
+- 2026-11-17 (later): **Sky Cloud** in the sprite library (sprite name "Cloud"): costumes `cloud`,
+  `small cloud`, `storm cloud` (dark, with a lightning bolt, for dodging); same canvas, so they
+  swap in place. Listed as "Sky Cloud" because Scratch already has a "Cloud" sprite; our library
+  items now get unique React keys (`blockml-<file>`), since the library keys items by name.

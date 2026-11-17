@@ -86,11 +86,25 @@ ${cloud(330, 55, 1.2)}${cloud(150, 130, 0.8)}${cloud(400, 190, 0.9)}${cloud(60, 
 <ellipse cx="240" cy="332" rx="26" ry="5" fill="#fecaca" stroke="#dc2626" stroke-width="3"/>
 <ellipse cx="240" cy="332" rx="7" ry="2" fill="#dc2626"/></svg>`;
 
+// A Cloud sprite for the Minion game: a fluffy cloud, a small one, and a dark storm cloud
+// (with a lightning bolt) to dodge. Same 120x80 canvas, centred, so costumes swap in place.
+const cloudSvg = (fill, edge, k, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 120 80">
+${extra}<g transform="translate(60 40) scale(${k})" fill="${fill}" stroke="${edge}" stroke-width="${2.5 / k}" stroke-linejoin="round">
+<path d="M-46 16 C-58 16 -58 -2 -44 -2 C-46 -16 -28 -22 -20 -12 C-16 -28 10 -30 14 -14 C22 -24 40 -18 38 -4 C54 -6 56 16 42 16 Z"/></g></svg>`;
+const BOLT = '<path d="M62 52 L52 66 H60 L54 80 L70 60 H62 L68 52 Z" fill="#facc15" stroke="#a16207" stroke-width="2" stroke-linejoin="round"/>';
+export const CLOUD_COSTUMES = [
+  ['cloud', cloudSvg('#ffffff', '#93c5fd', 1)],
+  ['small cloud', cloudSvg('#ffffff', '#93c5fd', 0.6)],
+  ['storm cloud', cloudSvg('#64748b', '#334155', 1, BOLT)],
+];
+export const cloudSprite3 = () => sprite3('Cloud', CLOUD_COSTUMES, [60, 40], { x: 150, y: 20, rotationStyle: "don't rotate" });
+
 /** Library files: [file name, contents]; sprites go to static/sprites/, backdrops to static/backdrops/. */
 export const LIBRARY_SPRITES = [
   ['dino.sprite3', dinoSprite3()], ['dino.svg', dinoSvg(25, 33)],
   ['cactus.sprite3', cactusSprite3()], ['cactus.svg', CACTUS_SVG],
   ['minion.sprite3', minionSprite3()], ['minion.svg', MINION_PARACHUTE],
   ['minion-falling.svg', MINION_FALLING],
+  ['cloud.sprite3', cloudSprite3()], ['cloud.svg', CLOUD_COSTUMES[0][1]],
 ];
 export const LIBRARY_BACKDROPS = [['dino-desert.svg', DESERT_SVG], ['minion-sky.svg', MINION_SKY_SVG]];
