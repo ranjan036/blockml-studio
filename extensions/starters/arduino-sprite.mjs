@@ -18,7 +18,7 @@ export const boardSvg = (lOn = false) => '<svg xmlns="http://www.w3.org/2000/svg
 export const BOARD_COSTUMES = [['uno', boardSvg(false)], ['uno L on', boardSvg(true)]];
 
 /** A sprite as a .sprite3 file (what "Upload sprite" and vm.addSprite take). */
-export function sprite3(name, costumeList, center, { x = 0, y = 0, size = 100, direction = 90, draggable = false, scripts = {} } = {}) {
+export function sprite3(name, costumeList, center, { x = 0, y = 0, size = 100, direction = 90, draggable = false, scripts = {}, rotationStyle = 'all around' } = {}) {
   const files = {};
   const costumes = costumeList.map(([cname, svg]) => {
     const data = strToU8(svg);
@@ -29,7 +29,7 @@ export function sprite3(name, costumeList, center, { x = 0, y = 0, size = 100, d
   const sprite = {
     isStage: false, name, variables: {}, lists: {}, broadcasts: {}, blocks: scripts, comments: {},
     currentCostume: 0, costumes, sounds: [], volume: 100, visible: true, x, y, size,
-    direction, draggable, rotationStyle: 'all around',
+    direction, draggable, rotationStyle,
   };
   files['sprite.json'] = strToU8(JSON.stringify(sprite));
   return zipSync(files);

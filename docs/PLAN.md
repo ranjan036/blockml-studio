@@ -1194,3 +1194,16 @@ proportional steering, and Scratch lists → C++ arrays.
 - The car's distance sensor is at its front edge (it was 3 cm behind, so Park Assist could
   brake 5 cm short yet brush the wall). Browser test: ONLY=phase2 / ONLY=rover / SKIP_ROVER=1
   run parts of it (the whole test takes ~15 min and was once stopped for low memory).
+
+### 15.28 Dino, Cactus and Dino Desert in the editor's libraries (2026-11-17)
+
+- "Choose a Sprite" now starts with Arduino Uno, **Dino** (costumes run 1, run 2, jump, ouch;
+  starts on the ground at -160, -95, doesn't rotate) and **Cactus** (cactus, small cactus);
+  "Choose a Backdrop" starts with **Dino Desert** (ground line at y = -95). Students can build
+  the Game 4 dino game from an empty project.
+- Same art as the Game 4 lesson projects (now in `extensions/starters/game-sprites.mjs`; the
+  lesson .sb3 files are byte-identical). `build-lessons.mjs` writes `static/sprites/dino.*`,
+  `cactus.*` and `static/backdrops/dino-desert.svg`; the list of our library items is
+  `gui/src/lib/blockml-library.js` (add more game sprites there).
+- Tested in the editor in headless Chrome: both sprites and the backdrop add, thumbnails load,
+  and the project saves and reloads with them.

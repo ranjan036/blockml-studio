@@ -10,6 +10,7 @@ import path from 'node:path';
 import { Project, op, bool, v } from './sb3.mjs';
 import { lessonPage, indexPage, cardsPage, phrasesPage } from './lesson-pages.mjs';
 import { saveAnswers } from './teacher-answers.mjs';
+import { DESERT_SVG, dinoSvg, CACTUS_SVG, LIBRARY_SPRITES, LIBRARY_BACKDROPS } from './game-sprites.mjs';
 import {
   flag, forever, ifThen, ifElse, waitUntil, stopAll, set, change, say, sayFor, costume, costumeFrom, goTo, changeX, changeY, yPosition, random, keyPressed, touching, eq, lt, gt, and, not, sub, add, mul, div, or, join2, round, repeatUntil, wait, hide, show, setX, setY, xPosition, goToSprite, colorEffect, front, timer, resetTimer, cloneOf, whenClone, deleteClone, whenClicked, whenKey, broadcast, whenReceive, soundMenu, startSound, playUntilDone, stopAllSounds, setPitch, changePitch, clearSoundEffects, setVolume, changeVolume, volume, think, thinkFor, setSize, changeSize, size, changeGhost, clearGraphicEffects, forwardLayers, costumeNumber, nextBackdrop, switchBackdropAndWait, moveSteps, turnLeft, pointIn, direction, pointTowards, glideTo, glide, bounceOnEdge, rotationStyle, distanceTo, mouseX, mouseY, mouseDown, propertyOf, colourTouchingColour, loudness, current, daysSince2000, username, dragMode, letterOf, showVariable, hideVariable, whenStageClicked, whenBackdropIs, whenTimerOver, broadcastAndWait, addTo, insertAt, deleteOf, replaceItem, itemNumberOf, listContains, showList, hideList, sounds, face, pose, img, text,
 } from './blocks.mjs';
@@ -464,17 +465,8 @@ ${good ? '<ellipse cx="15" cy="22" rx="4" ry="7" fill="#fca5a5"/>' : '<circle cx
 {
   const game = 'game4-dino-jump';
   const GROUND = -95;
-  const desert = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360">
-<rect width="480" height="360" fill="#fef3c7"/><circle cx="400" cy="70" r="34" fill="#fb923c"/>
-<path d="M0 230 Q80 190 160 225 T320 215 T480 225 V360 H0 Z" fill="#fde68a"/>
-<rect y="302" width="480" height="58" fill="#d6a45a"/><rect y="300" width="480" height="5" fill="#92400e"/>
-<g fill="#b45309" opacity=".5"><circle cx="60" cy="330" r="3"/><circle cx="210" cy="340" r="2"/><circle cx="330" cy="325" r="3"/><circle cx="440" cy="345" r="2"/></g></svg>`;
-  const dinoLegs = (front, back) => `<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 70 70">
-<path d="M14 44 C8 44 4 38 2 30 C10 36 14 34 18 32 L20 20 C20 10 28 4 40 4 H56 C64 4 68 10 68 16 V24 C68 28 64 30 60 30 H46 V36 L54 38 V42 H46 V48 C46 58 40 62 34 62 H16 V60 C14 56 14 50 14 44 Z" fill="#16a34a" stroke="#14532d" stroke-width="3" stroke-linejoin="round"/>
-<path d="M${front} 61 V68 M${back} 61 V68" stroke="#14532d" stroke-width="6" stroke-linecap="round"/>
-<circle cx="48" cy="13" r="4" fill="#ffffff"/><circle cx="49" cy="13" r="2" fill="#111827"/></svg>`;
-  const cactus = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="60" viewBox="0 0 36 60">
-<path d="M14 58 V10 C14 2 22 2 22 10 V58 Z M14 34 H8 C4 34 2 30 2 26 V18 C2 14 8 14 8 18 V26 H14 M22 28 H28 V16 C28 12 34 12 34 16 V26 C34 32 30 34 26 34 H22" fill="#15803d" stroke="#14532d" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
+  // The art is shared with the editor's sprite and backdrop libraries (game-sprites.mjs).
+  const desert = DESERT_SVG, dinoLegs = dinoSvg, cactus = CACTUS_SVG;
 
   // withPose: jump for real. onGroundCheck: false plants the bug (jumping in mid-air).
   const project = ({ withPose = false, onGroundCheck = true } = {}) => {
@@ -1639,3 +1631,11 @@ fs.writeFileSync(path.join(OUT, 'index.html'), indexPage(cards));
 // Fix-the-bug answers: only on the teacher page (password), not on the lesson cards.
 saveAnswers({ id: 'games', name: 'Coding & AI games (sessions 2–17)', order: 1 }, [...cards].sort((a, b) => a.number - b.number), (c) => `/lessons/${c.slug}/`);
 console.log('lesson: index.html');
+
+// Game sprites and backdrops for the editor's libraries (game-sprites.mjs).
+for (const [dir, files] of [['sprites', LIBRARY_SPRITES], ['backdrops', LIBRARY_BACKDROPS]]) {
+  const out = path.join('..', 'gui', 'static', dir);
+  fs.mkdirSync(out, { recursive: true });
+  for (const [name, data] of files) fs.writeFileSync(path.join(out, name), data);
+  console.log(`lesson: ${dir}/ ${files.map(([name]) => name).join(', ')}`);
+}

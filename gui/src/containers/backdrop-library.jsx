@@ -7,6 +7,7 @@ import VM from 'scratch-vm';
 import {getBackdropLibrary} from '../lib/libraries/tw-async-libraries';
 import backdropTags from '../lib/libraries/backdrop-tags';
 import LibraryComponent from '../components/library/library.jsx';
+import {addBlockmlBackdrop} from '../lib/blockml-library.js';
 
 const messages = defineMessages({
     libraryTitle: {
@@ -35,6 +36,11 @@ class BackdropLibrary extends React.Component {
         }
     }
     handleItemSelect (item) {
+        // blockml: our own backdrops are SVG files on this site, not Scratch's asset server.
+        if (item.blockmlSvg) {
+            addBlockmlBackdrop(this.props.vm, item);
+            return;
+        }
         const vmBackdrop = {
             name: item.name,
             rotationCenterX: item.rotationCenterX,

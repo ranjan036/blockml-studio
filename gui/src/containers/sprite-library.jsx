@@ -7,7 +7,7 @@ import VM from 'scratch-vm';
 import {getSpriteLibrary} from '../lib/libraries/tw-async-libraries';
 import randomizeSpritePosition from '../lib/randomize-sprite-position';
 import spriteTags from '../lib/libraries/sprite-tags';
-import {addArduinoSprite} from '../lib/blockml-arduino-sprite.js';
+import {addBlockmlSprite} from '../lib/blockml-library.js';
 
 import LibraryComponent from '../components/library/library.jsx';
 
@@ -39,7 +39,7 @@ class SpriteLibrary extends React.PureComponent {
     handleItemSelect (item) {
         // blockml: our own sprites are .sprite3 files on this site, not Scratch's asset server.
         if (item.blockmlSprite3) {
-            addArduinoSprite(this.props.vm).then(() => {
+            addBlockmlSprite(this.props.vm, item).then(() => {
                 this.props.onActivateBlocksTab();
             });
             return;
