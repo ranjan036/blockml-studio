@@ -1218,3 +1218,11 @@ proportional steering, and Scratch lists → C++ arrays.
   `small cloud`, `storm cloud` (dark, with a lightning bolt, for dodging); same canvas, so they
   swap in place. Listed as "Sky Cloud" because Scratch already has a "Cloud" sprite; our library
   items now get unique React keys (`blockml-<file>`), since the library keys items by name.
+- 2026-11-17 (later): **Updates show on the first reload.** The offline service worker served
+  pages from its cache, and a new version (about 6.7 MB of changed files) only took over after
+  it had finished saving — about 5 loads even on localhost, so users kept seeing the old editor
+  after a deploy. Pages (navigations) are now website-first with a 4 s timeout, then the saved
+  copy; script files etc. stay cache-first. Tested with two production builds
+  (ENABLE_SERVICE_WORKER=1): new editor on the first load; with the site down or hanging the
+  editor still opens (0.7 s / 4.6 s). The first deploy of this fix still needs the old slow
+  path once, since browsers run the old worker until the new one takes over.

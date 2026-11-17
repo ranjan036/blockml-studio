@@ -104,7 +104,28 @@ self.addEventListener('fetch', event => {
     if (url.origin !== self.location.origin || !url.pathname.startsWith(BASE.pathname)) return;
     const path = url.pathname.slice(BASE.pathname.length);
     const listed = FILES[path] ? path : (request.mode === 'navigate' && findPage(path));
-    if (listed) {
+    if (listed && request.mode === 'navigate') {
+        // Pages: the website first, so an update shows on the next reload (the new
+        // version's files take a while to save for offline, and until then this worker
+        // only has the old page). Offline, or no answer within 4 s: the saved page.
+        const saved = () => caches.open(CACHE).then(cache => cache.match(keyFor(listed)));
+        event.respondWith(new Promise(resolve => {
+            let done = false;
+            const fallback = () => {
+                if (done) return;
+                done = true;
+                resolve(saved().then(res => res || fetch(request)));
+            };
+            const timer = setTimeout(fallback, 4000);
+            fetch(request).then(res => {
+                if (done) return;
+                if (!res.ok && res.type !== 'opaqueredirect') return fallback();
+                done = true;
+                clearTimeout(timer);
+                resolve(res);
+            }, fallback);
+        }));
+    } else if (listed) {
         event.respondWith(caches.open(CACHE)
             .then(cache => cache.match(keyFor(listed)))
             .then(res => res || fetch(request)));
