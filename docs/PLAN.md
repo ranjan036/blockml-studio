@@ -1207,3 +1207,7 @@ proportional steering, and Scratch lists → C++ arrays.
   `gui/src/lib/blockml-library.js` (add more game sprites there).
 - Tested in the editor in headless Chrome: both sprites and the backdrop add, thumbnails load,
   and the project saves and reloads with them.
+- 2026-11-17 (later): **Minion** sprite for the Save the Minion project: one sprite, costumes
+  `falling` (arms up, air streaks) and `parachute` (red-and-white canopy, smiling). Our own
+  little yellow character, not the film's design. Body in the same place in both costumes
+  (rotation centre = the body), starts at (0, 80), size 80, doesn't rotate.

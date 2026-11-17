@@ -17,6 +17,12 @@ export const BLOCKML_SPRITES = [
         tags: ['cactus', 'desert', 'plant', 'game', 'outdoors'],
         rawURL: 'sprites/cactus.svg',
         blockmlSprite3: 'sprites/cactus.sprite3'
+    },
+    {
+        name: 'Minion',
+        tags: ['people', 'fantasy', 'minion', 'parachute', 'game'],
+        rawURL: 'sprites/minion.svg',
+        blockmlSprite3: 'sprites/minion.sprite3'
     }
 ];
 
